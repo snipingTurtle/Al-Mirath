@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.String?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
+
+<StackPane fx:id="welcomeRoot"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.example.al_mirath.controller.WelcomeController"
+           stylesheets="@../css/almirath-theme.css">
+
+    <styleClass>
+        <String fx:value="welcome-root"/>
+    </styleClass>
+
+    <ImageView fx:id="menuBackground"
+               preserveRatio="false"
+               smooth="true"
+               cache="true"
+               mouseTransparent="true"/>
+
+    <Rectangle fx:id="menuOverlay"
+               fill="BLACK"
+               opacity="0.18"
+               mouseTransparent="true"/>
+
+    <VBox alignment="CENTER"
+          spacing="22"
+          maxWidth="650">
+
+        <styleClass>
+            <String fx:value="welcome-card"/>
+        </styleClass>
+
+        <Label text="Al-Mirath">
+            <styleClass>
+                <String fx:value="welcome-title"/>
+            </styleClass>
+        </Label>
+
+        <Label text="The Legacy">
+            <styleClass>
+                <String fx:value="welcome-subtitle"/>
+            </styleClass>
+        </Label>
+
+        <Label text="A historical life and dynasty simulator where choices echo across bloodlines, courts, scholars, soldiers, merchants, and forgotten households."
+               wrapText="true"
+               textAlignment="CENTER"
+               maxWidth="540">
+            <styleClass>
+                <String fx:value="welcome-description"/>
+            </styleClass>
+        </Label>
+
+        <VBox alignment="CENTER" spacing="14">
+            <Button text="New Game"
+                    prefWidth="280"
+                    minHeight="48"
+                    onAction="#startNewGame">
+                <styleClass>
+                    <String fx:value="welcome-button"/>
+                </styleClass>
+            </Button>
+
+            <Button text="Continue"
+                    prefWidth="280"
+                    minHeight="48"
+                    disable="true">
+                <styleClass>
+                    <String fx:value="welcome-button"/>
+                </styleClass>
+            </Button>
+
+            <Button text="Legacy Records"
+                    prefWidth="280"
+                    minHeight="48"
+                    onAction="#openLegacyRecords">
+                <styleClass>
+                    <String fx:value="welcome-button"/>
+                </styleClass>
+            </Button>
+
+            <Button text="Exit"
+                    prefWidth="280"
+                    minHeight="48"
+                    onAction="#exitGame">
+                <styleClass>
+                    <String fx:value="welcome-button"/>
+                </styleClass>
+            </Button>
+        </VBox>
+    </VBox>
+</StackPane>

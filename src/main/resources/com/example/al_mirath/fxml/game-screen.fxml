@@ -56,22 +56,6 @@
 
                 <Region HBox.hgrow="ALWAYS"/>
 
-                <VBox alignment="CENTER" spacing="0">
-                    <Label text="Al-Mirath">
-                        <styleClass>
-                            <String fx:value="game-title-small"/>
-                        </styleClass>
-                    </Label>
-
-                    <Label text="The Legacy">
-                        <styleClass>
-                            <String fx:value="game-subtitle-small"/>
-                        </styleClass>
-                    </Label>
-                </VBox>
-
-                <Region HBox.hgrow="ALWAYS"/>
-
                 <Button text="Restart Life"
                         onAction="#restartGame">
                     <styleClass>

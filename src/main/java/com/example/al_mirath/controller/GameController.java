@@ -316,6 +316,13 @@ public class GameController {
                     openRewindChallenge();
                 }
             }
+
+            case P -> {
+                if (!popupOpen) {
+                    showPeoplePopup();
+                }
+            }
+
             case ESCAPE -> returnToMainMenu();
             default -> {
                 // Every other key is left to the focused control.
@@ -323,6 +330,18 @@ public class GameController {
         }
 
         event.consume();
+    }
+
+    private void showPeoplePopup() {
+        if (engine == null) {
+            return;
+        }
+
+        showPopup(
+                "People in Your Life",
+                engine.getRecurringCharacterSummary(),
+                PopupCategory.LOCKED_INFO
+        );
     }
 
     private void triggerChoiceButton(Button button, int index) {

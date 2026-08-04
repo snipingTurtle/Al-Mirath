@@ -32,6 +32,7 @@ public class GameEngine {
     private final Random random = new Random();
     private final Map<String, Integer> stageEventsPlayed = new HashMap<>();
     private final String birthIntroMessage;
+    private final RecurringCharacterRegistry recurringCharacters;
 
     private final Map<String, Integer> maxEventsByStage = Map.of(
             "Childhood", 5,
@@ -94,7 +95,17 @@ public class GameEngine {
         this.worldState = new WorldState();
 
         this.birthIntroMessage = createBirthIntroMessage();
+
+        this.recurringCharacters =
+                RecurringCharacterRegistry.createFor(player);
+
         this.eventPool = EventLibrary.createEventPool();
+
+        this.eventPool.addAll(
+                RecurringCharacterEvents.create(
+                        recurringCharacters
+                )
+        );
     }
 
     /**
@@ -106,6 +117,7 @@ public class GameEngine {
             PlayerCharacter player,
             FactionRelations factions,
             WorldState worldState,
+            RecurringCharacterRegistry recurringCharacters,
             int currentStageIndex,
             Map<String, Integer> stageEventsPlayed,
             Set<String> playedEventTitles,
@@ -116,7 +128,19 @@ public class GameEngine {
         this.worldState = worldState;
 
         this.birthIntroMessage = createBirthIntroMessage();
+
+        this.recurringCharacters =
+                recurringCharacters == null
+                        ? RecurringCharacterRegistry.createFor(player)
+                        : recurringCharacters;
+
         this.eventPool = EventLibrary.createEventPool();
+
+        this.eventPool.addAll(
+                RecurringCharacterEvents.create(
+                        this.recurringCharacters
+                )
+        );
 
         this.currentStageIndex = currentStageIndex;
         this.stageEventsPlayed.putAll(stageEventsPlayed);
@@ -193,6 +217,11 @@ public class GameEngine {
         }
         root.put("pendingConsequences", pendingJson);
 
+        root.put(
+                "recurringCharacters",
+                recurringCharacters.toJson()
+        );
+
         return root.toString();
     }
 
@@ -223,6 +252,20 @@ public class GameEngine {
         );
 
         player.setCurrentStatus(playerJson.getString("currentStatus"));
+
+        RecurringCharacterRegistry recurringCharacters;
+
+        if (root.has("recurringCharacters")) {
+            recurringCharacters =
+                    RecurringCharacterRegistry.fromJson(
+                            root.getJSONObject(
+                                    "recurringCharacters"
+                            )
+                    );
+        } else {
+            recurringCharacters =
+                    RecurringCharacterRegistry.createFor(player);
+        }
 
         JSONArray legacyTitlesJson = playerJson.getJSONArray("legacyTitles");
         for (int i = 0; i < legacyTitlesJson.length(); i++) {
@@ -269,6 +312,7 @@ public class GameEngine {
                 player,
                 factions,
                 worldState,
+                recurringCharacters,
                 root.getInt("currentStageIndex"),
                 stageEventsPlayed,
                 playedEventTitles,
@@ -330,6 +374,14 @@ public class GameEngine {
 
     public String getBirthIntroMessage() {
         return birthIntroMessage;
+    }
+
+    public RecurringCharacterRegistry getRecurringCharacters() {
+        return recurringCharacters;
+    }
+
+    public String getRecurringCharacterSummary() {
+        return recurringCharacters.relationshipSummary();
     }
 
     public String consumeLatestStatusChangeMessage() {
@@ -739,9 +791,18 @@ public class GameEngine {
         for (String flag : flagsToAdd) {
             worldState.addFlag(flag);
             scheduleConsequencesFor(flag);
+
+            recurringCharacters.applyStoryFlag(
+                    flag,
+                    player.getAge()
+            );
         }
 
         int yearsPassed = advanceAgeAfterEvent();
+
+        recurringCharacters.ageEveryone(
+                yearsPassed
+        );
         recoverStressOverTime(yearsPassed);
         updateCurrentStatus();
         checkMortalityAfterChoice(choice, success);
@@ -849,7 +910,8 @@ public class GameEngine {
                 currentEvent == null ? null : currentEvent.getTitle(),
                 currentEvent == null ? "" : currentEvent.getTitle(),
                 currentEvent == null ? "" : currentEvent.getLifeStage(),
-                choice == null ? "" : choice.getText()
+                choice == null ? "" : choice.getText(),
+                recurringCharacters.toJson().toString()
         );
     }
 
@@ -931,6 +993,24 @@ public class GameEngine {
         }
 
         worldState.replaceFlags(snapshot.getWorldFlags());
+
+        String recurringCharactersJson =
+                snapshot.getRecurringCharactersJson();
+
+        if (recurringCharactersJson != null
+                && !recurringCharactersJson.isBlank()) {
+
+            RecurringCharacterRegistry restoredCharacters =
+                    RecurringCharacterRegistry.fromJson(
+                            new JSONObject(
+                                    recurringCharactersJson
+                            )
+                    );
+
+            recurringCharacters.replaceWith(
+                    restoredCharacters
+            );
+        }
 
         currentStageIndex = snapshot.getCurrentStageIndex();
 

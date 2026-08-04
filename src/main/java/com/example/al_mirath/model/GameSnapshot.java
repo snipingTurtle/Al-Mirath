@@ -7,15 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * An immutable copy of everything a choice can change.
- *
- * <p>The engine records one of these before applying a choice, so a successful
- * Threads of Fate challenge can rewind the run to the exact moment before the
- * decision was made. Every collection is defensively copied on the way in and
- * on the way out, which keeps a restored snapshot from sharing mutable state
- * with the live game.
- */
 public final class GameSnapshot {
 
     private final String characterName;
@@ -23,6 +14,7 @@ public final class GameSnapshot {
     private final boolean alive;
     private final String deathReason;
     private final String currentStatus;
+
     private final List<String> legacyTitles;
 
     private final Map<String, Integer> stats;
@@ -30,13 +22,17 @@ public final class GameSnapshot {
     private final Set<String> worldFlags;
 
     private final int currentStageIndex;
+
     private final Map<String, Integer> stageEventsPlayed;
     private final Set<String> playedEventTitles;
+
     private final String currentEventTitle;
 
     private final String eventTitle;
     private final String eventStage;
     private final String choiceText;
+
+    private final String recurringCharactersJson;
 
     public GameSnapshot(
             String characterName,
@@ -56,11 +52,52 @@ public final class GameSnapshot {
             String eventStage,
             String choiceText
     ) {
+        this(
+                characterName,
+                age,
+                alive,
+                deathReason,
+                currentStatus,
+                legacyTitles,
+                stats,
+                factions,
+                worldFlags,
+                currentStageIndex,
+                stageEventsPlayed,
+                playedEventTitles,
+                currentEventTitle,
+                eventTitle,
+                eventStage,
+                choiceText,
+                "{\"characters\":[]}"
+        );
+    }
+
+    public GameSnapshot(
+            String characterName,
+            int age,
+            boolean alive,
+            String deathReason,
+            String currentStatus,
+            List<String> legacyTitles,
+            Map<String, Integer> stats,
+            Map<String, Integer> factions,
+            Set<String> worldFlags,
+            int currentStageIndex,
+            Map<String, Integer> stageEventsPlayed,
+            Set<String> playedEventTitles,
+            String currentEventTitle,
+            String eventTitle,
+            String eventStage,
+            String choiceText,
+            String recurringCharactersJson
+    ) {
         this.characterName = characterName;
         this.age = age;
         this.alive = alive;
         this.deathReason = deathReason;
         this.currentStatus = currentStatus;
+
         this.legacyTitles = List.copyOf(legacyTitles);
 
         this.stats = new LinkedHashMap<>(stats);
@@ -68,13 +105,23 @@ public final class GameSnapshot {
         this.worldFlags = new HashSet<>(worldFlags);
 
         this.currentStageIndex = currentStageIndex;
-        this.stageEventsPlayed = new HashMap<>(stageEventsPlayed);
-        this.playedEventTitles = new HashSet<>(playedEventTitles);
+
+        this.stageEventsPlayed =
+                new HashMap<>(stageEventsPlayed);
+
+        this.playedEventTitles =
+                new HashSet<>(playedEventTitles);
+
         this.currentEventTitle = currentEventTitle;
 
         this.eventTitle = eventTitle;
         this.eventStage = eventStage;
         this.choiceText = choiceText;
+
+        this.recurringCharactersJson =
+                recurringCharactersJson == null
+                        ? "{\"characters\":[]}"
+                        : recurringCharactersJson;
     }
 
     public String getCharacterName() {
@@ -129,7 +176,6 @@ public final class GameSnapshot {
         return currentEventTitle;
     }
 
-    /** Title of the event the player was answering when this was captured. */
     public String getEventTitle() {
         return eventTitle;
     }
@@ -138,8 +184,11 @@ public final class GameSnapshot {
         return eventStage;
     }
 
-    /** The choice that is about to be undone, shown on the rewind screen. */
     public String getChoiceText() {
         return choiceText;
+    }
+
+    public String getRecurringCharactersJson() {
+        return recurringCharactersJson;
     }
 }

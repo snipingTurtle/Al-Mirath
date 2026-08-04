@@ -1,4 +1,4 @@
-# Al-Mirath: The Legacy
+# Al-Mirath: Heirs of the Golden Age
 
 A narrative life simulator set across four eras of Islamic history — Umayyad,
 Abbasid, Mamluk, and Ottoman. You are born into a randomly generated station in

@@ -22,6 +22,26 @@ public class FactionRelations {
         this.shadowNetwork = 25;
     }
 
+    public FactionRelations(
+            int court,
+            int nobles,
+            int military,
+            int scholars,
+            int merchants,
+            int commonPeople,
+            int familyCouncil,
+            int shadowNetwork
+    ) {
+        this.court = clamp(court);
+        this.nobles = clamp(nobles);
+        this.military = clamp(military);
+        this.scholars = clamp(scholars);
+        this.merchants = clamp(merchants);
+        this.commonPeople = clamp(commonPeople);
+        this.familyCouncil = clamp(familyCouncil);
+        this.shadowNetwork = clamp(shadowNetwork);
+    }
+
     public void applyChange(String faction, int amount) {
         switch (faction) {
             case "court" -> court = clamp(court + amount);

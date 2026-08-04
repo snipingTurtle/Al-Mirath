@@ -1,0 +1,628 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.String?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
+
+<StackPane fx:id="gameRoot"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.example.al_mirath.controller.GameController"
+           stylesheets="@../css/almirath-theme.css">
+
+    <styleClass>
+        <String fx:value="game-root"/>
+        <String fx:value="light-scenario"/>
+    </styleClass>
+
+    <!-- FULL SCREEN BACKGROUND -->
+    <ImageView fx:id="backgroundImage"
+               preserveRatio="false"
+               smooth="true"
+               cache="true"
+               mouseTransparent="true"/>
+
+    <Rectangle fx:id="darkOverlay"
+               fill="BLACK"
+               opacity="0.06"
+               mouseTransparent="true"/>
+
+    <!-- MAIN HUD -->
+    <BorderPane fx:id="hudLayer"
+                pickOnBounds="false">
+
+        <styleClass>
+            <String fx:value="hud-layer"/>
+        </styleClass>
+
+        <!-- TOP BAR -->
+        <top>
+            <HBox alignment="CENTER"
+                  spacing="18"
+                  pickOnBounds="false">
+
+                <styleClass>
+                    <String fx:value="top-bar"/>
+                </styleClass>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <VBox alignment="CENTER" spacing="0">
+                    <Label text="Al-Mirath">
+                        <styleClass>
+                            <String fx:value="game-title-small"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label text="The Legacy">
+                        <styleClass>
+                            <String fx:value="game-subtitle-small"/>
+                        </styleClass>
+                    </Label>
+                </VBox>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Button text="Restart Life"
+                        onAction="#restartGame">
+                    <styleClass>
+                        <String fx:value="menu-button"/>
+                    </styleClass>
+                </Button>
+
+                <Button text="Main Menu"
+                        onAction="#returnToMainMenu">
+                    <styleClass>
+                        <String fx:value="menu-button"/>
+                    </styleClass>
+                </Button>
+
+                <Button text="Exit"
+                        onAction="#exitGame">
+                    <styleClass>
+                        <String fx:value="menu-button"/>
+                    </styleClass>
+                </Button>
+            </HBox>
+        </top>
+
+        <!-- CENTER GAME AREA -->
+        <center>
+            <HBox alignment="CENTER"
+                  spacing="24">
+
+                <styleClass>
+                    <String fx:value="main-game-area"/>
+                </styleClass>
+
+                <!-- ALWAYS VISIBLE STATS PANEL -->
+                <VBox fx:id="statsPanel"
+                      alignment="TOP_CENTER"
+                      spacing="8"
+                      prefWidth="250"
+                      maxWidth="260">
+
+                    <styleClass>
+                        <String fx:value="stats-panel"/>
+                        <String fx:value="parchment-panel"/>
+                    </styleClass>
+
+                    <Label text="Stats">
+                        <styleClass>
+                            <String fx:value="section-title"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label fx:id="healthLabel">
+                        <styleClass>
+                            <String fx:value="info-label"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="healthBar" prefWidth="210"/>
+
+                    <Label fx:id="wealthLabel">
+                        <styleClass>
+                            <String fx:value="info-label"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="wealthBar" prefWidth="210"/>
+
+                    <Label fx:id="educationLabel">
+                        <styleClass>
+                            <String fx:value="info-label"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="educationBar" prefWidth="210"/>
+
+                    <Label fx:id="reputationLabel">
+                        <styleClass>
+                            <String fx:value="info-label"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="reputationBar" prefWidth="210"/>
+
+                    <Label fx:id="powerLabel">
+                        <styleClass>
+                            <String fx:value="info-label"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="powerBar" prefWidth="210"/>
+
+                    <Label fx:id="moralityLabel">
+                        <styleClass>
+                            <String fx:value="info-label"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="moralityBar" prefWidth="210"/>
+
+                    <Label fx:id="familyLabel">
+                        <styleClass>
+                            <String fx:value="info-label"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="familyBar" prefWidth="210"/>
+
+                    <Label fx:id="stressLabel">
+                        <styleClass>
+                            <String fx:value="info-label"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="stressBar" prefWidth="210"/>
+                </VBox>
+
+                <!-- MAIN EVENT PANEL -->
+                <VBox fx:id="eventPanel"
+                      alignment="CENTER"
+                      spacing="18"
+                      prefWidth="760"
+                      maxWidth="790">
+
+                    <styleClass>
+                        <String fx:value="event-panel"/>
+                        <String fx:value="parchment-panel"/>
+                    </styleClass>
+
+                    <Label fx:id="eventTitleLabel"
+                           text="Event Title"
+                           wrapText="true"
+                           textAlignment="CENTER"
+                           alignment="CENTER"
+                           maxWidth="660">
+
+                        <styleClass>
+                            <String fx:value="event-title"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label fx:id="eventDescriptionLabel"
+                           text="Event description"
+                           wrapText="true"
+                           textAlignment="CENTER"
+                           alignment="CENTER"
+                           maxWidth="630">
+
+                        <styleClass>
+                            <String fx:value="event-description"/>
+                        </styleClass>
+                    </Label>
+
+                    <!-- CHANGE CUES -->
+                    <VBox alignment="CENTER"
+                          spacing="4">
+
+                        <Label fx:id="positiveCueLabel"
+                               visible="false"
+                               managed="false"
+                               wrapText="true"
+                               textAlignment="CENTER"
+                               alignment="CENTER"
+                               maxWidth="630">
+
+                            <styleClass>
+                                <String fx:value="change-cue"/>
+                                <String fx:value="positive-cue"/>
+                            </styleClass>
+                        </Label>
+
+                        <Label fx:id="negativeCueLabel"
+                               visible="false"
+                               managed="false"
+                               wrapText="true"
+                               textAlignment="CENTER"
+                               alignment="CENTER"
+                               maxWidth="630">
+
+                            <styleClass>
+                                <String fx:value="change-cue"/>
+                                <String fx:value="negative-cue"/>
+                            </styleClass>
+                        </Label>
+                    </VBox>
+
+                    <!-- CHOICES -->
+                    <VBox alignment="CENTER"
+                          spacing="12">
+
+                        <Button fx:id="choiceButton1"
+                                onAction="#handleChoice1"
+                                prefWidth="540"
+                                minHeight="52"
+                                wrapText="true">
+
+                            <styleClass>
+                                <String fx:value="choice-button"/>
+                            </styleClass>
+                        </Button>
+
+                        <Button fx:id="choiceButton2"
+                                onAction="#handleChoice2"
+                                prefWidth="540"
+                                minHeight="52"
+                                wrapText="true">
+
+                            <styleClass>
+                                <String fx:value="choice-button"/>
+                            </styleClass>
+                        </Button>
+
+                        <Button fx:id="choiceButton3"
+                                onAction="#handleChoice3"
+                                prefWidth="540"
+                                minHeight="52"
+                                wrapText="true">
+
+                            <styleClass>
+                                <String fx:value="choice-button"/>
+                            </styleClass>
+                        </Button>
+                    </VBox>
+                </VBox>
+            </HBox>
+        </center>
+    </BorderPane>
+
+    <!-- LEFT CHARACTER DRAWER -->
+    <VBox fx:id="characterPanel"
+          alignment="TOP_LEFT"
+          spacing="10"
+          prefWidth="275"
+          maxWidth="275"
+          prefHeight="555"
+          maxHeight="555"
+          translateX="-305"
+          StackPane.alignment="CENTER_LEFT">
+
+        <StackPane.margin>
+            <Insets top="88" bottom="32" left="14" right="0"/>
+        </StackPane.margin>
+
+        <styleClass>
+            <String fx:value="drawer-panel"/>
+            <String fx:value="medieval-drawer"/>
+            <String fx:value="left-drawer"/>
+        </styleClass>
+
+        <Label text="Character Scroll"
+               maxWidth="235"
+               alignment="CENTER">
+
+            <styleClass>
+                <String fx:value="drawer-title"/>
+            </styleClass>
+        </Label>
+
+        <Label text="━━━━━━━━━━━━"
+               maxWidth="235"
+               alignment="CENTER">
+
+            <styleClass>
+                <String fx:value="drawer-separator-text"/>
+            </styleClass>
+        </Label>
+
+        <Label fx:id="nameLabel"
+               wrapText="true"
+               maxWidth="235">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+
+        <Label fx:id="eraLabel"
+               wrapText="true"
+               maxWidth="235">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+
+        <Label fx:id="originLabel"
+               wrapText="true"
+               maxWidth="235">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+
+        <Label fx:id="traitLabel"
+               wrapText="true"
+               maxWidth="235">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <Label text="This scroll records your bloodline, age, family condition, traits, and earned titles."
+               wrapText="true"
+               maxWidth="235"
+               textAlignment="CENTER"
+               alignment="CENTER">
+            <styleClass>
+                <String fx:value="drawer-note"/>
+            </styleClass>
+        </Label>
+    </VBox>
+
+    <!-- RIGHT REALM DRAWER -->
+    <VBox fx:id="factionPanel"
+          alignment="TOP_LEFT"
+          spacing="6"
+          prefWidth="275"
+          maxWidth="275"
+          prefHeight="555"
+          maxHeight="555"
+          translateX="305"
+          StackPane.alignment="CENTER_RIGHT">
+
+        <StackPane.margin>
+            <Insets top="88" bottom="32" left="0" right="14"/>
+        </StackPane.margin>
+
+        <styleClass>
+            <String fx:value="drawer-panel"/>
+            <String fx:value="medieval-drawer"/>
+            <String fx:value="right-drawer"/>
+        </styleClass>
+
+        <Label text="Realm Scroll"
+               maxWidth="235"
+               alignment="CENTER">
+
+            <styleClass>
+                <String fx:value="drawer-title"/>
+            </styleClass>
+        </Label>
+
+        <Label text="━━━━━━━━━━━━"
+               maxWidth="235"
+               alignment="CENTER">
+
+            <styleClass>
+                <String fx:value="drawer-separator-text"/>
+            </styleClass>
+        </Label>
+
+        <Label fx:id="courtLabel">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+        <ProgressBar fx:id="courtBar" prefWidth="220"/>
+
+        <Label fx:id="noblesLabel">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+        <ProgressBar fx:id="noblesBar" prefWidth="220"/>
+
+        <Label fx:id="militaryLabel">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+        <ProgressBar fx:id="militaryBar" prefWidth="220"/>
+
+        <Label fx:id="scholarsLabel">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+        <ProgressBar fx:id="scholarsBar" prefWidth="220"/>
+
+        <Label fx:id="merchantsLabel">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+        <ProgressBar fx:id="merchantsBar" prefWidth="220"/>
+
+        <Label fx:id="commonPeopleLabel">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+        <ProgressBar fx:id="commonPeopleBar" prefWidth="220"/>
+
+        <Label fx:id="familyCouncilLabel">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+        <ProgressBar fx:id="familyCouncilBar" prefWidth="220"/>
+
+        <Label fx:id="shadowNetworkLabel">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+        <ProgressBar fx:id="shadowNetworkBar" prefWidth="220"/>
+    </VBox>
+
+    <Button fx:id="characterDrawerButton"
+            text="CHARACTER"
+            onAction="#toggleCharacterDrawer"
+            rotate="90"
+            prefWidth="130"
+            prefHeight="38"
+            translateX="-34"
+            StackPane.alignment="CENTER_LEFT">
+        <styleClass>
+            <String fx:value="drawer-tab"/>
+            <String fx:value="drawer-handle"/>
+            <String fx:value="left-drawer-handle"/>
+        </styleClass>
+    </Button>
+
+    <Button fx:id="factionDrawerButton"
+            text="REALM"
+            onAction="#toggleFactionDrawer"
+            rotate="-90"
+            prefWidth="110"
+            prefHeight="38"
+            translateX="25"
+            StackPane.alignment="CENTER_RIGHT">
+        <styleClass>
+            <String fx:value="drawer-tab"/>
+            <String fx:value="drawer-handle"/>
+            <String fx:value="right-drawer-handle"/>
+        </styleClass>
+    </Button>
+
+    <!-- ANCIENT MESSENGER SCROLL POPUP -->
+    <StackPane fx:id="resultPopup"
+               visible="false"
+               managed="false"
+               alignment="CENTER"
+               pickOnBounds="true">
+
+        <styleClass>
+            <String fx:value="popup-overlay"/>
+        </styleClass>
+
+        <StackPane fx:id="popupShell"
+                   maxWidth="980"
+                   prefWidth="980"
+                   maxHeight="560"
+                   prefHeight="560">
+
+            <styleClass>
+                <String fx:value="scroll-popup-shell"/>
+            </styleClass>
+
+            <ImageView fx:id="popupScrollBackground"
+                       fitWidth="980"
+                       fitHeight="560"
+                       preserveRatio="false"
+                       smooth="true"
+                       cache="true"
+                       mouseTransparent="true"
+                       pickOnBounds="false"/>
+
+            <VBox fx:id="popupContentBox"
+                  alignment="CENTER"
+                  spacing="12"
+                  maxWidth="620"
+                  prefWidth="620"
+                  StackPane.alignment="CENTER">
+
+                <Label fx:id="popupTopOrnament"
+                       text="❦ ❦ ❦"
+                       visible="false"
+                       managed="false">
+                    <styleClass>
+                        <String fx:value="scroll-ornament"/>
+                    </styleClass>
+                </Label>
+
+                <Label fx:id="popupTitleLabel"
+                       text="Popup Title"
+                       wrapText="true"
+                       textAlignment="CENTER"
+                       alignment="CENTER"
+                       maxWidth="610">
+
+                    <styleClass>
+                        <String fx:value="scroll-popup-title"/>
+                        <String fx:value="popup-title"/>
+                    </styleClass>
+                </Label>
+
+                <Label fx:id="popupDividerTop"
+                       text="──────────── ✦ ────────────">
+                    <styleClass>
+                        <String fx:value="scroll-divider"/>
+                    </styleClass>
+                </Label>
+
+                <ScrollPane fx:id="popupMessageScroll"
+                            fitToWidth="true"
+                            hbarPolicy="NEVER"
+                            vbarPolicy="AS_NEEDED"
+                            pannable="true"
+                            prefViewportHeight="200"
+                            maxWidth="600">
+
+                    <styleClass>
+                        <String fx:value="scroll-popup-scroll"/>
+                        <String fx:value="popup-scroll"/>
+                    </styleClass>
+
+                    <content>
+                        <Label fx:id="resultTextLabel"
+                               text="Result text"
+                               wrapText="true"
+                               textAlignment="CENTER"
+                               alignment="CENTER"
+                               maxWidth="575">
+
+                            <styleClass>
+                                <String fx:value="scroll-popup-text"/>
+                                <String fx:value="result-text"/>
+                            </styleClass>
+                        </Label>
+                    </content>
+                </ScrollPane>
+
+                <Label fx:id="popupDividerBottom"
+                       text="──────────── ✦ ────────────">
+                    <styleClass>
+                        <String fx:value="scroll-divider"/>
+                    </styleClass>
+                </Label>
+
+                <Button fx:id="popupContinueButton"
+                        text="Continue"
+                        onAction="#closePopup">
+
+                    <styleClass>
+                        <String fx:value="scroll-popup-button"/>
+                        <String fx:value="continue-button"/>
+                    </styleClass>
+                </Button>
+
+                <Label fx:id="popupBottomOrnament"
+                       text="❦ ❦ ❦"
+                       visible="false"
+                       managed="false">
+                    <styleClass>
+                        <String fx:value="scroll-ornament"/>
+                    </styleClass>
+                </Label>
+            </VBox>
+        </StackPane>
+    </StackPane>
+
+</StackPane>

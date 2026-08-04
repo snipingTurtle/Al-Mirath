@@ -2,10 +2,13 @@ package com.example.al_mirath.controller;
 
 import com.example.al_mirath.Main;
 import com.example.al_mirath.service.BackgroundLibrary;
+import com.example.al_mirath.service.GameEngine;
+import com.example.al_mirath.service.SaveManager;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
@@ -19,6 +22,7 @@ public class WelcomeController {
     @FXML private StackPane welcomeRoot;
     @FXML private ImageView menuBackground;
     @FXML private Rectangle menuOverlay;
+    @FXML private Button continueButton;
 
     private boolean motionStarted = false;
 
@@ -27,8 +31,17 @@ public class WelcomeController {
         bindBackground();
         loadMenuBackground();
         animateBackground();
+        updateContinueButtonState();
 
         System.out.println("WelcomeController initialized.");
+    }
+
+    private void updateContinueButtonState() {
+        if (continueButton == null) {
+            return;
+        }
+
+        continueButton.setDisable(!SaveManager.hasSave());
     }
 
     public void setMainApp(Main mainApp) {
@@ -106,6 +119,26 @@ public class WelcomeController {
         }
 
         mainApp.showGameScreen();
+    }
+
+    @FXML
+    private void continueGame() {
+        System.out.println("Continue button clicked.");
+
+        if (mainApp == null) {
+            System.out.println("ERROR: mainApp is null in WelcomeController.");
+            return;
+        }
+
+        GameEngine restoredEngine = SaveManager.loadGame();
+
+        if (restoredEngine == null) {
+            System.out.println("No saved game found to continue.");
+            updateContinueButtonState();
+            return;
+        }
+
+        mainApp.showGameScreen(restoredEngine);
     }
 
     @FXML

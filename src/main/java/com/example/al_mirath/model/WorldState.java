@@ -11,6 +11,16 @@ public class WorldState {
         flags.add(flag);
     }
 
+    public void addFlags(Iterable<String> flagsToAdd) {
+        for (String flag : flagsToAdd) {
+            flags.add(flag);
+        }
+    }
+
+    public Set<String> getFlags() {
+        return flags;
+    }
+
     public boolean hasFlag(String flag) {
         return flags.contains(flag);
     }

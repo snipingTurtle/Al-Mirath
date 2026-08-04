@@ -68,14 +68,15 @@
                 </styleClass>
             </Button>
 
-            <Button text="Continue"
-                    prefWidth="280"
-                    minHeight="48"
-                    disable="true">
-                <styleClass>
-                    <String fx:value="welcome-button"/>
-                </styleClass>
-            </Button>
+            <Button fx:id="continueButton"
+        text="Continue"
+        prefWidth="280"
+        minHeight="48"
+        onAction="#continueGame">
+    <styleClass>
+        <String fx:value="welcome-button"/>
+    </styleClass>
+</Button>
 
             <Button text="Legacy Records"
                     prefWidth="280"

@@ -8,6 +8,9 @@ import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.EndingResult;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -61,6 +64,167 @@ public class GameEngine {
         this.eventPool = EventLibrary.createEventPool();
     }
 
+    /**
+     * Restore constructor used when loading a saved game.
+     * Rebuilds the engine's internal state from previously saved values
+     * instead of generating a brand-new character.
+     */
+    private GameEngine(
+            PlayerCharacter player,
+            FactionRelations factions,
+            WorldState worldState,
+            int currentStageIndex,
+            Map<String, Integer> stageEventsPlayed,
+            Set<String> playedEventTitles,
+            String currentEventTitle
+    ) {
+        this.player = player;
+        this.factions = factions;
+        this.worldState = worldState;
+
+        this.birthIntroMessage = createBirthIntroMessage();
+        this.eventPool = EventLibrary.createEventPool();
+
+        this.currentStageIndex = currentStageIndex;
+        this.stageEventsPlayed.putAll(stageEventsPlayed);
+        this.playedEventTitles.addAll(playedEventTitles);
+
+        if (currentEventTitle != null) {
+            for (GameEvent event : eventPool) {
+                if (event.getTitle().equals(currentEventTitle)) {
+                    this.currentEvent = event;
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Serializes the full engine state (player, factions, world flags,
+     * progression) to a JSON string so it can be persisted and restored later.
+     */
+    public String toSaveJson() {
+        JSONObject root = new JSONObject();
+
+        JSONObject playerJson = new JSONObject();
+        playerJson.put("name", player.getName());
+        playerJson.put("era", player.getEra());
+        playerJson.put("origin", player.getOrigin());
+        playerJson.put("familyCondition", player.getFamilyCondition());
+        playerJson.put("trait", player.getTrait());
+        playerJson.put("age", player.getAge());
+        playerJson.put("currentStatus", player.getCurrentStatus());
+        playerJson.put("health", player.getHealth());
+        playerJson.put("wealth", player.getWealth());
+        playerJson.put("education", player.getEducation());
+        playerJson.put("reputation", player.getReputation());
+        playerJson.put("politicalPower", player.getPoliticalPower());
+        playerJson.put("morality", player.getMorality());
+        playerJson.put("familyLoyalty", player.getFamilyLoyalty());
+        playerJson.put("stress", player.getStress());
+        playerJson.put("legacyTitles", new JSONArray(player.getLegacyTitles()));
+        root.put("player", playerJson);
+
+        JSONObject factionsJson = new JSONObject();
+        factionsJson.put("court", factions.getCourt());
+        factionsJson.put("nobles", factions.getNobles());
+        factionsJson.put("military", factions.getMilitary());
+        factionsJson.put("scholars", factions.getScholars());
+        factionsJson.put("merchants", factions.getMerchants());
+        factionsJson.put("commonPeople", factions.getCommonPeople());
+        factionsJson.put("familyCouncil", factions.getFamilyCouncil());
+        factionsJson.put("shadowNetwork", factions.getShadowNetwork());
+        root.put("factions", factionsJson);
+
+        root.put("worldFlags", new JSONArray(worldState.getFlags()));
+        root.put("currentStageIndex", currentStageIndex);
+        root.put("stageEventsPlayed", new JSONObject(stageEventsPlayed));
+        root.put("playedEventTitles", new JSONArray(playedEventTitles));
+        root.put("currentEventTitle", currentEvent == null ? JSONObject.NULL : currentEvent.getTitle());
+
+        return root.toString();
+    }
+
+    /**
+     * Rebuilds a GameEngine from a JSON string previously produced by
+     * {@link #toSaveJson()}.
+     */
+    public static GameEngine fromSaveJson(String json) {
+        JSONObject root = new JSONObject(json);
+
+        JSONObject playerJson = root.getJSONObject("player");
+
+        PlayerCharacter player = new PlayerCharacter(
+                playerJson.getString("name"),
+                playerJson.getString("era"),
+                playerJson.getString("origin"),
+                playerJson.getString("familyCondition"),
+                playerJson.getString("trait"),
+                playerJson.getInt("age"),
+                playerJson.getInt("health"),
+                playerJson.getInt("wealth"),
+                playerJson.getInt("education"),
+                playerJson.getInt("reputation"),
+                playerJson.getInt("politicalPower"),
+                playerJson.getInt("morality"),
+                playerJson.getInt("familyLoyalty"),
+                playerJson.getInt("stress")
+        );
+
+        player.setCurrentStatus(playerJson.getString("currentStatus"));
+
+        JSONArray legacyTitlesJson = playerJson.getJSONArray("legacyTitles");
+        for (int i = 0; i < legacyTitlesJson.length(); i++) {
+            player.addLegacyTitle(legacyTitlesJson.getString(i));
+        }
+
+        JSONObject factionsJson = root.getJSONObject("factions");
+        FactionRelations factions = new FactionRelations(
+                factionsJson.getInt("court"),
+                factionsJson.getInt("nobles"),
+                factionsJson.getInt("military"),
+                factionsJson.getInt("scholars"),
+                factionsJson.getInt("merchants"),
+                factionsJson.getInt("commonPeople"),
+                factionsJson.getInt("familyCouncil"),
+                factionsJson.getInt("shadowNetwork")
+        );
+
+        WorldState worldState = new WorldState();
+        JSONArray worldFlagsJson = root.getJSONArray("worldFlags");
+        List<String> worldFlags = new ArrayList<>();
+        for (int i = 0; i < worldFlagsJson.length(); i++) {
+            worldFlags.add(worldFlagsJson.getString(i));
+        }
+        worldState.addFlags(worldFlags);
+
+        Map<String, Integer> stageEventsPlayed = new HashMap<>();
+        JSONObject stageEventsJson = root.getJSONObject("stageEventsPlayed");
+        for (String key : stageEventsJson.keySet()) {
+            stageEventsPlayed.put(key, stageEventsJson.getInt(key));
+        }
+
+        Set<String> playedEventTitles = new HashSet<>();
+        JSONArray playedEventTitlesJson = root.getJSONArray("playedEventTitles");
+        for (int i = 0; i < playedEventTitlesJson.length(); i++) {
+            playedEventTitles.add(playedEventTitlesJson.getString(i));
+        }
+
+        String currentEventTitle = root.isNull("currentEventTitle")
+                ? null
+                : root.getString("currentEventTitle");
+
+        return new GameEngine(
+                player,
+                factions,
+                worldState,
+                root.getInt("currentStageIndex"),
+                stageEventsPlayed,
+                playedEventTitles,
+                currentEventTitle
+        );
+    }
+
     public String getBirthIntroMessage() {
         return birthIntroMessage;
     }
@@ -73,7 +237,7 @@ public class GameEngine {
 
     private String createBirthIntroMessage() {
         return "A new life begins...\n\n"
-                + "You are born during the " + player.getEra() + " era.\n\n"
+                + "You are born during the " + player.getEra() + ".\n\n"
                 + "Origin: " + player.getOrigin() + "\n"
                 + "Family Condition: " + player.getFamilyCondition() + "\n"
                 + "Trait: " + player.getTrait() + "\n\n"

@@ -3,6 +3,7 @@ package com.example.al_mirath;
 import com.example.al_mirath.controller.GameController;
 import com.example.al_mirath.controller.LegacyRecordsController;
 import com.example.al_mirath.controller.WelcomeController;
+import com.example.al_mirath.service.GameEngine;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -42,14 +43,21 @@ public class Main extends Application {
     }
 
     public void showGameScreen() {
+        showGameScreen(null);
+    }
+
+    public void showGameScreen(GameEngine restoredEngine) {
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/example/al_mirath/fxml/game-screen.fxml")
             );
 
+            GameController controller = new GameController();
+            controller.setRestoredEngine(restoredEngine);
+            loader.setController(controller);
+
             Scene scene = new Scene(loader.load(), 1280, 720);
 
-            GameController controller = loader.getController();
             controller.setMainApp(this);
 
             primaryStage.setScene(scene);

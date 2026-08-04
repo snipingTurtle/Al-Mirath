@@ -1,0 +1,1654 @@
+/* ===================================================== */
+/* AL-MIRATH: THE LEGACY                                 */
+/* Royal Medieval Scroll UI                              */
+/* ===================================================== */
+
+/* GLOBAL */
+
+.root {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", "Times New Roman", serif;
+    -fx-background-color: black;
+}
+
+.game-root,
+.welcome-root {
+    -fx-background-color: black;
+}
+
+.hud-layer {
+    -fx-padding: 18 24 24 24;
+}
+
+.top-bar {
+    -fx-padding: 0 0 14 0;
+}
+
+.main-game-area {
+    -fx-padding: 18 0 0 0;
+}
+
+/* TITLES */
+
+.game-title-small {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 31px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f8d66d;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.95), 8, 0.45, 0, 2),
+            dropshadow(gaussian, rgba(255,215,105,0.55), 12, 0.35, 0, 0);
+}
+
+.game-subtitle-small {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 16px;
+    -fx-text-fill: #fff0c6;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.90), 5, 0.35, 0, 1);
+}
+
+/* MAIN PANELS */
+
+.side-panel,
+.event-panel,
+.scroll-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(72, 43, 15, 0.38),
+            rgba(29, 15, 5, 0.47),
+            rgba(9, 5, 2, 0.55));
+    -fx-border-color: rgba(226, 174, 55, 0.92);
+    -fx-border-width: 2.2;
+    -fx-border-radius: 18;
+    -fx-background-radius: 18;
+    -fx-padding: 22;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.68), 20, 0.36, 0, 7),
+            dropshadow(gaussian, rgba(255,210,98,0.18), 9, 0.22, 0, 0);
+}
+
+.light-scenario .side-panel,
+.light-scenario .event-panel,
+.light-scenario .scroll-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(98, 59, 21, 0.34),
+            rgba(43, 22, 7, 0.42),
+            rgba(13, 7, 2, 0.49));
+    -fx-border-color: rgba(245, 197, 75, 0.92);
+}
+
+.dark-scenario .side-panel,
+.dark-scenario .event-panel,
+.dark-scenario .scroll-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(19, 15, 11, 0.52),
+            rgba(7, 5, 4, 0.60),
+            rgba(0, 0, 0, 0.66));
+    -fx-border-color: rgba(186, 139, 43, 0.88);
+}
+
+/* TEXT */
+
+.section-title {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f8d66d;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.95), 6, 0.45, 0, 2),
+            dropshadow(gaussian, rgba(255,215,105,0.35), 8, 0.25, 0, 0);
+}
+
+.info-label {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 15px;
+    -fx-text-fill: #fff0c6;
+    -fx-line-spacing: 3px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.92), 4, 0.35, 0, 1);
+}
+
+.event-title {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 36px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f8d66d;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.98), 9, 0.50, 0, 3),
+            dropshadow(gaussian, rgba(255,215,105,0.48), 10, 0.32, 0, 0);
+}
+
+.event-description {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 19px;
+    -fx-text-fill: #fff2d2;
+    -fx-line-spacing: 8px;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.95), 5, 0.36, 0, 1);
+}
+
+/* BUTTONS */
+
+.choice-button,
+.menu-button,
+.continue-button,
+.welcome-button {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(154, 91, 27, 0.66),
+            rgba(83, 44, 12, 0.78),
+            rgba(39, 20, 6, 0.88));
+
+    -fx-border-color: rgba(255, 214, 95, 0.96);
+    -fx-border-width: 2.1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+
+    -fx-text-fill: #fff2d2;
+    -fx-padding: 12 22 12 22;
+    -fx-cursor: hand;
+
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.66), 12, 0.35, 0, 4),
+            dropshadow(gaussian, rgba(255,207,76,0.22), 7, 0.25, 0, 0);
+}
+
+.choice-button:hover,
+.menu-button:hover,
+.continue-button:hover,
+.welcome-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(212, 141, 45, 0.82),
+            rgba(112, 58, 15, 0.88),
+            rgba(54, 27, 7, 0.95));
+    -fx-border-color: #ffe7a3;
+    -fx-text-fill: #fffbe8;
+}
+
+.choice-button:disabled,
+.welcome-button:disabled {
+    -fx-opacity: 0.48;
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(58, 43, 28, 0.50),
+            rgba(24, 18, 13, 0.60));
+    -fx-border-color: rgba(117, 90, 38, 0.80);
+    -fx-text-fill: #b9aa89;
+}
+
+.menu-button {
+    -fx-font-size: 15px;
+    -fx-padding: 9 18 9 18;
+}
+
+.continue-button {
+    -fx-font-size: 18px;
+    -fx-padding: 11 34 11 34;
+}
+
+/* ===================================================== */
+/* FINAL MEDIEVAL SCROLL POPUP                           */
+/* ===================================================== */
+
+.result-popup {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(238, 196, 117, 0.92),
+            rgba(184, 116, 47, 0.90),
+            rgba(86, 43, 15, 0.94));
+
+    -fx-border-color: rgba(85, 39, 9, 0.95);
+    -fx-border-width: 4;
+    -fx-border-radius: 32;
+    -fx-background-radius: 32;
+
+    -fx-padding: 24 42 24 42;
+
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.88), 36, 0.45, 0, 12),
+            dropshadow(gaussian, rgba(255,221,135,0.40), 16, 0.30, 0, 0);
+}
+
+/* Birth: warm golden parchment */
+.popup-birth {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(255, 220, 143, 0.94),
+            rgba(196, 125, 48, 0.91),
+            rgba(95, 48, 15, 0.95));
+    -fx-border-color: rgba(255, 235, 151, 0.95);
+}
+
+/* Consequence: burnt scroll */
+.popup-consequence {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(230, 182, 101, 0.93),
+            rgba(153, 82, 30, 0.91),
+            rgba(58, 28, 9, 0.95));
+    -fx-border-color: rgba(236, 183, 74, 0.95);
+}
+
+/* Status: blue royal scroll */
+.popup-status {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(157, 191, 213, 0.92),
+            rgba(63, 88, 112, 0.92),
+            rgba(20, 30, 46, 0.96));
+    -fx-border-color: rgba(149, 211, 255, 0.95);
+}
+
+/* Legacy: red-gold royal seal, no purple */
+.popup-legacy {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(231, 178, 94, 0.94),
+            rgba(128, 36, 20, 0.93),
+            rgba(50, 13, 7, 0.97));
+    -fx-border-color: rgba(255, 220, 111, 1.0);
+}
+
+/* Ending/death: dark burnt final scroll */
+.popup-ending {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(141, 57, 35, 0.95),
+            rgba(55, 12, 8, 0.95),
+            rgba(9, 2, 1, 0.98));
+    -fx-border-color: rgba(255, 112, 82, 0.95);
+}
+
+/* Cursive royal heading */
+.popup-title {
+    -fx-font-family: "Lucida Calligraphy", "Segoe Script", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 42px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff2bf;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.96), 8, 0.45, 0, 3),
+            dropshadow(gaussian, rgba(255,226,131,0.65), 14, 0.35, 0, 0);
+}
+
+/* Body readable, still medieval */
+.result-text {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff8dd;
+    -fx-line-spacing: 10px;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.82), 5, 0.35, 0, 1);
+}
+
+/* Scroll ornaments */
+.scroll-ornament {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 22px;
+    -fx-text-fill: #fff0ad;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.86), 5, 0.35, 0, 1);
+}
+
+.scroll-divider {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 16px;
+    -fx-text-fill: rgba(255, 232, 164, 0.80);
+}
+
+/* Scroll content area */
+.popup-scroll {
+    -fx-background-color: rgba(44, 20, 5, 0.20);
+    -fx-background: transparent;
+
+    -fx-border-color: rgba(255, 235, 168, 0.30);
+    -fx-border-width: 1.4;
+    -fx-border-radius: 18;
+    -fx-background-radius: 18;
+
+    -fx-padding: 14;
+}
+
+.popup-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Make scrollbar less modern */
+.popup-scroll .scroll-bar:vertical {
+    -fx-background-color: rgba(39, 18, 5, 0.35);
+    -fx-background-radius: 8;
+    -fx-pref-width: 11px;
+}
+
+.popup-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(255, 220, 121, 0.85),
+            rgba(153, 88, 27, 0.90));
+    -fx-background-radius: 8;
+}
+
+.popup-scroll .scroll-bar:vertical .increment-button,
+.popup-scroll .scroll-bar:vertical .decrement-button {
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+
+/* Scroll continue button */
+.scroll-button,
+.continue-button {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(177, 102, 29, 0.90),
+            rgba(77, 34, 8, 0.94));
+
+    -fx-border-color: rgba(255, 229, 139, 0.95);
+    -fx-border-width: 2.4;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+
+    -fx-text-fill: #fff4ce;
+    -fx-padding: 10 34 10 34;
+
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.72), 12, 0.38, 0, 4),
+            dropshadow(gaussian, rgba(255,221,128,0.36), 10, 0.30, 0, 0);
+}
+
+.scroll-button:hover,
+.continue-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(222, 145, 43, 0.94),
+            rgba(111, 50, 12, 0.96));
+    -fx-border-color: #fff0b7;
+    -fx-text-fill: #fffbea;
+}
+
+
+/* Birth popup: bright gold */
+.popup-birth {
+    -fx-border-color: rgba(255, 232, 145, 1.0);
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(116, 72, 24, 0.44),
+            rgba(48, 24, 7, 0.58),
+            rgba(11, 5, 1, 0.68));
+}
+
+/* Normal consequence: parchment gold */
+.popup-consequence {
+    -fx-border-color: rgba(232, 181, 53, 0.96);
+}
+
+/* Status: royal blue seal */
+.popup-status {
+    -fx-border-color: rgba(108, 181, 255, 0.98);
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(22, 37, 60, 0.46),
+            rgba(9, 13, 24, 0.62),
+            rgba(2, 2, 5, 0.72));
+}
+
+/* Legacy: royal red + gold, no purple */
+.popup-legacy {
+    -fx-border-color: rgba(255, 208, 88, 1.0);
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(92, 21, 13, 0.46),
+            rgba(48, 16, 8, 0.62),
+            rgba(10, 4, 1, 0.74));
+}
+
+/* Ending / death: dark blood-red */
+.popup-ending {
+    -fx-border-color: rgba(255, 101, 76, 0.98);
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(76, 18, 11, 0.56),
+            rgba(29, 6, 4, 0.70),
+            rgba(4, 1, 1, 0.80));
+}
+
+.popup-title {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 42px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffdf7e;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.98), 9, 0.45, 0, 3),
+            dropshadow(gaussian, rgba(255,220,115,0.55), 10, 0.30, 0, 0);
+}
+
+.result-text {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 21px;
+    -fx-text-fill: #fff4d4;
+    -fx-line-spacing: 9px;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.90), 5, 0.34, 0, 1);
+}
+
+/* ScrollPane inside popup */
+
+.popup-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: rgba(255, 218, 107, 0.22);
+    -fx-border-width: 1.1;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 12;
+}
+
+.popup-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.popup-scroll .scroll-bar:vertical {
+    -fx-background-color: rgba(0,0,0,0.20);
+}
+
+.popup-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(220, 171, 55, 0.75);
+    -fx-background-radius: 8;
+}
+
+/* PROGRESS BARS */
+
+.progress-bar {
+    -fx-pref-height: 15px;
+}
+
+.progress-bar > .track {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(245,235,209,0.80),
+            rgba(173,154,112,0.68));
+    -fx-background-radius: 7;
+    -fx-border-radius: 7;
+    -fx-border-color: rgba(30, 18, 7, 0.62);
+    -fx-border-width: 1;
+}
+
+.progress-bar > .bar {
+    -fx-background-color:
+            linear-gradient(to right,
+            #7f5715,
+            #d8a43a,
+            #ffe08a);
+    -fx-background-radius: 7;
+}
+
+.dark-scenario .progress-bar > .track {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(210,196,160,0.68),
+            rgba(72,63,48,0.56));
+    -fx-border-color: rgba(0,0,0,0.78);
+}
+
+.dark-scenario .progress-bar > .bar {
+    -fx-background-color:
+            linear-gradient(to right,
+            #4e3714,
+            #9b752c,
+            #d2a13a);
+}
+
+/* WELCOME SCREEN */
+
+.welcome-root {
+    -fx-background-color: black;
+}
+
+.welcome-card {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(63, 37, 11, 0.40),
+            rgba(19, 9, 2, 0.56),
+            rgba(4, 2, 1, 0.64));
+
+    -fx-border-color: rgba(255, 218, 107, 0.96);
+    -fx-border-width: 3;
+    -fx-border-radius: 30;
+    -fx-background-radius: 30;
+
+    -fx-padding: 46 58 46 58;
+
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.84), 36, 0.44, 0, 11),
+            dropshadow(gaussian, rgba(255,215,98,0.25), 12, 0.28, 0, 0);
+}
+
+.welcome-title {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 56px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffdf7e;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.98), 10, 0.48, 0, 3),
+            dropshadow(gaussian, rgba(255,220,115,0.55), 12, 0.32, 0, 0);
+}
+
+.welcome-subtitle {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 24px;
+    -fx-text-fill: #fff3cf;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.90), 6, 0.35, 0, 2);
+}
+
+.welcome-description {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 17px;
+    -fx-text-fill: #fff2d2;
+    -fx-line-spacing: 7px;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.92), 5, 0.34, 0, 1);
+}
+
+.welcome-button {
+    -fx-font-size: 18px;
+    -fx-padding: 12 24 12 24;
+}
+
+/* LEGACY RECORDS SUPPORT */
+
+.records-root {
+    -fx-background-color: black;
+}
+
+.records-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(76, 45, 14, 0.44),
+            rgba(16, 8, 2, 0.62));
+    -fx-border-color: rgba(255, 218, 107, 0.95);
+    -fx-border-width: 2.5;
+    -fx-border-radius: 24;
+    -fx-background-radius: 24;
+    -fx-padding: 28;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.82), 30, 0.42, 0, 9);
+}
+
+.records-title {
+    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-size: 44px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffdf7e;
+}
+
+.records-text {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 16px;
+    -fx-text-fill: #fff2d2;
+}
+
+/* TOOLTIP */
+
+.tooltip {
+    -fx-background-color: rgba(20, 12, 4, 0.96);
+    -fx-text-fill: #fff2d2;
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 13px;
+    -fx-border-color: rgba(255, 218, 107, 0.85);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+/* CLEANUP */
+
+.label {
+    -fx-wrap-text: true;
+}
+
+.button {
+    -fx-focus-traversable: false;
+}
+
+/* ===================================================== */
+/* FINAL CLEAN PARCHMENT / SCROLL UI OVERRIDE            */
+/* ===================================================== */
+
+.root {
+    -fx-font-family: "Georgia", "Palatino Linotype", "Book Antiqua", serif;
+}
+
+/* Cleaner HUD spacing */
+.hud-layer {
+    -fx-padding: 18 26 24 26;
+}
+
+.main-game-area {
+    -fx-padding: 20 0 0 0;
+}
+
+/* Clean parchment panels, less cluttered */
+.side-panel,
+.event-panel,
+.parchment-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(80, 48, 18, 0.34),
+            rgba(30, 15, 5, 0.44),
+            rgba(8, 4, 1, 0.52));
+    -fx-border-color: rgba(220, 158, 45, 0.86);
+    -fx-border-width: 2;
+    -fx-border-radius: 18;
+    -fx-background-radius: 18;
+    -fx-padding: 22;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.62), 18, 0.35, 0, 6);
+}
+
+/* Main title */
+.game-title-small {
+    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f6d06a;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.95), 7, 0.45, 0, 2),
+            dropshadow(gaussian, rgba(246,208,106,0.50), 10, 0.35, 0, 0);
+}
+
+.game-subtitle-small {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 16px;
+    -fx-text-fill: #f5dfb4;
+}
+
+/* Text */
+.section-title {
+    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f6d06a;
+}
+
+.info-label {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 15px;
+    -fx-text-fill: #f7e6c0;
+    -fx-line-spacing: 4px;
+}
+
+.compact-status-label {
+    -fx-font-size: 14px;
+}
+
+.mini-description {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: #e8d2a4;
+    -fx-line-spacing: 5px;
+}
+
+/* Event text */
+.event-title {
+    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-size: 34px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f6d06a;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.98), 8, 0.48, 0, 3),
+            dropshadow(gaussian, rgba(246,208,106,0.40), 10, 0.32, 0, 0);
+}
+
+.event-description {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 18px;
+    -fx-text-fill: #f8e9c6;
+    -fx-line-spacing: 7px;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* Buttons */
+.choice-button,
+.menu-button,
+.small-scroll-button,
+.continue-button,
+.welcome-button {
+    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(128, 72, 22, 0.62),
+            rgba(62, 31, 8, 0.78));
+    -fx-border-color: rgba(235, 183, 66, 0.92);
+    -fx-border-width: 2;
+    -fx-border-radius: 11;
+    -fx-background-radius: 11;
+    -fx-text-fill: #fff0c6;
+    -fx-padding: 11 20 11 20;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.58), 10, 0.34, 0, 3);
+}
+
+.choice-button:hover,
+.menu-button:hover,
+.small-scroll-button:hover,
+.continue-button:hover,
+.welcome-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(175, 103, 31, 0.80),
+            rgba(79, 38, 9, 0.90));
+    -fx-border-color: #ffe4a0;
+}
+
+.small-scroll-button {
+    -fx-font-size: 14px;
+    -fx-padding: 8 14 8 14;
+}
+
+/* ===================================================== */
+/* ACTUAL SCROLL POPUP STYLE                             */
+/* ===================================================== */
+
+.result-popup {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(232, 173, 86, 0.96),
+            rgba(189, 108, 39, 0.96),
+            rgba(92, 42, 12, 0.98));
+    -fx-border-color: rgba(79, 36, 7, 0.96);
+    -fx-border-width: 4;
+    -fx-border-radius: 26;
+    -fx-background-radius: 26;
+    -fx-padding: 20 42 20 42;
+}
+
+/* All popup types stay parchment/red/gold. No blue. No purple. */
+.popup-birth {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(246, 200, 112, 0.98),
+            rgba(196, 114, 38, 0.96),
+            rgba(92, 42, 12, 0.98));
+    -fx-border-color: rgba(255, 232, 145, 0.98);
+}
+
+.popup-consequence,
+.popup-info {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(224, 159, 77, 0.96),
+            rgba(168, 84, 26, 0.96),
+            rgba(71, 31, 8, 0.98));
+    -fx-border-color: rgba(235, 184, 72, 0.96);
+}
+
+.popup-legacy {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(230, 166, 79, 0.96),
+            rgba(126, 37, 17, 0.96),
+            rgba(52, 14, 5, 0.98));
+    -fx-border-color: rgba(255, 217, 98, 0.98);
+}
+
+.popup-ending {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(143, 59, 35, 0.98),
+            rgba(58, 13, 8, 0.98),
+            rgba(10, 2, 1, 1.0));
+    -fx-border-color: rgba(206, 91, 55, 0.98);
+}
+
+/* Cursive only on scroll titles */
+.popup-title {
+    -fx-font-family: "Lucida Calligraphy", "Segoe Script", "Georgia", serif;
+    -fx-font-size: 40px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff0b8;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.90), 8, 0.44, 0, 3),
+            dropshadow(gaussian, rgba(255,230,150,0.55), 12, 0.34, 0, 0);
+}
+
+.result-text {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff6d7;
+    -fx-line-spacing: 9px;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 5, 0.32, 0, 1);
+}
+
+/* Scroll edges and decoration */
+.scroll-edge {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 22px;
+    -fx-text-fill: #4b2107;
+    -fx-opacity: 0.75;
+}
+
+.scroll-divider {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 15px;
+    -fx-text-fill: rgba(255, 232, 164, 0.82);
+}
+
+/* Popup inner scroll */
+.popup-scroll {
+    -fx-background-color: rgba(60, 25, 5, 0.16);
+    -fx-background: transparent;
+    -fx-border-color: rgba(255, 235, 168, 0.28);
+    -fx-border-width: 1;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-padding: 12;
+}
+
+.popup-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Scrollbar */
+.popup-scroll .scroll-bar:vertical {
+    -fx-background-color: rgba(50, 20, 4, 0.35);
+    -fx-background-radius: 8;
+    -fx-pref-width: 10px;
+}
+
+.popup-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(255, 220, 121, 0.88),
+            rgba(141, 72, 17, 0.92));
+    -fx-background-radius: 8;
+}
+
+.popup-scroll .scroll-bar:vertical .increment-button,
+.popup-scroll .scroll-bar:vertical .decrement-button {
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+
+/* Progress bars hidden from main UI but kept styled for future */
+.progress-bar > .track {
+    -fx-background-color: rgba(235, 224, 196, 0.72);
+    -fx-background-radius: 7;
+}
+
+.progress-bar > .bar {
+    -fx-background-color:
+            linear-gradient(to right, #805814, #d9a43a, #ffe08a);
+    -fx-background-radius: 7;
+}
+
+/* ===================================================== */
+/* DRAWERS + GREEN/RED CHANGE CUES                       */
+/* ===================================================== */
+
+.stats-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(78, 45, 15, 0.38),
+            rgba(26, 13, 4, 0.50),
+            rgba(6, 3, 1, 0.58));
+    -fx-border-color: rgba(230, 170, 52, 0.90);
+    -fx-border-width: 2;
+    -fx-border-radius: 18;
+    -fx-background-radius: 18;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.62), 18, 0.35, 0, 6);
+}
+
+.drawer-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(216, 155, 71, 0.96),
+            rgba(139, 72, 25, 0.97),
+            rgba(55, 24, 7, 0.98));
+    -fx-border-color: rgba(255, 218, 107, 0.95);
+    -fx-border-width: 3;
+    -fx-border-radius: 0 22 22 0;
+    -fx-background-radius: 0 22 22 0;
+    -fx-padding: 26;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.78), 28, 0.42, 0, 8);
+}
+
+.right-drawer {
+    -fx-border-radius: 22 0 0 22;
+    -fx-background-radius: 22 0 0 22;
+}
+
+.drawer-title {
+    -fx-font-family: "Lucida Calligraphy", "Segoe Script", "Georgia", serif;
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff0b8;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.90), 8, 0.4, 0, 2),
+            dropshadow(gaussian, rgba(255,230,150,0.45), 12, 0.30, 0, 0);
+}
+
+.drawer-text {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff5d6;
+    -fx-line-spacing: 6px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.72), 5, 0.32, 0, 1);
+}
+
+.drawer-tab {
+    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(145, 82, 24, 0.88),
+            rgba(58, 26, 7, 0.94));
+    -fx-border-color: rgba(255, 218, 107, 0.96);
+    -fx-border-width: 2;
+    -fx-border-radius: 11;
+    -fx-background-radius: 11;
+    -fx-text-fill: #fff0c6;
+    -fx-padding: 10 16 10 16;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.70), 12, 0.34, 0, 4);
+}
+
+.drawer-tab:hover {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(190, 111, 33, 0.94),
+            rgba(80, 35, 8, 0.98));
+    -fx-border-color: #ffe5a0;
+}
+
+.delta-positive {
+    -fx-text-fill: #87e07a;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.85), 5, 0.34, 0, 1),
+            dropshadow(gaussian, rgba(78,210,80,0.42), 10, 0.30, 0, 0);
+}
+
+.delta-negative {
+    -fx-text-fill: #ff725e;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.85), 5, 0.34, 0, 1),
+            dropshadow(gaussian, rgba(220,55,38,0.44), 10, 0.30, 0, 0);
+}
+
+.delta-neutral {
+    -fx-text-fill: #f7e6c0;
+}
+
+.change-cue {
+    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 4 10 4 10;
+}
+
+.positive-cue {
+    -fx-text-fill: #87e07a;
+}
+
+.negative-cue {
+    -fx-text-fill: #ff725e;
+}
+
+/* ===================================================== */
+/* REAL IMAGE-BASED MESSENGER SCROLL POPUP               */
+/* ===================================================== */
+
+.popup-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.34);
+}
+
+.scroll-popup-shell {
+    -fx-background-color: transparent;
+}
+
+#popupContentBox {
+    -fx-padding: 110 150 100 150;
+}
+
+#popupScrollBackground {
+    -fx-opacity: 1.0;
+}
+
+.scroll-popup-title,
+.popup-title {
+    -fx-font-family: "Gabriola", "Lucida Calligraphy", "Palatino Linotype", serif;
+    -fx-font-size: 46px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #4a2107;
+    -fx-effect: dropshadow(gaussian, rgba(255, 242, 200, 0.70), 8, 0.28, 0, 1);
+}
+
+.scroll-popup-text,
+.result-text {
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3d1c06;
+    -fx-line-spacing: 8px;
+    -fx-effect: dropshadow(gaussian, rgba(255, 245, 220, 0.35), 3, 0.16, 0, 1);
+}
+
+.scroll-divider,
+.scroll-ornament {
+    -fx-text-fill: #7a4615;
+    -fx-opacity: 0.88;
+}
+
+.scroll-popup-scroll,
+.popup-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-popup-scroll > .viewport,
+.popup-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-popup-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 9px;
+}
+
+.scroll-popup-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(104, 58, 18, 0.58);
+    -fx-background-radius: 8;
+}
+
+.scroll-popup-scroll .scroll-bar:vertical .increment-button,
+.scroll-popup-scroll .scroll-bar:vertical .decrement-button {
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+
+.scroll-popup-button,
+.continue-button {
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff0c2;
+    -fx-background-color:
+            linear-gradient(to bottom, #8e5a1f, #5b2e0a);
+    -fx-border-color: #d9a94c;
+    -fx-border-width: 2;
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-padding: 9 30 9 30;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 8, 0.28, 0, 3);
+}
+
+.scroll-popup-button:hover,
+.continue-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom, #ad7129, #6d390d);
+    -fx-border-color: #ffe29a;
+}
+
+/* ===================================================== */
+/* FINAL DRAWER + ANCIENT SCROLL POPUP OVERRIDE          */
+/* ===================================================== */
+
+/* Semi-transparent drawers */
+.drawer-panel,
+.medieval-drawer {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(126, 76, 30, 0.56),
+            rgba(78, 36, 10, 0.46),
+            rgba(32, 12, 3, 0.40));
+    -fx-background-radius: 26;
+    -fx-border-color: rgba(235, 190, 80, 0.82);
+    -fx-border-width: 2;
+    -fx-border-radius: 26;
+    -fx-padding: 22 18 22 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.42), 18, 0.22, 0, 8);
+}
+
+.left-drawer,
+.right-drawer {
+    -fx-opacity: 1.0;
+}
+
+.drawer-title {
+    -fx-text-fill: #f8d978;
+    -fx-font-size: 25px;
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-max-width: infinity;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.82), 7, 0.32, 0, 2),
+            dropshadow(gaussian, rgba(255,220,125,0.34), 10, 0.28, 0, 0);
+}
+
+.drawer-text {
+    -fx-text-fill: #fff0c8;
+    -fx-font-size: 15px;
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-weight: bold;
+    -fx-line-spacing: 4px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.70), 5, 0.25, 0, 1);
+}
+
+.drawer-note {
+    -fx-text-fill: rgba(255, 239, 203, 0.86);
+    -fx-font-size: 13px;
+    -fx-font-family: "Georgia", serif;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+}
+
+.drawer-separator-text {
+    -fx-text-fill: rgba(238, 190, 84, 0.60);
+}
+
+/* Drawer handles */
+.drawer-tab,
+.drawer-handle {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(128, 72, 22, 0.84),
+            rgba(54, 23, 6, 0.90));
+    -fx-background-radius: 18;
+    -fx-border-radius: 18;
+    -fx-border-color: rgba(235, 190, 80, 0.95);
+    -fx-border-width: 2;
+    -fx-text-fill: #fff0c8;
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 10 16 10 16;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.52), 10, 0.24, 0, 4);
+}
+
+.drawer-tab:hover,
+.drawer-handle:hover {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(174, 101, 31, 0.94),
+            rgba(74, 31, 8, 0.98));
+}
+
+/* Popup overlay */
+.popup-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.38);
+}
+
+.scroll-popup-shell {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+#popupScrollBackground {
+    -fx-opacity: 1.0;
+}
+
+.scroll-content-horizontal,
+.scroll-content-vertical {
+    -fx-alignment: center;
+}
+
+/* Ancient scroll title */
+.scroll-popup-title,
+.popup-title {
+    -fx-font-family: "Gabriola", "Lucida Calligraphy", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 42px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #4b2308;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(255,245,210,0.75), 7, 0.28, 0, 1),
+            dropshadow(gaussian, rgba(70,32,8,0.40), 4, 0.22, 0, 2);
+}
+
+/* Vertical decree title should be smaller */
+.popup-vertical-mode .scroll-popup-title,
+.popup-vertical-mode .popup-title {
+    -fx-font-size: 34px;
+}
+
+/* Ancient scroll body */
+.scroll-popup-text,
+.result-text {
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3d1b05;
+    -fx-line-spacing: 7px;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(255,245,220,0.35), 3, 0.18, 0, 1);
+}
+
+.popup-vertical-mode .scroll-popup-text,
+.popup-vertical-mode .result-text {
+    -fx-font-size: 18px;
+}
+
+/* Scroll inner message area */
+.scroll-popup-scroll,
+.popup-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: rgba(110, 61, 19, 0.28);
+    -fx-border-width: 1.2;
+    -fx-border-radius: 16;
+    -fx-background-radius: 16;
+    -fx-padding: 8 12 8 12;
+}
+
+.scroll-popup-scroll > .viewport,
+.popup-scroll > .viewport {
+    -fx-background-color: rgba(112, 61, 22, 0.10);
+    -fx-background-radius: 16;
+}
+
+/* Ornaments */
+.scroll-ornament {
+    -fx-font-family: "Gabriola", "Palatino Linotype", serif;
+    -fx-font-size: 24px;
+    -fx-text-fill: #7b4517;
+    -fx-opacity: 0.85;
+}
+
+.scroll-divider {
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 15px;
+    -fx-text-fill: rgba(112, 61, 19, 0.72);
+}
+
+/* Scrollbar */
+.scroll-popup-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 9px;
+}
+
+.scroll-popup-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(104, 58, 18, 0.50);
+    -fx-background-radius: 8;
+}
+
+.scroll-popup-scroll .scroll-bar:vertical .increment-button,
+.scroll-popup-scroll .scroll-bar:vertical .decrement-button {
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+
+/* Scroll button */
+.scroll-popup-button,
+.continue-button {
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff0c2;
+    -fx-background-color:
+            linear-gradient(to bottom, #8e5a1f, #5b2e0a);
+    -fx-border-color: #d9a94c;
+    -fx-border-width: 2;
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-padding: 9 28 9 28;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.50), 8, 0.25, 0, 3);
+}
+
+.scroll-popup-button:hover,
+.continue-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom, #ad7129, #6d390d);
+    -fx-border-color: #ffe29a;
+}
+
+/* Legacy/status: only gold/brown/red, no blue/purple */
+.popup-legacy .scroll-popup-title,
+.popup-status .scroll-popup-title {
+    -fx-text-fill: #5a2607;
+}
+
+.popup-ending .scroll-popup-title {
+    -fx-text-fill: #4a1707;
+}
+
+/* Green/red deltas */
+.delta-positive {
+    -fx-text-fill: #85e079;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.70), 5, 0.28, 0, 1),
+            dropshadow(gaussian, rgba(80,210,70,0.38), 9, 0.28, 0, 0);
+}
+
+.delta-negative {
+    -fx-text-fill: #ff7462;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.70), 5, 0.28, 0, 1),
+            dropshadow(gaussian, rgba(220,60,40,0.40), 9, 0.28, 0, 0);
+}
+
+.delta-neutral {
+    -fx-text-fill: #fff0c8;
+}
+
+/* ===================================================== */
+/* FIX: DRAWER CLARITY + SCROLL ALIGNMENT                */
+/* ===================================================== */
+
+/* Drawer should be transparent, but not so transparent that hidden UI becomes messy */
+.drawer-panel,
+.medieval-drawer {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(112, 67, 27, 0.72),
+            rgba(70, 33, 10, 0.66),
+            rgba(25, 9, 2, 0.62));
+    -fx-background-radius: 24;
+    -fx-border-color: rgba(235, 190, 80, 0.78);
+    -fx-border-width: 2;
+    -fx-border-radius: 24;
+    -fx-padding: 20 18 20 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.48), 18, 0.24, 0, 7);
+}
+
+.drawer-title {
+    -fx-text-fill: #f7d676;
+    -fx-font-size: 25px;
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.86), 7, 0.35, 0, 2),
+            dropshadow(gaussian, rgba(255,220,125,0.32), 10, 0.28, 0, 0);
+}
+
+.drawer-text {
+    -fx-text-fill: #fff0c8;
+    -fx-font-size: 14px;
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-weight: bold;
+    -fx-line-spacing: 3px;
+    -fx-text-alignment: left;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.76), 5, 0.26, 0, 1);
+}
+
+.drawer-note {
+    -fx-text-fill: rgba(255, 239, 203, 0.84);
+    -fx-font-size: 12px;
+    -fx-font-family: "Georgia", serif;
+    -fx-wrap-text: true;
+    -fx-text-alignment: center;
+}
+
+.drawer-separator-text {
+    -fx-text-fill: rgba(238, 190, 84, 0.58);
+}
+
+/* Drawer handles now look like attached wooden tabs */
+.drawer-tab,
+.drawer-handle {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(120, 67, 20, 0.92),
+            rgba(48, 20, 5, 0.98));
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-border-color: rgba(235, 190, 80, 0.95);
+    -fx-border-width: 2;
+    -fx-text-fill: #fff0c8;
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 9 15 9 15;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.58), 10, 0.25, 0, 4);
+}
+
+.drawer-tab:hover,
+.drawer-handle:hover {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(170, 98, 30, 0.96),
+            rgba(68, 28, 7, 1.0));
+}
+
+/* Less modern tooltip */
+.tooltip {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(64, 34, 10, 0.96),
+            rgba(22, 9, 2, 0.98));
+    -fx-text-fill: #fff0c8;
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-border-color: rgba(235, 190, 80, 0.80);
+    -fx-border-width: 1.4;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+}
+
+/* Scroll popup overlay */
+.popup-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.34);
+}
+
+.scroll-popup-shell,
+.scroll-popup-horizontal,
+.scroll-popup-birth,
+.scroll-popup-vertical {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+#popupScrollBackground {
+    -fx-opacity: 1.0;
+}
+
+/* Better ancient writing */
+.scroll-popup-title,
+.popup-title {
+    -fx-font-family: "Gabriola", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 42px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #4a2107;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(255,245,210,0.74), 6, 0.26, 0, 1),
+            dropshadow(gaussian, rgba(70,32,8,0.42), 4, 0.22, 0, 2);
+}
+
+.popup-birth .scroll-popup-title,
+.popup-birth .popup-title {
+    -fx-font-size: 44px;
+}
+
+.popup-vertical-mode .scroll-popup-title,
+.popup-vertical-mode .popup-title {
+    -fx-font-size: 34px;
+}
+
+/* Scroll body */
+.scroll-popup-text,
+.result-text {
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3d1b05;
+    -fx-line-spacing: 6px;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(255,245,220,0.32), 3, 0.16, 0, 1);
+}
+
+.popup-birth .scroll-popup-text,
+.popup-birth .result-text {
+    -fx-font-size: 22px;
+}
+
+.popup-vertical-mode .scroll-popup-text,
+.popup-vertical-mode .result-text {
+    -fx-font-size: 18px;
+}
+
+/* The center text area should not look like a modern box */
+.scroll-popup-scroll,
+.popup-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4 8 4 8;
+}
+
+.scroll-popup-scroll > .viewport,
+.popup-scroll > .viewport {
+    -fx-background-color: rgba(112, 61, 22, 0.05);
+    -fx-background-radius: 14;
+}
+
+/* Ornaments */
+.scroll-ornament {
+    -fx-font-family: "Gabriola", "Palatino Linotype", serif;
+    -fx-font-size: 23px;
+    -fx-text-fill: #7b4517;
+    -fx-opacity: 0.82;
+}
+
+.scroll-divider {
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: rgba(112, 61, 19, 0.68);
+}
+
+/* Scroll button */
+.scroll-popup-button,
+.continue-button {
+    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff0c2;
+    -fx-background-color:
+            linear-gradient(to bottom, #8e5a1f, #5b2e0a);
+    -fx-border-color: #d9a94c;
+    -fx-border-width: 2;
+    -fx-background-radius: 15;
+    -fx-border-radius: 15;
+    -fx-padding: 8 26 8 26;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.48), 8, 0.25, 0, 3);
+}
+
+.scroll-popup-button:hover,
+.continue-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom, #ad7129, #6d390d);
+    -fx-border-color: #ffe29a;
+}
+
+/* Scrollbar should almost disappear */
+.scroll-popup-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 8px;
+}
+
+.scroll-popup-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(104, 58, 18, 0.38);
+    -fx-background-radius: 8;
+}
+
+.scroll-popup-scroll .scroll-bar:vertical .increment-button,
+.scroll-popup-scroll .scroll-bar:vertical .decrement-button {
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+
+/* ===================================================== */
+/* FINAL FONT + POPUP TITLE ALIGNMENT FIX                */
+/* ===================================================== */
+
+/* Same royal font for event title and scroll title */
+.event-title,
+.scroll-popup-title,
+.popup-title {
+    -fx-font-family: "Palatino Linotype", "Georgia", "Times New Roman", serif;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f4c957;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.92), 7, 0.35, 0, 2),
+            dropshadow(gaussian, rgba(255,222,120,0.38), 12, 0.28, 0, 0);
+}
+
+/* Event title */
+.event-title {
+    -fx-font-size: 36px;
+}
+
+/* Popup title: bold and a little lower-looking */
+.scroll-popup-title,
+.popup-title {
+    -fx-font-size: 38px;
+    -fx-font-weight: bold;
+}
+
+/* Body text should match the same medieval family, not random cursive */
+.event-description,
+.scroll-popup-text,
+.result-text,
+.choice-button,
+.drawer-text,
+.info-label {
+    -fx-font-family: "Palatino Linotype", "Georgia", "Times New Roman", serif;
+}
+
+/* Make popup body cleaner */
+.scroll-popup-text,
+.result-text {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3d1b05;
+    -fx-line-spacing: 7px;
+}

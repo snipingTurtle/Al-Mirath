@@ -10,6 +10,7 @@ import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.service.BackgroundLibrary;
 import com.example.al_mirath.service.GameEngine;
 import com.example.al_mirath.service.LegacyArchive;
+import com.example.al_mirath.service.SaveManager;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -42,6 +43,7 @@ public class GameController {
 
     private GameEngine engine;
     private Main mainApp;
+    private GameEngine restoredEngine;
 
     private String pendingLegacyTitleMessage = "";
     private String pendingStatusChangeMessage = "";
@@ -143,14 +145,16 @@ public class GameController {
 
     @FXML
     public void initialize() {
-        engine = new GameEngine();
+        boolean continuingGame = restoredEngine != null;
+
+        engine = continuingGame ? restoredEngine : new GameEngine();
 
         pendingLegacyTitleMessage = "";
         pendingStatusChangeMessage = "";
 
         activePopupTitle = "";
         legacyRecorded = false;
-        birthIntroShown = false;
+        birthIntroShown = continuingGame;
         finalChronicleShown = false;
 
         bindBackgroundToWindow();
@@ -161,6 +165,18 @@ public class GameController {
         updateCharacterInfo();
         updateStats();
         updateFactions();
+
+        if (continuingGame) {
+            setGameplayPanelsVisible(true);
+
+            Platform.runLater(() -> {
+                animateBackgroundMotion();
+                loadCurrentEvent();
+                setGameplayPanelsVisible(true);
+            });
+
+            return;
+        }
 
         eventTitleLabel.setText("Birth of a Life");
         eventDescriptionLabel.setText(
@@ -190,6 +206,10 @@ public class GameController {
 
     public void setMainApp(Main mainApp) {
         this.mainApp = mainApp;
+    }
+
+    public void setRestoredEngine(GameEngine restoredEngine) {
+        this.restoredEngine = restoredEngine;
     }
 
     private void initializePopupAssets() {
@@ -993,6 +1013,8 @@ public class GameController {
 
                 activePopupTitle = "";
 
+                SaveManager.clearSave();
+
                 if (mainApp != null) {
                     mainApp.showWelcomeScreen();
                 }
@@ -1021,6 +1043,8 @@ public class GameController {
 
     @FXML
     private void restartGame() {
+        SaveManager.clearSave();
+
         engine = new GameEngine();
 
         pendingLegacyTitleMessage = "";
@@ -1064,6 +1088,8 @@ public class GameController {
 
     @FXML
     private void returnToMainMenu() {
+        persistGameIfInProgress();
+
         if (mainApp != null) {
             mainApp.showWelcomeScreen();
         }
@@ -1071,8 +1097,20 @@ public class GameController {
 
     @FXML
     private void exitGame() {
+        persistGameIfInProgress();
+
         if (mainApp != null) {
             mainApp.exitGame();
+        }
+    }
+
+    /**
+     * Saves the current run to the database so it can be resumed later,
+     * as long as the game hasn't already reached its ending.
+     */
+    private void persistGameIfInProgress() {
+        if (engine != null && !legacyRecorded) {
+            SaveManager.saveGame(engine);
         }
     }
 

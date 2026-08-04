@@ -2,6 +2,7 @@ module com.example.al_mirath {
     requires javafx.controls;
     requires javafx.fxml;
     requires java.sql;
+    requires org.json;
 
     opens com.example.al_mirath to javafx.fxml;
     opens com.example.al_mirath.controller to javafx.fxml;

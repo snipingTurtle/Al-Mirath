@@ -2,9 +2,12 @@ package com.example.al_mirath.service;
 
 import com.example.al_mirath.model.Choice;
 import com.example.al_mirath.model.ChoiceRequirement;
+import com.example.al_mirath.model.DelayedConsequence;
 import com.example.al_mirath.model.FactionRelations;
 import com.example.al_mirath.model.GameEvent;
+import com.example.al_mirath.model.GameSnapshot;
 import com.example.al_mirath.model.PlayerCharacter;
+import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.EndingResult;
 
@@ -31,11 +34,11 @@ public class GameEngine {
     private final String birthIntroMessage;
 
     private final Map<String, Integer> maxEventsByStage = Map.of(
-            "Childhood", 3,
-            "Youth", 4,
-            "Adulthood", 7,
-            "Political Crisis", 5,
-            "Legacy", 3
+            "Childhood", 5,
+            "Youth", 6,
+            "Adulthood", 9,
+            "Political Crisis", 6,
+            "Legacy", 4
     );
 
     private final List<String> lifeStages = List.of(
@@ -53,6 +56,36 @@ public class GameEngine {
     private EndingResult endingResult;
     private String latestLegacyTitleMessage = "";
     private String latestStatusChangeMessage = "";
+
+    /**
+     * Threads of Fate: the currency spent to attempt a rewind. A life starts
+     * with one, and more are earned by surviving each life stage.
+     */
+    private int fateTokens = 1;
+
+    /** State captured immediately before the most recent choice was applied. */
+    private GameSnapshot lastSnapshot;
+
+    private int choicesMade = 0;
+    private int rewindsUsed = 0;
+    private int minigamesWon = 0;
+    private int minigamesLost = 0;
+
+    /** World events already shown this life, so the same news never repeats. */
+    private final Set<String> shownWorldEvents = new HashSet<>();
+    private String latestWorldEventTitle = "";
+    private String latestWorldEventMessage = "";
+
+    /**
+     * Consequences planted by earlier choices, waiting for the character to
+     * reach their trigger age. Keyed by id so a flag set twice cannot schedule
+     * the same echo twice.
+     */
+    private final Map<String, DelayedConsequence> pendingConsequences = new HashMap<>();
+    private final Set<String> firedConsequences = new HashSet<>();
+
+    private String latestConsequenceEchoTitle = "";
+    private String latestConsequenceEchoMessage = "";
 
     public GameEngine() {
         CharacterGenerator generator = new CharacterGenerator();
@@ -142,6 +175,24 @@ public class GameEngine {
         root.put("playedEventTitles", new JSONArray(playedEventTitles));
         root.put("currentEventTitle", currentEvent == null ? JSONObject.NULL : currentEvent.getTitle());
 
+        root.put("fateTokens", fateTokens);
+        root.put("stagesRewarded", new JSONArray(stagesRewarded));
+        root.put("choicesMade", choicesMade);
+        root.put("rewindsUsed", rewindsUsed);
+        root.put("minigamesWon", minigamesWon);
+        root.put("minigamesLost", minigamesLost);
+        root.put("shownWorldEvents", new JSONArray(shownWorldEvents));
+        root.put("firedConsequences", new JSONArray(firedConsequences));
+
+        // Only ids and trigger ages are stored; the full text is rebuilt from
+        // ConsequenceLibrary on load, so edits to that content reach saves in
+        // progress instead of being frozen at the moment of scheduling.
+        JSONObject pendingJson = new JSONObject();
+        for (DelayedConsequence consequence : pendingConsequences.values()) {
+            pendingJson.put(consequence.id(), consequence.triggerAge());
+        }
+        root.put("pendingConsequences", pendingJson);
+
         return root.toString();
     }
 
@@ -214,7 +265,7 @@ public class GameEngine {
                 ? null
                 : root.getString("currentEventTitle");
 
-        return new GameEngine(
+        GameEngine engine = new GameEngine(
                 player,
                 factions,
                 worldState,
@@ -223,6 +274,58 @@ public class GameEngine {
                 playedEventTitles,
                 currentEventTitle
         );
+
+        engine.restoreProgression(root);
+
+        return engine;
+    }
+
+    /**
+     * Reads the Threads of Fate economy and run counters back out of a save.
+     * Every field is optional so saves written before these existed still load.
+     */
+    private void restoreProgression(JSONObject root) {
+        this.fateTokens = root.optInt("fateTokens", 1);
+        this.choicesMade = root.optInt("choicesMade", 0);
+        this.rewindsUsed = root.optInt("rewindsUsed", 0);
+        this.minigamesWon = root.optInt("minigamesWon", 0);
+        this.minigamesLost = root.optInt("minigamesLost", 0);
+
+        JSONArray rewarded = root.optJSONArray("stagesRewarded");
+
+        if (rewarded != null) {
+            for (int i = 0; i < rewarded.length(); i++) {
+                this.stagesRewarded.add(rewarded.getString(i));
+            }
+        }
+
+        JSONArray worldEvents = root.optJSONArray("shownWorldEvents");
+
+        if (worldEvents != null) {
+            for (int i = 0; i < worldEvents.length(); i++) {
+                this.shownWorldEvents.add(worldEvents.getString(i));
+            }
+        }
+
+        JSONArray fired = root.optJSONArray("firedConsequences");
+
+        if (fired != null) {
+            for (int i = 0; i < fired.length(); i++) {
+                this.firedConsequences.add(fired.getString(i));
+            }
+        }
+
+        JSONObject pending = root.optJSONObject("pendingConsequences");
+
+        if (pending != null) {
+            for (String id : pending.keySet()) {
+                DelayedConsequence restored = ConsequenceLibrary.byId(id, pending.getInt(id));
+
+                if (restored != null) {
+                    this.pendingConsequences.put(id, restored);
+                }
+            }
+        }
     }
 
     public String getBirthIntroMessage() {
@@ -233,6 +336,212 @@ public class GameEngine {
         String message = latestStatusChangeMessage;
         latestStatusChangeMessage = "";
         return message;
+    }
+
+    /** Empty when there is no delayed echo pending; check before showing the popup. */
+    public String getLatestConsequenceEchoTitle() {
+        return latestConsequenceEchoTitle;
+    }
+
+    public String consumeLatestConsequenceEchoMessage() {
+        String message = latestConsequenceEchoMessage;
+        latestConsequenceEchoTitle = "";
+        latestConsequenceEchoMessage = "";
+        return message;
+    }
+
+    /** Number of echoes still waiting to come due; surfaced for testing. */
+    public int getPendingConsequenceCount() {
+        return pendingConsequences.size();
+    }
+
+    /**
+     * Plants whatever long-term echoes a newly set flag carries. Ids already
+     * scheduled or already fired are skipped, so re-setting a flag cannot
+     * stack duplicates.
+     */
+    private void scheduleConsequencesFor(String flag) {
+        for (DelayedConsequence consequence : ConsequenceLibrary.consequencesFor(flag, player.getAge())) {
+            if (firedConsequences.contains(consequence.id())) {
+                continue;
+            }
+
+            pendingConsequences.putIfAbsent(consequence.id(), consequence);
+        }
+    }
+
+    /**
+     * Fires at most one due echo per choice, so several coming due together
+     * are spread across turns rather than buried in a single popup.
+     */
+    private void fireDueConsequences() {
+        if (!latestConsequenceEchoMessage.isBlank()) {
+            return;
+        }
+
+        DelayedConsequence due = null;
+
+        for (DelayedConsequence consequence : pendingConsequences.values()) {
+            if (player.getAge() < consequence.triggerAge()) {
+                continue;
+            }
+
+            // A later choice may have defused this entirely.
+            if (consequence.hasCancelFlag() && worldState.hasFlag(consequence.cancelledByFlag())) {
+                pendingConsequences.remove(consequence.id());
+                firedConsequences.add(consequence.id());
+                return;
+            }
+
+            if (!worldState.hasAllFlags(consequence.requiredFlags())) {
+                continue;
+            }
+
+            due = consequence;
+            break;
+        }
+
+        if (due == null) {
+            return;
+        }
+
+        pendingConsequences.remove(due.id());
+        firedConsequences.add(due.id());
+
+        StringBuilder effectLines = new StringBuilder();
+
+        for (Map.Entry<String, Integer> effect : due.statEffects().entrySet()) {
+            player.applyChange(effect.getKey(), effect.getValue());
+            appendEffectLine(effectLines, statDisplayName(effect.getKey()), effect.getValue());
+        }
+
+        for (Map.Entry<String, Integer> effect : due.factionEffects().entrySet()) {
+            factions.applyChange(effect.getKey(), effect.getValue());
+            appendEffectLine(effectLines, factionDisplayName(effect.getKey()), effect.getValue());
+        }
+
+        for (String flag : due.flagsToAdd()) {
+            worldState.addFlag(flag);
+        }
+
+        latestConsequenceEchoTitle = due.title();
+        latestConsequenceEchoMessage = effectLines.isEmpty()
+                ? due.description()
+                : due.description() + "\n\nWhat it costs you now:\n" + effectLines;
+    }
+
+    /** Empty when there is no world event pending; check before showing the popup. */
+    public String getLatestWorldEventTitle() {
+        return latestWorldEventTitle;
+    }
+
+    public String consumeLatestWorldEventMessage() {
+        String message = latestWorldEventMessage;
+        latestWorldEventTitle = "";
+        latestWorldEventMessage = "";
+        return message;
+    }
+
+    /**
+     * A modest chance each choice to surface unrelated news from the wider
+     * world — a death, a rebellion, a plague — so the setting keeps moving
+     * even when the player's own path stays quiet. Never repeats within a life.
+     */
+    private void rollForWorldEvent() {
+        if (!latestWorldEventMessage.isBlank()) {
+            return;
+        }
+
+        if (random.nextInt(100) >= 22) {
+            return;
+        }
+
+        List<WorldEvent> candidates = new ArrayList<>();
+
+        for (WorldEvent event : WorldEventLibrary.all()) {
+            if (!shownWorldEvents.contains(event.title()) && event.isEraAllowed(player.getEra())) {
+                candidates.add(event);
+            }
+        }
+
+        if (candidates.isEmpty()) {
+            return;
+        }
+
+        WorldEvent chosen = candidates.get(random.nextInt(candidates.size()));
+        shownWorldEvents.add(chosen.title());
+
+        latestWorldEventTitle = chosen.title();
+        latestWorldEventMessage = applyWorldEventEffects(chosen);
+    }
+
+    /**
+     * Applies a world event's stat and faction effects to the live character,
+     * and returns the description with an effect summary appended so the
+     * player can see that the news actually touched their life.
+     */
+    private String applyWorldEventEffects(WorldEvent event) {
+        if (!event.hasEffects()) {
+            return event.description();
+        }
+
+        StringBuilder effectLines = new StringBuilder();
+
+        for (Map.Entry<String, Integer> effect : event.statEffects().entrySet()) {
+            player.applyChange(effect.getKey(), effect.getValue());
+            appendEffectLine(effectLines, statDisplayName(effect.getKey()), effect.getValue());
+        }
+
+        for (Map.Entry<String, Integer> effect : event.factionEffects().entrySet()) {
+            factions.applyChange(effect.getKey(), effect.getValue());
+            appendEffectLine(effectLines, factionDisplayName(effect.getKey()), effect.getValue());
+        }
+
+        if (effectLines.isEmpty()) {
+            return event.description();
+        }
+
+        return event.description() + "\n\nHow it touches your life:\n" + effectLines;
+    }
+
+    private void appendEffectLine(StringBuilder report, String displayName, int delta) {
+        if (delta == 0) {
+            return;
+        }
+
+        if (!report.isEmpty()) {
+            report.append("\n");
+        }
+
+        report.append(delta > 0 ? "+" : "").append(delta).append(" ").append(displayName);
+    }
+
+    private String statDisplayName(String stat) {
+        return switch (stat) {
+            case "health" -> "Health";
+            case "wealth" -> "Wealth";
+            case "education" -> "Education";
+            case "reputation" -> "Reputation";
+            case "politicalPower" -> "Political Power";
+            case "morality" -> "Morality";
+            case "familyLoyalty" -> "Family Loyalty";
+            case "stress" -> "Stress";
+            default -> stat;
+        };
+    }
+
+    private String factionDisplayName(String faction) {
+        return switch (faction) {
+            case "court" -> "Court";
+            case "nobles" -> "Nobles";
+            case "military" -> "Military";
+            case "scholars" -> "Scholars";
+            case "merchants" -> "Merchants";
+            case "commonPeople" -> "Common People";
+            case "familyCouncil" -> "Family Council";
+            case "shadowNetwork" -> "Shadow Network";
+            default -> faction;
+        };
     }
 
     private String createBirthIntroMessage() {
@@ -321,6 +630,7 @@ public class GameEngine {
             int maxForStage = maxEventsByStage.getOrDefault(stage, 1);
 
             if (playedInStage >= maxForStage) {
+                awardStageCompletionToken(stage);
                 currentStageIndex++;
                 continue;
             }
@@ -376,11 +686,30 @@ public class GameEngine {
     }
 
     public String applyChoice(Choice choice) {
+        return applyChoice(choice, null);
+    }
+
+    /**
+     * Applies a choice, optionally with the outcome already decided.
+     *
+     * @param forcedOutcome when non-null, overrides the internal roll. This is
+     *                      how a Trial of Skill works: the player earns the
+     *                      success or failure by playing a challenge, instead
+     *                      of the engine rolling against a stat behind the
+     *                      scenes.
+     */
+    public String applyChoice(Choice choice, Boolean forcedOutcome) {
         if (!canChoose(choice)) {
             return "This choice is unavailable.\n\n" + getLockedReason(choice);
         }
 
-        boolean success = resolveChoiceSuccess(choice);
+        // Captured before anything mutates so a won rewind lands exactly here.
+        lastSnapshot = captureSnapshot(choice);
+        choicesMade++;
+
+        boolean success = forcedOutcome != null
+                ? forcedOutcome
+                : resolveChoiceSuccess(choice);
 
         Map<String, Integer> statEffects;
         Map<String, Integer> factionEffects;
@@ -409,13 +738,20 @@ public class GameEngine {
 
         for (String flag : flagsToAdd) {
             worldState.addFlag(flag);
+            scheduleConsequencesFor(flag);
         }
 
-        advanceAgeAfterEvent();
+        int yearsPassed = advanceAgeAfterEvent();
+        recoverStressOverTime(yearsPassed);
         updateCurrentStatus();
         checkMortalityAfterChoice(choice, success);
 
+        // Checked after ageing, so an echo comes due the moment the years
+        // catch up with the choice that planted it.
+        fireDueConsequences();
+
         latestLegacyTitleMessage = checkForNewLegacyTitles();
+        rollForWorldEvent();
 
         if (currentEvent != null) {
             playedEventTitles.add(currentEvent.getTitle());
@@ -440,6 +776,279 @@ public class GameEngine {
         return finalResult;
     }
 
+    /** Stages that have already paid out their completion thread. */
+    private final Set<String> stagesRewarded = new HashSet<>();
+
+    private String latestFateTokenMessage = "";
+
+    /**
+     * Surviving a life stage earns one Thread of Fate, capped so the player
+     * cannot bank enough to trivialise a whole run.
+     */
+    private void awardStageCompletionToken(String stage) {
+        if (!stagesRewarded.add(stage)) {
+            return;
+        }
+
+        if (fateTokens >= 3) {
+            return;
+        }
+
+        fateTokens++;
+
+        latestFateTokenMessage =
+                "You have survived " + stage + ".\n\n"
+                        + "A Thread of Fate is added to your hand. "
+                        + "Threads let you challenge destiny to undo a decision you regret.\n\n"
+                        + "Threads held: " + fateTokens;
+    }
+
+    public String consumeLatestFateTokenMessage() {
+        String message = latestFateTokenMessage;
+        latestFateTokenMessage = "";
+        return message;
+    }
+
+    private static final List<String> STAT_KEYS = List.of(
+            "health", "wealth", "education", "reputation",
+            "politicalPower", "morality", "familyLoyalty", "stress"
+    );
+
+    private static final List<String> FACTION_KEYS = List.of(
+            "court", "nobles", "military", "scholars",
+            "merchants", "commonPeople", "familyCouncil", "shadowNetwork"
+    );
+
+    /**
+     * Records everything a choice is about to touch.
+     */
+    private GameSnapshot captureSnapshot(Choice choice) {
+        Map<String, Integer> stats = new HashMap<>();
+        for (String key : STAT_KEYS) {
+            stats.put(key, player.getStatValue(key));
+        }
+
+        Map<String, Integer> factionValues = new HashMap<>();
+        for (String key : FACTION_KEYS) {
+            factionValues.put(key, factions.getValue(key));
+        }
+
+        return new GameSnapshot(
+                player.getName(),
+                player.getAge(),
+                player.isAlive(),
+                player.getDeathReason(),
+                player.getCurrentStatus(),
+                player.getLegacyTitles(),
+                stats,
+                factionValues,
+                worldState.getFlags(),
+                currentStageIndex,
+                stageEventsPlayed,
+                playedEventTitles,
+                currentEvent == null ? null : currentEvent.getTitle(),
+                currentEvent == null ? "" : currentEvent.getTitle(),
+                currentEvent == null ? "" : currentEvent.getLifeStage(),
+                choice == null ? "" : choice.getText()
+        );
+    }
+
+    /** True when there is a decision available to undo and a thread to spend. */
+    public boolean canRewind() {
+        return lastSnapshot != null && fateTokens > 0;
+    }
+
+    public int getFateTokens() {
+        return fateTokens;
+    }
+
+    public GameSnapshot getLastSnapshot() {
+        return lastSnapshot;
+    }
+
+    /** Read-only view of the story flags this life has accumulated. */
+    public Set<String> getWorldFlags() {
+        return Set.copyOf(worldState.getFlags());
+    }
+
+    public int getCurrentStageIndex() {
+        return currentStageIndex;
+    }
+
+    /** The life stage currently in play, e.g. "Youth" or "Legacy". */
+    public String getCurrentLifeStage() {
+        int index = Math.max(0, Math.min(currentStageIndex, lifeStages.size() - 1));
+        return lifeStages.get(index);
+    }
+
+    /** Returns a thread spent on a trial the player backed out of. */
+    public void refundFateToken() {
+        fateTokens++;
+    }
+
+    /**
+     * Spends a thread to open a rewind attempt. The token is consumed whether
+     * or not the challenge is then won, so attempting one is a real gamble.
+     *
+     * @return false when there is nothing to undo or no thread left
+     */
+    public boolean spendFateToken() {
+        if (!canRewind()) {
+            return false;
+        }
+
+        fateTokens--;
+        return true;
+    }
+
+    /**
+     * Restores the run to the moment before the last choice was applied.
+     * Called only after a challenge has been won.
+     *
+     * @return false when there is no snapshot to return to
+     */
+    public boolean rewindToLastSnapshot() {
+        if (lastSnapshot == null) {
+            return false;
+        }
+
+        GameSnapshot snapshot = lastSnapshot;
+
+        for (Map.Entry<String, Integer> entry : snapshot.getStats().entrySet()) {
+            player.setStatValue(entry.getKey(), entry.getValue());
+        }
+
+        for (Map.Entry<String, Integer> entry : snapshot.getFactions().entrySet()) {
+            factions.setValue(entry.getKey(), entry.getValue());
+        }
+
+        player.setAge(snapshot.getAge());
+        player.setCurrentStatus(snapshot.getCurrentStatus());
+        player.replaceLegacyTitles(snapshot.getLegacyTitles());
+
+        if (snapshot.isAlive()) {
+            player.restoreLife();
+        }
+
+        worldState.replaceFlags(snapshot.getWorldFlags());
+
+        currentStageIndex = snapshot.getCurrentStageIndex();
+
+        stageEventsPlayed.clear();
+        stageEventsPlayed.putAll(snapshot.getStageEventsPlayed());
+
+        playedEventTitles.clear();
+        playedEventTitles.addAll(snapshot.getPlayedEventTitles());
+
+        // Put the player back in front of the same event, not a fresh roll.
+        currentEvent = null;
+        String title = snapshot.getCurrentEventTitle();
+
+        if (title != null) {
+            for (GameEvent event : eventPool) {
+                if (event.getTitle().equals(title)) {
+                    currentEvent = event;
+                    break;
+                }
+            }
+        }
+
+        // A rewound life has no ending yet, and pending messages belonged to
+        // the choice that no longer happened.
+        endingResult = null;
+        latestLegacyTitleMessage = "";
+        latestStatusChangeMessage = "";
+        latestWorldEventTitle = "";
+        latestWorldEventMessage = "";
+        latestConsequenceEchoTitle = "";
+        latestConsequenceEchoMessage = "";
+
+        lastSnapshot = null;
+        rewindsUsed++;
+
+        return true;
+    }
+
+    /**
+     * True when the life avoided every corrupt shortcut: no bribery, no sold
+     * secrets, and no debt to the shadow network.
+     */
+    public boolean playedCleanRun() {
+        return !worldState.hasFlag("used_bribery")
+                && !worldState.hasFlag("used_shadow_contacts")
+                && !worldState.hasFlag("sold_palace_secret")
+                && !worldState.hasFlag("owed_shadow_debt")
+                && !worldState.hasFlag("served_shadow_network")
+                && !worldState.hasFlag("framed_innocent");
+    }
+
+    /**
+     * Scores a finished life for the records screen and personal bests.
+     *
+     * <p>Weighted so that a long life with earned titles and broad standing
+     * beats one that simply maxed a single stat, and so stress counts against
+     * the total.
+     */
+    public int calculateScore() {
+        int statTotal =
+                player.getHealth()
+                        + player.getWealth()
+                        + player.getEducation()
+                        + player.getReputation()
+                        + player.getPoliticalPower()
+                        + player.getMorality()
+                        + player.getFamilyLoyalty();
+
+        int factionTotal = 0;
+        for (String key : FACTION_KEYS) {
+            factionTotal += factions.getValue(key);
+        }
+
+        int score = statTotal * 3;
+        score += factionTotal;
+        score += player.getLegacyTitles().size() * 250;
+        score += player.getAge() * 8;
+        score -= player.getStress() * 2;
+
+        // Earning the ending under your own steam is worth more than rewinding into it.
+        score -= rewindsUsed * 120;
+
+        if (playedCleanRun()) {
+            score += 400;
+        }
+
+        return Math.max(0, score);
+    }
+
+    public void recordMinigameOutcome(boolean won) {
+        if (won) {
+            minigamesWon++;
+        } else {
+            minigamesLost++;
+        }
+    }
+
+    /** Clears the undo point, e.g. once a consequence has been accepted. */
+    public void clearSnapshot() {
+        lastSnapshot = null;
+    }
+
+    public int getChoicesMade() {
+        return choicesMade;
+    }
+
+    public int getRewindsUsed() {
+        return rewindsUsed;
+    }
+
+    public int getMinigamesWon() {
+        return minigamesWon;
+    }
+
+    public int getMinigamesLost() {
+        return minigamesLost;
+    }
+
     private boolean resolveChoiceSuccess(Choice choice) {
         if (!choice.requiresStatCheck()) {
             return true;
@@ -461,9 +1070,9 @@ public class GameEngine {
         return outcome + "\n\n" + resultText;
     }
 
-    private void advanceAgeAfterEvent() {
+    private int advanceAgeAfterEvent() {
         if (currentEvent == null) {
-            return;
+            return 0;
         }
 
         String stage = currentEvent.getLifeStage();
@@ -479,6 +1088,23 @@ public class GameEngine {
         }
 
         player.increaseAge(yearsPassed);
+
+        return yearsPassed;
+    }
+
+    /**
+     * Time between events brings some natural relief from pressure, on top of
+     * whatever the choice itself did to stress. Combined with the dampening in
+     * {@link PlayerCharacter#applyChange}, this keeps stress from rushing to
+     * 100 within the first few choices of a life.
+     */
+    private void recoverStressOverTime(int yearsPassed) {
+        if (yearsPassed <= 0 || player.getStress() <= 0) {
+            return;
+        }
+
+        int recovery = Math.min(6, yearsPassed * 3);
+        player.applyChange("stress", -recovery);
     }
 
     private void checkMortalityAfterChoice(Choice choice, boolean success) {

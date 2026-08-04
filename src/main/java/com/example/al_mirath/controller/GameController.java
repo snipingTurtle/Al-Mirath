@@ -7,10 +7,18 @@ import com.example.al_mirath.model.FactionRelations;
 import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.LegacyRecord;
 import com.example.al_mirath.model.PlayerCharacter;
+import com.example.al_mirath.core.GameSettings;
+import com.example.al_mirath.minigame.MiniGame;
+import com.example.al_mirath.minigame.MiniGameFactory;
+import com.example.al_mirath.service.AchievementEvaluator;
 import com.example.al_mirath.service.BackgroundLibrary;
 import com.example.al_mirath.service.GameEngine;
 import com.example.al_mirath.service.LegacyArchive;
+import com.example.al_mirath.service.ProgressService;
 import com.example.al_mirath.service.SaveManager;
+import com.example.al_mirath.ui.MiniGameOverlay;
+import com.example.al_mirath.ui.TrialPromptOverlay;
+import com.example.al_mirath.ui.ToastLayer;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -23,6 +31,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.Glow;
 import javafx.scene.image.Image;
@@ -31,6 +40,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import javafx.application.Platform;
@@ -41,12 +51,25 @@ import java.util.Map;
 
 public class GameController {
 
+    /**
+     * Which kind of popup is on screen. Driving layout and color from this
+     * instead of sniffing keywords out of the title text keeps things correct
+     * now that world events carry arbitrary, unpredictable titles.
+     */
+    private enum PopupCategory {
+        BIRTH, CONSEQUENCE, LOCKED_INFO, LEGACY_TITLE, STATUS_CHANGE, FATE_TOKEN, WORLD_EVENT, ECHO, ENDING
+    }
+
     private GameEngine engine;
     private Main mainApp;
     private GameEngine restoredEngine;
 
     private String pendingLegacyTitleMessage = "";
     private String pendingStatusChangeMessage = "";
+    private String pendingWorldEventTitle = "";
+    private String pendingWorldEventMessage = "";
+    private String pendingEchoTitle = "";
+    private String pendingEchoMessage = "";
 
     private boolean legacyRecorded = false;
     private boolean birthIntroShown = false;
@@ -66,8 +89,18 @@ public class GameController {
     private static final double FACTION_HANDLE_OPEN_X = -250;
 
     private String activePopupTitle = "";
+    private PopupCategory activePopupCategory;
+    private String pendingFateTokenMessage = "";
 
     private Image popupScrollImage;
+
+    private ToastLayer toastLayer;
+
+    /** Set while a rewind is available so the popup can offer the challenge. */
+    private boolean rewindOfferAvailable = false;
+
+    private Timeline typewriterTimeline;
+    private boolean typewriterEnabled = GameSettings.isTypewriterEnabled();
 
     @FXML private StackPane gameRoot;
     @FXML private BorderPane hudLayer;
@@ -134,6 +167,10 @@ public class GameController {
     @FXML private ProgressBar familyCouncilBar;
     @FXML private ProgressBar shadowNetworkBar;
 
+    @FXML private Label fateTokenLabel;
+    @FXML private javafx.scene.layout.HBox popupButtonRow;
+    @FXML private Button popupRewindButton;
+
     @FXML private StackPane resultPopup;
     @FXML private StackPane popupShell;
     @FXML private ImageView popupScrollBackground;
@@ -157,14 +194,24 @@ public class GameController {
         birthIntroShown = continuingGame;
         finalChronicleShown = false;
 
+        pendingFateTokenMessage = "";
+        pendingWorldEventTitle = "";
+        pendingWorldEventMessage = "";
+        pendingEchoTitle = "";
+        pendingEchoMessage = "";
+        rewindOfferAvailable = false;
+
         bindBackgroundToWindow();
         initializePopupAssets();
+        initializeToastLayer();
+        installKeyboardShortcuts();
         closeDrawersInstantly();
         hideChangeCue();
 
         updateCharacterInfo();
         updateStats();
         updateFactions();
+        updateFateTokenLabel();
 
         if (continuingGame) {
             setGameplayPanelsVisible(true);
@@ -199,7 +246,8 @@ public class GameController {
 
             showPopup(
                     "Birth of a Life",
-                    engine.getBirthIntroMessage()
+                    engine.getBirthIntroMessage(),
+                    PopupCategory.BIRTH
             );
         });
     }
@@ -210,6 +258,173 @@ public class GameController {
 
     public void setRestoredEngine(GameEngine restoredEngine) {
         this.restoredEngine = restoredEngine;
+    }
+
+    /**
+     * Binds the keyboard once the scene exists.
+     *
+     * <p>The handler is attached to the scene rather than a control so it works
+     * no matter what currently holds focus. Keys are ignored while a trial
+     * overlay is up, since the mini-games handle their own input.
+     */
+    private void installKeyboardShortcuts() {
+        if (gameRoot == null) {
+            return;
+        }
+
+        gameRoot.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.setOnKeyPressed(this::handleKeyPress);
+            }
+        });
+    }
+
+    private void handleKeyPress(KeyEvent event) {
+        if (isMiniGameActive()) {
+            return;
+        }
+
+        boolean popupOpen = resultPopup != null && resultPopup.isVisible();
+
+        switch (event.getCode()) {
+            case DIGIT1, NUMPAD1 -> {
+                if (!popupOpen) {
+                    triggerChoiceButton(choiceButton1, 0);
+                }
+            }
+            case DIGIT2, NUMPAD2 -> {
+                if (!popupOpen) {
+                    triggerChoiceButton(choiceButton2, 1);
+                }
+            }
+            case DIGIT3, NUMPAD3 -> {
+                if (!popupOpen) {
+                    triggerChoiceButton(choiceButton3, 2);
+                }
+            }
+            case SPACE, ENTER -> {
+                if (popupOpen) {
+                    closePopup();
+                } else if (typewriterTimeline != null) {
+                    // Impatient readers can skip the reveal.
+                    completeTypewriter();
+                    revealFullDescription();
+                }
+            }
+            case R -> {
+                if (popupOpen && popupRewindButton != null && popupRewindButton.isVisible()) {
+                    openRewindChallenge();
+                }
+            }
+            case ESCAPE -> returnToMainMenu();
+            default -> {
+                // Every other key is left to the focused control.
+            }
+        }
+
+        event.consume();
+    }
+
+    private void triggerChoiceButton(Button button, int index) {
+        if (button == null || !button.isVisible() || button.isDisabled()) {
+            return;
+        }
+
+        choose(index);
+    }
+
+    /** True while a Threads of Fate overlay is on screen. */
+    private boolean isMiniGameActive() {
+        if (gameRoot == null) {
+            return false;
+        }
+
+        for (Node node : gameRoot.getChildren()) {
+            if (node instanceof MiniGameOverlay) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Reveals the event description a character at a time.
+     *
+     * <p>Skipped when the reveal would be slower than reading it, and any
+     * in-flight reveal is cancelled before the next one starts so two events
+     * can never type over each other.
+     */
+    private void typewriteDescription(String text) {
+        if (eventDescriptionLabel == null) {
+            return;
+        }
+
+        if (typewriterTimeline != null) {
+            typewriterTimeline.stop();
+        }
+
+        String safeText = text == null ? "" : text;
+
+        if (!typewriterEnabled || safeText.length() > 600) {
+            eventDescriptionLabel.setText(safeText);
+            return;
+        }
+
+        eventDescriptionLabel.setText("");
+
+        typewriterTimeline = new Timeline();
+
+        // One keyframe per character, then a final frame guaranteeing the full text.
+        double perCharacter = 12;
+
+        for (int i = 1; i <= safeText.length(); i++) {
+            final int end = i;
+
+            typewriterTimeline.getKeyFrames().add(new KeyFrame(
+                    Duration.millis(i * perCharacter),
+                    event -> eventDescriptionLabel.setText(safeText.substring(0, end))
+            ));
+        }
+
+        typewriterTimeline.setOnFinished(event -> eventDescriptionLabel.setText(safeText));
+        typewriterTimeline.play();
+    }
+
+    /** Lets a click or key finish the reveal instantly. */
+    private void completeTypewriter() {
+        if (typewriterTimeline != null) {
+            typewriterTimeline.stop();
+            typewriterTimeline = null;
+        }
+    }
+
+    /** Prints the current event's description in full, skipping the reveal. */
+    private void revealFullDescription() {
+        GameEvent event = engine == null ? null : engine.getCurrentEvent();
+
+        if (event != null && eventDescriptionLabel != null) {
+            eventDescriptionLabel.setText(event.getDescription());
+        }
+    }
+
+    /**
+     * Adds the notification layer above the HUD and routes achievement unlocks
+     * into it for the lifetime of this screen.
+     */
+    private void initializeToastLayer() {
+        if (gameRoot == null) {
+            return;
+        }
+
+        toastLayer = new ToastLayer();
+        gameRoot.getChildren().add(toastLayer);
+
+        ProgressService.setUnlockListener(achievement -> {
+            if (toastLayer != null) {
+                toastLayer.showAchievement(achievement);
+            }
+        });
     }
 
     private void initializePopupAssets() {
@@ -413,7 +628,8 @@ public class GameController {
 
         if (traitLabel != null) {
             traitLabel.setText(
-                    "Current Status: " + player.getCurrentStatus()
+                    "Life Stage: " + engine.getCurrentLifeStage()
+                            + "\nCurrent Status: " + player.getCurrentStatus()
                             + "\nAge: " + player.getAge()
                             + "\nFamily: " + player.getFamilyCondition()
                             + "\nTrait: " + player.getTrait()
@@ -522,6 +738,7 @@ public class GameController {
 
             if (!legacyRecorded) {
                 PlayerCharacter player = engine.getPlayer();
+                int score = engine.calculateScore();
 
                 LegacyArchive.addRecord(new LegacyRecord(
                         player.getName(),
@@ -529,8 +746,13 @@ public class GameController {
                         player.getOrigin(),
                         player.getFamilyCondition(),
                         ending.getTitle(),
-                        player.getLegacyTitlesText()
+                        player.getLegacyTitlesText(),
+                        player.getAge(),
+                        player.getCurrentStatus(),
+                        score
                 ));
+
+                AchievementEvaluator.afterLifeComplete(engine, ending, score);
 
                 legacyRecorded = true;
             }
@@ -554,7 +776,7 @@ public class GameController {
                                 + "\n\n"
                                 + engine.getLifeSummary();
 
-                showPopup("Final Chronicle", endingMessage);
+                showPopup("Final Chronicle", endingMessage, PopupCategory.ENDING);
             }
 
             return;
@@ -575,13 +797,9 @@ public class GameController {
 
         changeBackground(backgroundPath);
 
-        eventTitleLabel.setText(
-                event.getLifeStage()
-                        + " — "
-                        + event.getTitle()
-        );
+        eventTitleLabel.setText(event.getTitle());
 
-        eventDescriptionLabel.setText(event.getDescription());
+        typewriteDescription(event.getDescription());
 
         configureChoiceIfAvailable(choiceButton1, event, 0);
         configureChoiceIfAvailable(choiceButton2, event, 1);
@@ -692,7 +910,91 @@ public class GameController {
         Choice choice = event.getChoices().get(index);
 
         if (!engine.canChoose(choice)) {
-            showPopup("Choice Locked", engine.getLockedReason(choice));
+            showPopup("Choice Locked", engine.getLockedReason(choice), PopupCategory.LOCKED_INFO);
+            return;
+        }
+
+        // A choice that tests a stat can be earned by hand instead of rolled.
+        // The player is asked once, here, rather than being given a fourth
+        // button that would crowd the event panel.
+        if (choice.requiresStatCheck() && GameSettings.areTrialsEnabled()) {
+            offerTrialOfSkill(choice);
+            return;
+        }
+
+        commitChoice(choice, null);
+    }
+
+    /**
+     * Presents the fork between letting the engine roll the stat check and
+     * playing for the outcome directly.
+     */
+    private void offerTrialOfSkill(Choice choice) {
+        setGameplayPanelsVisible(false);
+
+        TrialPromptOverlay prompt = new TrialPromptOverlay(
+                choice,
+                engine.getPlayer().getStatValue(choice.getCheckStat()),
+                decision -> {
+                    switch (decision) {
+                        case PLAY -> startTrialOfSkill(choice);
+                        case ROLL -> commitChoice(choice, null);
+                        case CANCEL -> {
+                            // Back out entirely; the event stays on screen.
+                            setGameplayPanelsVisible(true);
+                            loadCurrentEvent();
+                        }
+                    }
+                }
+        );
+
+        gameRoot.getChildren().add(prompt);
+        prompt.requestFocus();
+    }
+
+    /** Runs the challenge, then applies the choice with the earned outcome. */
+    private void startTrialOfSkill(Choice choice) {
+        MiniGame miniGame = MiniGameFactory.createForStatCheck(
+                choice.getCheckStat(),
+                choice.getDifficulty()
+        );
+
+        MiniGameOverlay overlay = new MiniGameOverlay(miniGame, result -> {
+            if (result == null) {
+                // Withdrew from the briefing: fall back to the ordinary roll.
+                commitChoice(choice, null);
+                return;
+            }
+
+            engine.recordMinigameOutcome(result.success());
+            AchievementEvaluator.afterMiniGame(engine, miniGame.getTitle(), result.success());
+
+            if (toastLayer != null) {
+                toastLayer.show(
+                        result.success() ? "Trial Won" : "Trial Lost",
+                        result.success()
+                                ? "You earned the outcome yourself."
+                                : "The attempt failed on its own terms.",
+                        result.success() ? "toast-achievement" : "toast-rewind"
+                );
+            }
+
+            commitChoice(choice, result.success());
+        });
+
+        gameRoot.getChildren().add(overlay);
+        overlay.requestFocus();
+    }
+
+    /**
+     * Applies a choice and runs the whole post-choice presentation.
+     *
+     * @param forcedOutcome non-null when a Trial of Skill decided the result
+     */
+    private void commitChoice(Choice choice, Boolean forcedOutcome) {
+        GameEvent event = engine.getCurrentEvent();
+
+        if (event == null) {
             return;
         }
 
@@ -708,10 +1010,29 @@ public class GameController {
         String consequenceBackground = BackgroundLibrary.getConsequenceBackground(event, choice, engine.getPlayer());
         changeBackground(consequenceBackground);
 
-        String result = engine.applyChoice(choice);
+        String result = engine.applyChoice(choice, forcedOutcome);
 
         pendingLegacyTitleMessage = engine.consumeLatestLegacyTitleMessage();
         pendingStatusChangeMessage = engine.consumeLatestStatusChangeMessage();
+        pendingFateTokenMessage = engine.consumeLatestFateTokenMessage();
+
+        String worldEventTitle = engine.getLatestWorldEventTitle();
+        if (!worldEventTitle.isBlank()) {
+            pendingWorldEventTitle = worldEventTitle;
+            pendingWorldEventMessage = engine.consumeLatestWorldEventMessage();
+        }
+
+        String echoTitle = engine.getLatestConsequenceEchoTitle();
+        if (!echoTitle.isBlank()) {
+            pendingEchoTitle = echoTitle;
+            pendingEchoMessage = engine.consumeLatestConsequenceEchoMessage();
+        }
+
+        AchievementEvaluator.afterChoice(engine);
+
+        // The consequence popup that follows is the one place a rewind is offered.
+        rewindOfferAvailable = true;
+        updateFateTokenLabel();
 
         updateCharacterInfo();
 
@@ -734,29 +1055,180 @@ public class GameController {
         String finalPopupMessage = popupMessage;
 
         Timeline popupDelay = new Timeline(
-                new KeyFrame(Duration.millis(520), e -> showPopup("Consequence", finalPopupMessage))
+                new KeyFrame(Duration.millis(520), e -> showPopup("", finalPopupMessage, PopupCategory.CONSEQUENCE))
         );
 
         popupDelay.play();
     }
 
-    private void showPopup(String title, String message) {
+    /**
+     * Opens a Threads of Fate challenge for the decision just made.
+     *
+     * <p>The thread is spent the moment the trial begins, so losing still costs
+     * the player something. Withdrawing from the briefing screen refunds it,
+     * because nothing was actually attempted.
+     */
+    @FXML
+    private void openRewindChallenge() {
+        if (engine == null || !engine.canRewind()) {
+            return;
+        }
+
+        if (!engine.spendFateToken()) {
+            return;
+        }
+
+        updateFateTokenLabel();
+
+        // Hide the consequence popup while the trial plays out.
+        resultPopup.setVisible(false);
+        resultPopup.setManaged(false);
+
+        MiniGame miniGame = MiniGameFactory.createFor(
+                engine.getPlayer(),
+                engine.getCurrentStageIndex()
+        );
+
+        MiniGameOverlay overlay = new MiniGameOverlay(miniGame, result -> {
+            if (result == null) {
+                // Withdrew before playing: give the thread back and restore the popup.
+                engine.refundFateToken();
+                updateFateTokenLabel();
+                reopenConsequencePopup();
+                return;
+            }
+
+            engine.recordMinigameOutcome(result.success());
+            AchievementEvaluator.afterMiniGame(engine, miniGame.getTitle(), result.success());
+
+            if (result.success()) {
+                applySuccessfulRewind();
+            } else {
+                reopenConsequencePopup();
+            }
+        });
+
+        gameRoot.getChildren().add(overlay);
+        overlay.requestFocus();
+    }
+
+    /**
+     * Rolls the run back to just before the last choice and puts the player in
+     * front of the same event again.
+     */
+    private void applySuccessfulRewind() {
+        boolean rewound = engine.rewindToLastSnapshot();
+
+        if (!rewound) {
+            reopenConsequencePopup();
+            return;
+        }
+
+        // The undone choice never happened, so its follow-up messages are void.
+        pendingLegacyTitleMessage = "";
+        pendingStatusChangeMessage = "";
+        pendingFateTokenMessage = "";
+        pendingWorldEventTitle = "";
+        pendingWorldEventMessage = "";
+        pendingEchoTitle = "";
+        pendingEchoMessage = "";
+        activePopupTitle = "";
+        rewindOfferAvailable = false;
+
+        resultPopup.setVisible(false);
+        resultPopup.setManaged(false);
+
+        updateCharacterInfo();
+        updateStats();
+        updateFactions();
+        updateFateTokenLabel();
+        hideChangeCue();
+
+        loadCurrentEvent();
+        setGameplayPanelsVisible(true);
+
+        if (toastLayer != null) {
+            toastLayer.show(
+                    "Destiny Rewritten",
+                    "The moment returns. Choose again.",
+                    "toast-rewind"
+            );
+        }
+    }
+
+    /** Brings back the consequence popup after a trial ends without a rewind. */
+    private void reopenConsequencePopup() {
+        rewindOfferAvailable = false;
+
+        resultPopup.setManaged(true);
+        resultPopup.setVisible(true);
+        resultPopup.setOpacity(1);
+        resultPopup.setMouseTransparent(false);
+        resultPopup.toFront();
+
+        updateRewindButtonVisibility();
+    }
+
+    private void updateFateTokenLabel() {
+        if (fateTokenLabel == null || engine == null) {
+            return;
+        }
+
+        int tokens = engine.getFateTokens();
+
+        fateTokenLabel.setText("Threads of Fate: " + tokens);
+        fateTokenLabel.setOpacity(tokens > 0 ? 1.0 : 0.45);
+    }
+
+    /**
+     * The challenge is only offered on a consequence popup, while a thread is
+     * held and an undo point exists.
+     */
+    private void updateRewindButtonVisibility() {
+        if (popupRewindButton == null) {
+            return;
+        }
+
+        boolean offer = rewindOfferAvailable
+                && engine != null
+                && engine.canRewind();
+
+        popupRewindButton.setVisible(offer);
+        popupRewindButton.setManaged(offer);
+
+        if (offer) {
+            // The Threads of Fate counter is already visible in the top bar;
+            // repeating the count here just crowds out the label.
+            popupRewindButton.setText("Challenge Fate");
+        }
+    }
+
+    private void showPopup(String title, String message, PopupCategory category) {
         String safeTitle = title == null ? "" : title;
         String safeMessage = message == null ? "" : message;
 
         activePopupTitle = safeTitle;
+        activePopupCategory = category;
 
-        popupTitleLabel.setText(safeTitle);
+        // The plain outcome of a choice needs no header of its own — the
+        // scroll text already says what happened.
+        boolean showTitle = category != PopupCategory.CONSEQUENCE && !safeTitle.isBlank();
+
+        popupTitleLabel.setText(showTitle ? safeTitle : "");
+        popupTitleLabel.setVisible(showTitle);
+        popupTitleLabel.setManaged(showTitle);
+
         resultTextLabel.setText(safeMessage);
 
-        configurePopupAppearance(safeTitle);
+        configurePopupAppearance(category);
 
         if (popupMessageScroll != null) {
             popupMessageScroll.setVvalue(0);
         }
 
-        applyPopupVisualEffect(safeTitle);
+        applyPopupVisualEffect(category);
         setGameplayPanelsVisible(false);
+        updateRewindButtonVisibility();
 
         resultPopup.setManaged(true);
         resultPopup.setVisible(true);
@@ -772,21 +1244,12 @@ public class GameController {
         fadeIn.play();
     }
 
-    private void configurePopupAppearance(String title) {
-        String lower = title == null ? "" : title.toLowerCase();
-
+    private void configurePopupAppearance(PopupCategory category) {
         boolean verticalScrollPopup =
-                lower.contains("legacy title")
-                        || lower.contains("status changed");
+                category == PopupCategory.LEGACY_TITLE || category == PopupCategory.STATUS_CHANGE;
 
-        boolean birthPopup =
-                lower.contains("birth");
-
-        boolean endingPopup =
-                lower.contains("ending")
-                        || lower.contains("death")
-                        || lower.contains("final")
-                        || lower.contains("chronicle");
+        boolean birthPopup = category == PopupCategory.BIRTH;
+        boolean endingPopup = category == PopupCategory.ENDING;
 
         resultPopup.getStyleClass().removeAll(
                 "popup-birth",
@@ -795,6 +1258,8 @@ public class GameController {
                 "popup-legacy",
                 "popup-ending",
                 "popup-info",
+                "popup-worldevent",
+                "popup-echo",
                 "popup-horizontal-mode",
                 "popup-vertical-mode",
                 "popup-birth-mode"
@@ -825,7 +1290,7 @@ public class GameController {
             popupShell.getStyleClass().add("scroll-popup-vertical");
             popupContentBox.getStyleClass().add("scroll-content-vertical");
 
-            if (lower.contains("legacy")) {
+            if (category == PopupCategory.LEGACY_TITLE) {
                 resultPopup.getStyleClass().add("popup-legacy");
                 popupContinueButton.setText("Seal Decree");
             } else {
@@ -833,24 +1298,24 @@ public class GameController {
                 popupContinueButton.setText("Accept Decree");
             }
 
-            popupShell.setPrefWidth(560);
-            popupShell.setPrefHeight(780);
-            popupShell.setMaxWidth(560);
-            popupShell.setMaxHeight(780);
+            popupShell.setPrefWidth(680);
+            popupShell.setPrefHeight(860);
+            popupShell.setMaxWidth(680);
+            popupShell.setMaxHeight(860);
 
             popupScrollBackground.setRotate(90);
-            popupScrollBackground.setFitWidth(780);
-            popupScrollBackground.setFitHeight(560);
+            popupScrollBackground.setFitWidth(860);
+            popupScrollBackground.setFitHeight(680);
 
-            popupContentBox.setMaxWidth(330);
-            popupContentBox.setPrefWidth(330);
-            popupContentBox.setStyle("-fx-padding: 122 62 116 62;");
+            popupContentBox.setMaxWidth(440);
+            popupContentBox.setPrefWidth(440);
+            popupContentBox.setStyle("-fx-padding: 150 90 140 90;");
 
-            popupTitleLabel.setMaxWidth(320);
-            resultTextLabel.setMaxWidth(300);
+            popupTitleLabel.setMaxWidth(420);
+            resultTextLabel.setMaxWidth(400);
 
-            popupMessageScroll.setPrefViewportHeight(235);
-            popupMessageScroll.setMaxWidth(320);
+            popupMessageScroll.setPrefViewportHeight(300);
+            popupMessageScroll.setMaxWidth(420);
 
         } else {
             resultPopup.getStyleClass().add("popup-horizontal-mode");
@@ -861,24 +1326,24 @@ public class GameController {
                 popupContentBox.getStyleClass().add("scroll-content-birth");
                 popupContinueButton.setText("Begin Life");
 
-                popupShell.setPrefWidth(1000);
-                popupShell.setPrefHeight(560);
-                popupShell.setMaxWidth(1000);
-                popupShell.setMaxHeight(560);
+                popupShell.setPrefWidth(1180);
+                popupShell.setPrefHeight(640);
+                popupShell.setMaxWidth(1180);
+                popupShell.setMaxHeight(640);
 
                 popupScrollBackground.setRotate(0);
-                popupScrollBackground.setFitWidth(1000);
-                popupScrollBackground.setFitHeight(560);
+                popupScrollBackground.setFitWidth(1180);
+                popupScrollBackground.setFitHeight(640);
 
-                popupContentBox.setMaxWidth(620);
-                popupContentBox.setPrefWidth(620);
-                popupContentBox.setStyle("-fx-padding: 72 155 78 155;");
+                popupContentBox.setMaxWidth(780);
+                popupContentBox.setPrefWidth(780);
+                popupContentBox.setStyle("-fx-padding: 76 200 80 200;");
 
-                popupTitleLabel.setMaxWidth(610);
-                resultTextLabel.setMaxWidth(570);
+                popupTitleLabel.setMaxWidth(760);
+                resultTextLabel.setMaxWidth(720);
 
-                popupMessageScroll.setPrefViewportHeight(180);
-                popupMessageScroll.setMaxWidth(600);
+                popupMessageScroll.setPrefViewportHeight(190);
+                popupMessageScroll.setMaxWidth(760);
 
             } else {
                 popupShell.getStyleClass().add("scroll-popup-horizontal");
@@ -887,54 +1352,139 @@ public class GameController {
                 if (endingPopup) {
                     resultPopup.getStyleClass().add("popup-ending");
                     popupContinueButton.setText("Close Chronicle");
+                } else if (category == PopupCategory.WORLD_EVENT) {
+                    resultPopup.getStyleClass().add("popup-worldevent");
+                    popupContinueButton.setText("Continue");
+                } else if (category == PopupCategory.ECHO) {
+                    resultPopup.getStyleClass().add("popup-echo");
+                    popupContinueButton.setText("So It Returns");
+                } else if (category == PopupCategory.LOCKED_INFO) {
+                    resultPopup.getStyleClass().add("popup-info");
+                    popupContinueButton.setText("Understood");
                 } else {
                     resultPopup.getStyleClass().add("popup-consequence");
                     popupContinueButton.setText("Continue");
                 }
 
-                popupShell.setPrefWidth(980);
-                popupShell.setPrefHeight(560);
-                popupShell.setMaxWidth(980);
-                popupShell.setMaxHeight(560);
+                popupShell.setPrefWidth(1180);
+                popupShell.setPrefHeight(640);
+                popupShell.setMaxWidth(1180);
+                popupShell.setMaxHeight(640);
 
                 popupScrollBackground.setRotate(0);
-                popupScrollBackground.setFitWidth(980);
-                popupScrollBackground.setFitHeight(560);
+                popupScrollBackground.setFitWidth(1180);
+                popupScrollBackground.setFitHeight(640);
 
-                popupContentBox.setMaxWidth(620);
-                popupContentBox.setPrefWidth(620);
-                popupContentBox.setStyle("-fx-padding: 78 145 82 145;");
+                popupContentBox.setMaxWidth(780);
+                popupContentBox.setPrefWidth(780);
+                popupContentBox.setStyle("-fx-padding: 82 190 86 190;");
 
-                popupTitleLabel.setMaxWidth(610);
-                resultTextLabel.setMaxWidth(575);
+                popupTitleLabel.setMaxWidth(760);
+                resultTextLabel.setMaxWidth(730);
 
-                popupMessageScroll.setPrefViewportHeight(200);
-                popupMessageScroll.setMaxWidth(600);
+                popupMessageScroll.setPrefViewportHeight(210);
+                popupMessageScroll.setMaxWidth(760);
             }
         }
+
+        applyScrollTint(category);
     }
 
-    private void applyPopupVisualEffect(String title) {
-        String lowerTitle = title == null ? "" : title.toLowerCase();
+    /**
+     * Tints the single scroll art asset per popup type using a ColorAdjust
+     * effect, so a birth reads warm, an ending reads dark and somber, and so
+     * on, without needing a separate image for every category.
+     */
+    private void applyScrollTint(PopupCategory category) {
+        if (popupScrollBackground == null) {
+            return;
+        }
 
+        ColorAdjust tint = new ColorAdjust();
+
+        // The parchment must stay light in every mood. Body text on the scroll
+        // is dark brown, so darkening the art was making Status and Final
+        // Chronicle text nearly unreadable. Categories are distinguished by
+        // hue and by title/border colour instead of by brightness.
+        switch (category) {
+            case BIRTH -> {
+                tint.setHue(0.04);
+                tint.setSaturation(0.14);
+                tint.setBrightness(0.06);
+            }
+            case LEGACY_TITLE -> {
+                tint.setHue(-0.02);
+                tint.setSaturation(0.16);
+                tint.setBrightness(0.03);
+            }
+            case STATUS_CHANGE -> {
+                tint.setHue(0.03);
+                tint.setSaturation(0.10);
+                tint.setBrightness(0.04);
+            }
+            case FATE_TOKEN -> {
+                tint.setHue(-0.01);
+                tint.setSaturation(0.10);
+                tint.setBrightness(0.04);
+            }
+            case WORLD_EVENT -> {
+                tint.setHue(0.11);
+                tint.setSaturation(-0.04);
+                tint.setBrightness(0.02);
+            }
+            case ECHO -> {
+                tint.setHue(0.02);
+                tint.setSaturation(-0.10);
+                tint.setBrightness(-0.04);
+            }
+            case LOCKED_INFO -> {
+                tint.setHue(0.0);
+                tint.setSaturation(-0.16);
+                tint.setBrightness(0.0);
+            }
+            case ENDING -> {
+                // Somber, but never dark enough to swallow the writing.
+                tint.setHue(-0.05);
+                tint.setSaturation(-0.12);
+                tint.setBrightness(-0.05);
+            }
+            default -> {
+                // CONSEQUENCE stays the plain parchment tone.
+            }
+        }
+
+        popupScrollBackground.setEffect(tint);
+    }
+
+    private void applyPopupVisualEffect(PopupCategory category) {
         Color glowColor;
         double glowLevel;
 
-        if (lowerTitle.contains("legacy")) {
-            glowColor = Color.rgb(255, 209, 94);
-            glowLevel = 0.28;
-        } else if (lowerTitle.contains("birth")) {
-            glowColor = Color.rgb(255, 229, 150);
-            glowLevel = 0.26;
-        } else if (lowerTitle.contains("ending")
-                || lowerTitle.contains("death")
-                || lowerTitle.contains("final")
-                || lowerTitle.contains("chronicle")) {
-            glowColor = Color.rgb(190, 71, 43);
-            glowLevel = 0.22;
-        } else {
-            glowColor = Color.rgb(218, 155, 58);
-            glowLevel = 0.20;
+        switch (category) {
+            case LEGACY_TITLE -> {
+                glowColor = Color.rgb(255, 209, 94);
+                glowLevel = 0.28;
+            }
+            case BIRTH -> {
+                glowColor = Color.rgb(255, 229, 150);
+                glowLevel = 0.26;
+            }
+            case ENDING -> {
+                glowColor = Color.rgb(190, 71, 43);
+                glowLevel = 0.22;
+            }
+            case WORLD_EVENT -> {
+                glowColor = Color.rgb(158, 196, 130);
+                glowLevel = 0.22;
+            }
+            case ECHO -> {
+                glowColor = Color.rgb(206, 122, 74);
+                glowLevel = 0.26;
+            }
+            default -> {
+                glowColor = Color.rgb(218, 155, 58);
+                glowLevel = 0.20;
+            }
         }
 
         DropShadow titleShadow = new DropShadow();
@@ -963,7 +1513,7 @@ public class GameController {
 
         popupContinueButton.setDisable(true);
 
-        String closingTitle = activePopupTitle;
+        PopupCategory closingCategory = activePopupCategory;
 
         FadeTransition fade =
                 new FadeTransition(Duration.millis(180), resultPopup);
@@ -983,7 +1533,7 @@ public class GameController {
                 String message = pendingLegacyTitleMessage;
                 pendingLegacyTitleMessage = "";
 
-                showPopup("Legacy Title Gained", message);
+                showPopup("Legacy Title Gained", message, PopupCategory.LEGACY_TITLE);
                 return;
             }
 
@@ -994,23 +1544,53 @@ public class GameController {
                 String message = pendingStatusChangeMessage;
                 pendingStatusChangeMessage = "";
 
-                showPopup("Status Changed", message);
+                showPopup("Status Changed", message, PopupCategory.STATUS_CHANGE);
                 return;
             }
 
-            String lowerTitle =
-                    closingTitle == null
-                            ? ""
-                            : closingTitle.toLowerCase();
+            /*
+             * Announce a Thread of Fate earned by surviving a life stage.
+             */
+            if (!pendingFateTokenMessage.isBlank()) {
+                String message = pendingFateTokenMessage;
+                pendingFateTokenMessage = "";
+
+                updateFateTokenLabel();
+                showPopup("A Thread is Spun", message, PopupCategory.FATE_TOKEN);
+                return;
+            }
+
+            /*
+             * An echo of a choice made decades earlier finally coming due.
+             * Shown ahead of world news, since it is personal.
+             */
+            if (!pendingEchoMessage.isBlank()) {
+                String echoTitle = pendingEchoTitle;
+                String message = pendingEchoMessage;
+                pendingEchoTitle = "";
+                pendingEchoMessage = "";
+
+                showPopup(echoTitle, message, PopupCategory.ECHO);
+                return;
+            }
+
+            /*
+             * Ancient decrees about the wider world, unrelated to this choice.
+             */
+            if (!pendingWorldEventMessage.isBlank()) {
+                String eventTitle = pendingWorldEventTitle;
+                String message = pendingWorldEventMessage;
+                pendingWorldEventTitle = "";
+                pendingWorldEventMessage = "";
+
+                showPopup(eventTitle, message, PopupCategory.WORLD_EVENT);
+                return;
+            }
 
             /*
              * Closing the final chronicle returns to the menu.
              */
-            if (lowerTitle.contains("final")
-                    || lowerTitle.contains("chronicle")
-                    || lowerTitle.contains("death")
-                    || lowerTitle.contains("ending")) {
-
+            if (closingCategory == PopupCategory.ENDING) {
                 activePopupTitle = "";
 
                 SaveManager.clearSave();
@@ -1023,6 +1603,10 @@ public class GameController {
             }
 
             activePopupTitle = "";
+
+            // Moving on accepts the consequence: the undo point is gone.
+            rewindOfferAvailable = false;
+            engine.clearSnapshot();
 
             /*
              * This is the important line:
@@ -1049,6 +1633,11 @@ public class GameController {
 
         pendingLegacyTitleMessage = "";
         pendingStatusChangeMessage = "";
+        pendingFateTokenMessage = "";
+        pendingWorldEventTitle = "";
+        pendingWorldEventMessage = "";
+        pendingEchoTitle = "";
+        pendingEchoMessage = "";
 
         activePopupTitle = "";
         legacyRecorded = false;
@@ -1082,7 +1671,8 @@ public class GameController {
 
         showPopup(
                 "Birth of a Life",
-                engine.getBirthIntroMessage()
+                engine.getBirthIntroMessage(),
+                PopupCategory.BIRTH
         );
     }
 

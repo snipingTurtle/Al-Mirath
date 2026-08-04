@@ -6,7 +6,7 @@
 /* GLOBAL */
 
 .root {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", "Times New Roman", serif;
     -fx-background-color: black;
 }
 
@@ -30,7 +30,7 @@
 /* TITLES */
 
 .game-title-small {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 31px;
     -fx-font-weight: bold;
     -fx-text-fill: #f8d66d;
@@ -40,7 +40,7 @@
 }
 
 .game-subtitle-small {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 16px;
     -fx-text-fill: #fff0c6;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.90), 5, 0.35, 0, 1);
@@ -91,7 +91,7 @@
 /* TEXT */
 
 .section-title {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-text-fill: #f8d66d;
@@ -101,7 +101,7 @@
 }
 
 .info-label {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 15px;
     -fx-text-fill: #fff0c6;
     -fx-line-spacing: 3px;
@@ -109,7 +109,7 @@
 }
 
 .event-title {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 36px;
     -fx-font-weight: bold;
     -fx-text-fill: #f8d66d;
@@ -121,7 +121,7 @@
 }
 
 .event-description {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 19px;
     -fx-text-fill: #fff2d2;
     -fx-line-spacing: 8px;
@@ -136,7 +136,7 @@
 .menu-button,
 .continue-button,
 .welcome-button {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 17px;
     -fx-font-weight: bold;
     -fx-alignment: center;
@@ -239,14 +239,14 @@
     -fx-border-color: rgba(236, 183, 74, 0.95);
 }
 
-/* Status: blue royal scroll */
+/* Status: warm amber seal */
 .popup-status {
     -fx-background-color:
             linear-gradient(to bottom,
-            rgba(157, 191, 213, 0.92),
-            rgba(63, 88, 112, 0.92),
-            rgba(20, 30, 46, 0.96));
-    -fx-border-color: rgba(149, 211, 255, 0.95);
+            rgba(224, 168, 84, 0.92),
+            rgba(150, 92, 26, 0.92),
+            rgba(58, 30, 9, 0.96));
+    -fx-border-color: rgba(255, 202, 110, 0.95);
 }
 
 /* Legacy: red-gold royal seal, no purple */
@@ -271,7 +271,7 @@
 
 /* Cursive royal heading */
 .popup-title {
-    -fx-font-family: "Lucida Calligraphy", "Segoe Script", "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Monotype Corsiva", "Lucida Calligraphy", "Segoe Script", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 42px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff2bf;
@@ -285,7 +285,7 @@
 
 /* Body readable, still medieval */
 .result-text {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 22px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff8dd;
@@ -298,14 +298,14 @@
 
 /* Scroll ornaments */
 .scroll-ornament {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 22px;
     -fx-text-fill: #fff0ad;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.86), 5, 0.35, 0, 1);
 }
 
 .scroll-divider {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 16px;
     -fx-text-fill: rgba(255, 232, 164, 0.80);
 }
@@ -351,7 +351,7 @@
 /* Scroll continue button */
 .scroll-button,
 .continue-button {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 18px;
     -fx-font-weight: bold;
 
@@ -399,14 +399,14 @@
     -fx-border-color: rgba(232, 181, 53, 0.96);
 }
 
-/* Status: royal blue seal */
+/* Status: royal amber seal */
 .popup-status {
-    -fx-border-color: rgba(108, 181, 255, 0.98);
+    -fx-border-color: rgba(255, 196, 100, 0.98);
     -fx-background-color:
             linear-gradient(to bottom,
-            rgba(22, 37, 60, 0.46),
-            rgba(9, 13, 24, 0.62),
-            rgba(2, 2, 5, 0.72));
+            rgba(74, 40, 12, 0.46),
+            rgba(30, 15, 4, 0.62),
+            rgba(10, 4, 1, 0.72));
 }
 
 /* Legacy: royal red + gold, no purple */
@@ -430,7 +430,7 @@
 }
 
 .popup-title {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 42px;
     -fx-font-weight: bold;
     -fx-text-fill: #ffdf7e;
@@ -442,7 +442,7 @@
 }
 
 .result-text {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 21px;
     -fx-text-fill: #fff4d4;
     -fx-line-spacing: 9px;
@@ -544,7 +544,7 @@
 }
 
 .welcome-title {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 56px;
     -fx-font-weight: bold;
     -fx-text-fill: #ffdf7e;
@@ -556,7 +556,7 @@
 }
 
 .welcome-subtitle {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 24px;
     -fx-text-fill: #fff3cf;
     -fx-alignment: center;
@@ -565,7 +565,7 @@
 }
 
 .welcome-description {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 17px;
     -fx-text-fill: #fff2d2;
     -fx-line-spacing: 7px;
@@ -599,14 +599,14 @@
 }
 
 .records-title {
-    -fx-font-family: "Palatino Linotype", "Book Antiqua", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Book Antiqua", "Georgia", serif;
     -fx-font-size: 44px;
     -fx-font-weight: bold;
     -fx-text-fill: #ffdf7e;
 }
 
 .records-text {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 16px;
     -fx-text-fill: #fff2d2;
 }
@@ -616,7 +616,7 @@
 .tooltip {
     -fx-background-color: rgba(20, 12, 4, 0.96);
     -fx-text-fill: #fff2d2;
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 13px;
     -fx-border-color: rgba(255, 218, 107, 0.85);
     -fx-border-radius: 8;
@@ -638,7 +638,7 @@
 /* ===================================================== */
 
 .root {
-    -fx-font-family: "Georgia", "Palatino Linotype", "Book Antiqua", serif;
+    -fx-font-family: "Constantia", "Georgia", "Palatino Linotype", "Book Antiqua", serif;
 }
 
 /* Cleaner HUD spacing */
@@ -669,7 +669,7 @@
 
 /* Main title */
 .game-title-small {
-    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-family: "Constantia", "Georgia", "Palatino Linotype", serif;
     -fx-font-size: 30px;
     -fx-font-weight: bold;
     -fx-text-fill: #f6d06a;
@@ -679,21 +679,21 @@
 }
 
 .game-subtitle-small {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 16px;
     -fx-text-fill: #f5dfb4;
 }
 
 /* Text */
 .section-title {
-    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-family: "Constantia", "Georgia", "Palatino Linotype", serif;
     -fx-font-size: 25px;
     -fx-font-weight: bold;
     -fx-text-fill: #f6d06a;
 }
 
 .info-label {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 15px;
     -fx-text-fill: #f7e6c0;
     -fx-line-spacing: 4px;
@@ -704,7 +704,7 @@
 }
 
 .mini-description {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 14px;
     -fx-text-fill: #e8d2a4;
     -fx-line-spacing: 5px;
@@ -712,7 +712,7 @@
 
 /* Event text */
 .event-title {
-    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-family: "Constantia", "Georgia", "Palatino Linotype", serif;
     -fx-font-size: 34px;
     -fx-font-weight: bold;
     -fx-text-fill: #f6d06a;
@@ -724,7 +724,7 @@
 }
 
 .event-description {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 18px;
     -fx-text-fill: #f8e9c6;
     -fx-line-spacing: 7px;
@@ -738,7 +738,7 @@
 .small-scroll-button,
 .continue-button,
 .welcome-button {
-    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-family: "Constantia", "Georgia", "Palatino Linotype", serif;
     -fx-font-size: 16px;
     -fx-font-weight: bold;
     -fx-background-color:
@@ -809,6 +809,16 @@
     -fx-border-color: rgba(235, 184, 72, 0.96);
 }
 
+/* Ancient decree: aged bronze, distinct from a plain consequence scroll */
+.popup-worldevent {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(168, 176, 108, 0.94),
+            rgba(96, 92, 42, 0.96),
+            rgba(42, 38, 16, 0.98));
+    -fx-border-color: rgba(196, 204, 138, 0.95);
+}
+
 .popup-legacy {
     -fx-background-color:
             linear-gradient(to bottom,
@@ -829,7 +839,7 @@
 
 /* Cursive only on scroll titles */
 .popup-title {
-    -fx-font-family: "Lucida Calligraphy", "Segoe Script", "Georgia", serif;
+    -fx-font-family: "Monotype Corsiva", "Lucida Calligraphy", "Segoe Script", "Georgia", serif;
     -fx-font-size: 40px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff0b8;
@@ -841,7 +851,7 @@
 }
 
 .result-text {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 21px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff6d7;
@@ -853,14 +863,14 @@
 
 /* Scroll edges and decoration */
 .scroll-edge {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 22px;
     -fx-text-fill: #4b2107;
     -fx-opacity: 0.75;
 }
 
 .scroll-divider {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 15px;
     -fx-text-fill: rgba(255, 232, 164, 0.82);
 }
@@ -951,7 +961,7 @@
 }
 
 .drawer-title {
-    -fx-font-family: "Lucida Calligraphy", "Segoe Script", "Georgia", serif;
+    -fx-font-family: "Monotype Corsiva", "Lucida Calligraphy", "Segoe Script", "Georgia", serif;
     -fx-font-size: 30px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff0b8;
@@ -961,7 +971,7 @@
 }
 
 .drawer-text {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 16px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff5d6;
@@ -970,7 +980,7 @@
 }
 
 .drawer-tab {
-    -fx-font-family: "Georgia", "Palatino Linotype", serif;
+    -fx-font-family: "Constantia", "Georgia", "Palatino Linotype", serif;
     -fx-font-size: 15px;
     -fx-font-weight: bold;
     -fx-background-color:
@@ -1014,7 +1024,7 @@
 }
 
 .change-cue {
-    -fx-font-family: "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
     -fx-font-size: 15px;
     -fx-font-weight: bold;
     -fx-padding: 4 10 4 10;
@@ -1050,7 +1060,7 @@
 
 .scroll-popup-title,
 .popup-title {
-    -fx-font-family: "Gabriola", "Lucida Calligraphy", "Palatino Linotype", serif;
+    -fx-font-family: "Monotype Corsiva", "Gabriola", "Lucida Calligraphy", "Palatino Linotype", serif;
     -fx-font-size: 46px;
     -fx-font-weight: bold;
     -fx-text-fill: #4a2107;
@@ -1059,7 +1069,7 @@
 
 .scroll-popup-text,
 .result-text {
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 22px;
     -fx-font-weight: bold;
     -fx-text-fill: #3d1c06;
@@ -1103,7 +1113,7 @@
 
 .scroll-popup-button,
 .continue-button {
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 19px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff0c2;
@@ -1153,7 +1163,7 @@
 .drawer-title {
     -fx-text-fill: #f8d978;
     -fx-font-size: 25px;
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-weight: bold;
     -fx-alignment: center;
     -fx-max-width: infinity;
@@ -1165,7 +1175,7 @@
 .drawer-text {
     -fx-text-fill: #fff0c8;
     -fx-font-size: 15px;
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-weight: bold;
     -fx-line-spacing: 4px;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.70), 5, 0.25, 0, 1);
@@ -1174,7 +1184,7 @@
 .drawer-note {
     -fx-text-fill: rgba(255, 239, 203, 0.86);
     -fx-font-size: 13px;
-    -fx-font-family: "Georgia", serif;
+    -fx-font-family: "Constantia", "Georgia", serif;
     -fx-wrap-text: true;
     -fx-text-alignment: center;
 }
@@ -1195,7 +1205,7 @@
     -fx-border-color: rgba(235, 190, 80, 0.95);
     -fx-border-width: 2;
     -fx-text-fill: #fff0c8;
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 16px;
     -fx-font-weight: bold;
     -fx-padding: 10 16 10 16;
@@ -1233,7 +1243,7 @@
 /* Ancient scroll title */
 .scroll-popup-title,
 .popup-title {
-    -fx-font-family: "Gabriola", "Lucida Calligraphy", "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Monotype Corsiva", "Gabriola", "Lucida Calligraphy", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 42px;
     -fx-font-weight: bold;
     -fx-text-fill: #4b2308;
@@ -1253,7 +1263,7 @@
 /* Ancient scroll body */
 .scroll-popup-text,
 .result-text {
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 21px;
     -fx-font-weight: bold;
     -fx-text-fill: #3d1b05;
@@ -1288,14 +1298,14 @@
 
 /* Ornaments */
 .scroll-ornament {
-    -fx-font-family: "Gabriola", "Palatino Linotype", serif;
+    -fx-font-family: "Monotype Corsiva", "Gabriola", "Palatino Linotype", serif;
     -fx-font-size: 24px;
     -fx-text-fill: #7b4517;
     -fx-opacity: 0.85;
 }
 
 .scroll-divider {
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 15px;
     -fx-text-fill: rgba(112, 61, 19, 0.72);
 }
@@ -1320,7 +1330,7 @@
 /* Scroll button */
 .scroll-popup-button,
 .continue-button {
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 18px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff0c2;
@@ -1394,7 +1404,7 @@
 .drawer-title {
     -fx-text-fill: #f7d676;
     -fx-font-size: 25px;
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-weight: bold;
     -fx-alignment: center;
     -fx-text-alignment: center;
@@ -1406,7 +1416,7 @@
 .drawer-text {
     -fx-text-fill: #fff0c8;
     -fx-font-size: 14px;
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-weight: bold;
     -fx-line-spacing: 3px;
     -fx-text-alignment: left;
@@ -1416,7 +1426,7 @@
 .drawer-note {
     -fx-text-fill: rgba(255, 239, 203, 0.84);
     -fx-font-size: 12px;
-    -fx-font-family: "Georgia", serif;
+    -fx-font-family: "Constantia", "Georgia", serif;
     -fx-wrap-text: true;
     -fx-text-alignment: center;
 }
@@ -1437,7 +1447,7 @@
     -fx-border-color: rgba(235, 190, 80, 0.95);
     -fx-border-width: 2;
     -fx-text-fill: #fff0c8;
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 15px;
     -fx-font-weight: bold;
     -fx-padding: 9 15 9 15;
@@ -1460,7 +1470,7 @@
             rgba(64, 34, 10, 0.96),
             rgba(22, 9, 2, 0.98));
     -fx-text-fill: #fff0c8;
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 13px;
     -fx-font-weight: bold;
     -fx-border-color: rgba(235, 190, 80, 0.80);
@@ -1489,7 +1499,7 @@
 /* Better ancient writing */
 .scroll-popup-title,
 .popup-title {
-    -fx-font-family: "Gabriola", "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Monotype Corsiva", "Gabriola", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 42px;
     -fx-font-weight: bold;
     -fx-text-fill: #4a2107;
@@ -1513,7 +1523,7 @@
 /* Scroll body */
 .scroll-popup-text,
 .result-text {
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 21px;
     -fx-font-weight: bold;
     -fx-text-fill: #3d1b05;
@@ -1550,14 +1560,14 @@
 
 /* Ornaments */
 .scroll-ornament {
-    -fx-font-family: "Gabriola", "Palatino Linotype", serif;
+    -fx-font-family: "Monotype Corsiva", "Gabriola", "Palatino Linotype", serif;
     -fx-font-size: 23px;
     -fx-text-fill: #7b4517;
     -fx-opacity: 0.82;
 }
 
 .scroll-divider {
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 14px;
     -fx-text-fill: rgba(112, 61, 19, 0.68);
 }
@@ -1565,7 +1575,7 @@
 /* Scroll button */
 .scroll-popup-button,
 .continue-button {
-    -fx-font-family: "Palatino Linotype", "Georgia", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
     -fx-font-size: 17px;
     -fx-font-weight: bold;
     -fx-text-fill: #fff0c2;
@@ -1575,9 +1585,12 @@
     -fx-border-width: 2;
     -fx-background-radius: 15;
     -fx-border-radius: 15;
-    -fx-padding: 8 26 8 26;
+    -fx-padding: 10 30 10 30;
     -fx-cursor: hand;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.48), 8, 0.25, 0, 3);
+    /* Buttons must size to their full text — a constrained width here is
+       what was clipping "Continue" and "Challenge Fate" down to ellipses. */
+    -fx-min-width: -fx-pref-width;
 }
 
 .scroll-popup-button:hover,
@@ -1612,7 +1625,7 @@
 .event-title,
 .scroll-popup-title,
 .popup-title {
-    -fx-font-family: "Palatino Linotype", "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", "Times New Roman", serif;
     -fx-font-weight: bold;
     -fx-text-fill: #f4c957;
     -fx-text-alignment: center;
@@ -1641,7 +1654,7 @@
 .choice-button,
 .drawer-text,
 .info-label {
-    -fx-font-family: "Palatino Linotype", "Georgia", "Times New Roman", serif;
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", "Times New Roman", serif;
 }
 
 /* Make popup body cleaner */
@@ -1651,4 +1664,702 @@
     -fx-font-weight: bold;
     -fx-text-fill: #3d1b05;
     -fx-line-spacing: 7px;
+}
+/* ===================================================== */
+/* THREADS OF FATE: TOKENS, TRIALS, NOTIFICATIONS         */
+/* ===================================================== */
+
+/* Token counter in the top bar */
+.fate-token-label {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffd76a;
+    -fx-padding: 8 18 8 18;
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(96, 54, 16, 0.78),
+            rgba(42, 20, 5, 0.86));
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-border-color: rgba(255, 214, 95, 0.82);
+    -fx-border-width: 1.6;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.62), 10, 0.30, 0, 3),
+            dropshadow(gaussian, rgba(255,206,92,0.28), 9, 0.24, 0, 0);
+}
+
+/* The rewind button reads as the risky option, not the default */
+.rewind-button {
+    -fx-background-color:
+            linear-gradient(to bottom, #7a2015, #2c0f08);
+    -fx-border-color: #e8a37a;
+}
+
+.rewind-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom, #a5352a, #4a160d);
+    -fx-border-color: #ffcda0;
+}
+
+/* ---- Trial overlay ---- */
+
+.minigame-overlay {
+    -fx-background-color: rgba(6, 3, 1, 0.86);
+}
+
+.minigame-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(74, 44, 16, 0.92),
+            rgba(30, 15, 5, 0.95),
+            rgba(10, 5, 2, 0.97));
+    -fx-border-color: rgba(255, 214, 95, 0.90);
+    -fx-border-width: 2.6;
+    -fx-border-radius: 24;
+    -fx-background-radius: 24;
+    -fx-padding: 40 52 40 52;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.86), 34, 0.44, 0, 12);
+}
+
+.minigame-title {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 40px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f4c957;
+    -fx-text-alignment: center;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.92), 8, 0.40, 0, 3),
+            dropshadow(gaussian, rgba(255,222,120,0.42), 12, 0.30, 0, 0);
+}
+
+.minigame-title.result-win {
+    -fx-text-fill: #8fe57f;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.90), 8, 0.38, 0, 3),
+            dropshadow(gaussian, rgba(110,225,110,0.48), 14, 0.32, 0, 0);
+}
+
+.minigame-title.result-loss {
+    -fx-text-fill: #ff7a63;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.90), 8, 0.38, 0, 3),
+            dropshadow(gaussian, rgba(230,80,55,0.48), 14, 0.32, 0, 0);
+}
+
+.minigame-flavour {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 18px;
+    -fx-font-style: italic;
+    -fx-text-fill: #f6e3bd;
+    -fx-line-spacing: 6px;
+    -fx-text-alignment: center;
+}
+
+.minigame-instructions {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 15px;
+    -fx-text-fill: #ddc79b;
+    -fx-line-spacing: 5px;
+    -fx-text-alignment: center;
+}
+
+.minigame-status {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffe6ac;
+}
+
+.minigame-target {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f4c957;
+    -fx-effect: dropshadow(gaussian, rgba(255,214,110,0.40), 12, 0.30, 0, 0);
+}
+
+.minigame-timer > .track {
+    -fx-background-color: rgba(28, 14, 4, 0.75);
+    -fx-background-radius: 7;
+}
+
+.minigame-timer > .bar {
+    -fx-background-color: linear-gradient(to right, #a8331f, #e0a13c, #ffe08a);
+    -fx-background-radius: 7;
+}
+
+/* ---- The Scribe's Hand ---- */
+
+.glyph-button {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 40px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffe9bd;
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(104, 60, 20, 0.90),
+            rgba(44, 21, 6, 0.95));
+    -fx-border-color: rgba(226, 174, 55, 0.85);
+    -fx-border-width: 2;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-cursor: hand;
+}
+
+.glyph-button:hover {
+    -fx-border-color: #ffe4a0;
+}
+
+/* Lit during playback and on press */
+.glyph-active {
+    -fx-background-color:
+            linear-gradient(to bottom, #ffd977, #d59429);
+    -fx-text-fill: #2e1405;
+    -fx-border-color: #fff3c8;
+    -fx-effect: dropshadow(gaussian, rgba(255,214,110,0.85), 20, 0.55, 0, 0);
+}
+
+.glyph-button:disabled {
+    -fx-opacity: 0.85;
+}
+
+/* ---- The Merchant's Scales ---- */
+
+.coin-button {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3a1c05;
+    -fx-background-color:
+            radial-gradient(center 38% 32%, radius 68%, #ffe7a6, #c8912f);
+    -fx-border-color: #7d4d13;
+    -fx-border-width: 2;
+    -fx-background-radius: 40;
+    -fx-border-radius: 40;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 8, 0.30, 0, 3);
+}
+
+.coin-button:hover {
+    -fx-border-color: #ffe9b0;
+}
+
+.coin-selected {
+    -fx-background-color:
+            radial-gradient(center 38% 32%, radius 68%, #b8f2a8, #4f9c3c);
+    -fx-border-color: #dcffcf;
+    -fx-effect: dropshadow(gaussian, rgba(120,230,110,0.80), 16, 0.48, 0, 0);
+}
+
+/* ---- The Night Courier ---- */
+
+.courier-track {
+    -fx-fill: linear-gradient(to bottom, #2a1608, #150a03);
+    -fx-stroke: rgba(226, 174, 55, 0.70);
+    -fx-stroke-width: 2;
+}
+
+.courier-zone {
+    -fx-fill: linear-gradient(to bottom, rgba(140, 230, 120, 0.62), rgba(60, 150, 50, 0.50));
+    -fx-stroke: rgba(190, 255, 175, 0.90);
+    -fx-stroke-width: 1.6;
+}
+
+.courier-marker {
+    -fx-fill: #ffe9b0;
+    -fx-stroke: #7d4d13;
+    -fx-stroke-width: 1.4;
+    -fx-effect: dropshadow(gaussian, rgba(255,230,160,0.90), 12, 0.55, 0, 0);
+}
+
+/* ---- Toast notifications ---- */
+
+.toast {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(72, 42, 14, 0.96),
+            rgba(26, 12, 4, 0.98));
+    -fx-border-color: rgba(255, 214, 95, 0.90);
+    -fx-border-width: 2;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-padding: 14 20 14 20;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.72), 18, 0.36, 0, 6);
+}
+
+.toast-heading {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #d9a94c;
+}
+
+.toast-body {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #fff2d2;
+}
+
+.toast-achievement {
+    -fx-border-color: rgba(255, 214, 95, 0.95);
+}
+
+.toast-fate,
+.toast-rewind {
+    -fx-border-color: rgba(232, 163, 90, 0.92);
+}
+
+.toast-rewind .toast-heading {
+    -fx-text-fill: #e0a25a;
+}
+
+/* ===================================================== */
+/* HALL OF LEGACY: ACHIEVEMENTS + STATISTICS             */
+/* ===================================================== */
+
+.statistic-chip {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: #f2dfb4;
+    -fx-padding: 6 14 6 14;
+    -fx-background-color: rgba(58, 32, 10, 0.62);
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: rgba(226, 174, 55, 0.48);
+    -fx-border-width: 1;
+}
+
+.achievement-card {
+    -fx-padding: 14 18 16 18;
+    -fx-background-radius: 14;
+    -fx-border-radius: 14;
+    -fx-border-width: 2;
+}
+
+.achievement-card-unlocked {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(104, 63, 22, 0.78),
+            rgba(42, 21, 6, 0.86));
+    -fx-border-color: rgba(255, 214, 95, 0.92);
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.58), 12, 0.30, 0, 4),
+            dropshadow(gaussian, rgba(255,206,92,0.22), 10, 0.24, 0, 0);
+}
+
+.achievement-card-locked {
+    -fx-background-color: rgba(24, 16, 8, 0.62);
+    -fx-border-color: rgba(128, 100, 52, 0.55);
+}
+
+.achievement-name {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f7e6c0;
+}
+
+.achievement-card-locked .achievement-name {
+    -fx-text-fill: #a08f6f;
+}
+
+.achievement-hint {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: #d4bf94;
+    -fx-line-spacing: 3px;
+}
+
+.achievement-card-locked .achievement-hint {
+    -fx-text-fill: #8d7d61;
+}
+
+.achievement-state-unlocked {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #8fe57f;
+}
+
+.achievement-state-locked {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7d6c4f;
+}
+
+.records-scroll,
+.records-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+/* Keyboard hint shown beside each choice */
+.choice-key-hint {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 12px;
+    -fx-text-fill: rgba(255, 232, 164, 0.62);
+}
+
+/* ===================================================== */
+/* SETTINGS SCREEN                                       */
+/* ===================================================== */
+
+.settings-check {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 16px;
+    -fx-text-fill: #f7e6c0;
+}
+
+.settings-check .box {
+    -fx-background-color: rgba(30, 16, 5, 0.85);
+    -fx-border-color: rgba(226, 174, 55, 0.85);
+    -fx-border-width: 2;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.settings-check:selected .mark {
+    -fx-background-color: #ffd76a;
+}
+
+.slider .track {
+    -fx-background-color: rgba(30, 16, 5, 0.85);
+    -fx-background-radius: 6;
+}
+
+.slider .thumb {
+    -fx-background-color: linear-gradient(to bottom, #ffe7a6, #c8912f);
+    -fx-border-color: #7d4d13;
+    -fx-border-width: 1.5;
+}
+
+.danger-button {
+    -fx-background-color: linear-gradient(to bottom, #8e2f22, #4a140d);
+    -fx-border-color: #e08a72;
+}
+
+.danger-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #b04030, #631c12);
+    -fx-border-color: #ffc0ac;
+}
+
+.danger-button:disabled {
+    -fx-opacity: 0.5;
+}
+
+/* ===================================================== */
+/* STAT GROUPING: STRENGTHS VS BURDENS                    */
+/* ===================================================== */
+
+.stat-group-title {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 0 2 0;
+    -fx-opacity: 0.85;
+}
+
+.stat-group-strengths {
+    -fx-text-fill: #a8d98a;
+}
+
+.stat-group-burdens {
+    -fx-text-fill: #e2957a;
+}
+
+/* Stress reads as a danger meter, not a virtue meter: red climbing toward
+   full is bad, unlike every other stat where a full gold bar is good. */
+.stress-bar > .bar {
+    -fx-background-color:
+            linear-gradient(to right, #7a2f18, #a8432a, #d96a3f);
+}
+
+.stress-bar > .track {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(58, 24, 16, 0.70),
+            rgba(30, 12, 8, 0.60));
+    -fx-border-color: rgba(120, 50, 30, 0.60);
+}
+
+/* ===================================================== */
+/* ILLUMINATED GOLD + ECHO SCROLLS                        */
+/* ===================================================== */
+
+/*
+ * Shining gold leaf for the highest-tier headings. A linear-gradient text
+ * fill gives the metallic highlight band that a flat gold colour cannot,
+ * and the layered drop shadows read as engraved rather than merely bright.
+ */
+.welcome-title,
+.records-title,
+.minigame-title {
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #fff6d0 0%,
+            #ffd97a 26%,
+            #e8a733 52%,
+            #c2801d 68%,
+            #ffe9a8 88%,
+            #fff8dc 100%);
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.95), 10, 0.45, 0, 3),
+            dropshadow(gaussian, rgba(255,206,92,0.55), 18, 0.32, 0, 0);
+}
+
+/* Event headings share the gold leaf at a slightly cooler weight */
+.event-title {
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #fff4c9 0%,
+            #ffd472 40%,
+            #dc9c2c 70%,
+            #ffe6a0 100%);
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.96), 9, 0.48, 0, 3),
+            dropshadow(gaussian, rgba(255,214,110,0.42), 14, 0.30, 0, 0);
+}
+
+/* Section headers in the side panels */
+.section-title {
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #ffeeb8 0%,
+            #f2c455 45%,
+            #d59a2c 100%);
+}
+
+/* Fate counter reads as struck gold, since it is the game's currency */
+.fate-token-label {
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #fff3c4 0%,
+            #ffd166 50%,
+            #d99a28 100%);
+}
+
+/*
+ * Popup title sits inside the scroll art, not floating above it. The
+ * negative top padding pulls it down onto the parchment; without it the
+ * heading rendered above the scroll's top edge on taller strings.
+ */
+.scroll-popup-title,
+.popup-title {
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #7a3d0d 0%,
+            #5c2c09 40%,
+            #4a2107 100%);
+    -fx-padding: 0 0 4 0;
+}
+
+/* A delayed echo: darker, older parchment than a fresh consequence */
+.popup-echo {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(186, 122, 66, 0.96),
+            rgba(112, 56, 24, 0.96),
+            rgba(48, 22, 8, 0.98));
+    -fx-border-color: rgba(224, 150, 92, 0.96);
+}
+
+/* ===================================================== */
+/* POPUP TITLE FIT + PER-CATEGORY COLOUR                  */
+/* Appended last so these win over the earlier passes.    */
+/* ===================================================== */
+
+/*
+ * The heading is smaller than it was. At 38px a title like "A Comet Is Seen
+ * as an Omen" wrapped to two lines and pushed itself off the top edge of the
+ * scroll art; at this size the longest title in the game stays on one or two
+ * comfortable lines inside the parchment.
+ */
+.scroll-popup-title,
+.popup-title {
+    -fx-font-size: 29px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-wrap-text: true;
+    -fx-padding: 0 0 2 0;
+    -fx-line-spacing: 1px;
+}
+
+.popup-vertical-mode .scroll-popup-title,
+.popup-vertical-mode .popup-title {
+    -fx-font-size: 24px;
+}
+
+.popup-birth .scroll-popup-title,
+.popup-birth .popup-title {
+    -fx-font-size: 32px;
+}
+
+/*
+ * Body text is always dark ink on light parchment. The scroll art is never
+ * tinted dark enough to fight this, which is what previously made the Status
+ * and Final Chronicle text almost invisible.
+ */
+.scroll-popup-text,
+.result-text {
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #341704;
+    -fx-line-spacing: 6px;
+    -fx-effect: dropshadow(gaussian, rgba(255, 248, 226, 0.55), 2, 0.10, 0, 1);
+}
+
+/* Title colour carries the mood, since the parchment no longer does. */
+.popup-consequence .scroll-popup-title,
+.popup-consequence .popup-title,
+.popup-info .scroll-popup-title,
+.popup-info .popup-title {
+    -fx-text-fill: #5c2c09;
+}
+
+.popup-birth .scroll-popup-title,
+.popup-birth .popup-title {
+    -fx-text-fill: #8a5410;
+}
+
+.popup-legacy .scroll-popup-title,
+.popup-legacy .popup-title {
+    -fx-text-fill: #8a5a12;
+}
+
+.popup-status .scroll-popup-title,
+.popup-status .popup-title {
+    -fx-text-fill: #7a4a10;
+}
+
+.popup-worldevent .scroll-popup-title,
+.popup-worldevent .popup-title {
+    -fx-text-fill: #4a5220;
+}
+
+.popup-echo .scroll-popup-title,
+.popup-echo .popup-title {
+    -fx-text-fill: #6b3a12;
+}
+
+/* The final chronicle is the one genuinely funereal heading. */
+.popup-ending .scroll-popup-title,
+.popup-ending .popup-title {
+    -fx-text-fill: #7d1f10;
+}
+
+/* Divider ornaments follow the heading rather than staying generic gold. */
+.popup-ending .scroll-divider {
+    -fx-text-fill: rgba(125, 31, 16, 0.65);
+}
+
+.popup-worldevent .scroll-divider {
+    -fx-text-fill: rgba(74, 82, 32, 0.65);
+}
+
+/* ===================================================== */
+/* MAIN MENU: TITLE ONLY, NO PANEL                        */
+/* ===================================================== */
+
+/*
+ * The menu is the background image plus the title plus the buttons. The card
+ * that used to sit behind them is fully transparent now — no fill, no border,
+ * no shadow — so nothing frames the artwork.
+ */
+.welcome-card {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-padding: 0;
+    -fx-effect: null;
+}
+
+/*
+ * With no panel behind it the title has to hold its own against whatever
+ * image is showing, so it carries a heavy dark shadow as well as the gold
+ * gradient.
+ */
+.welcome-title {
+    -fx-font-family: "Monotype Corsiva", "Gabriola", "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 62px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #fff3c4 0%,
+            #ffd76a 42%,
+            #d99a28 100%);
+    -fx-effect:
+            dropshadow(gaussian, rgba(0, 0, 0, 0.96), 16, 0.58, 0, 4),
+            dropshadow(gaussian, rgba(0, 0, 0, 0.80), 30, 0.40, 0, 0),
+            dropshadow(gaussian, rgba(255, 214, 110, 0.42), 22, 0.30, 0, 0);
+}
+
+/* Menu buttons read as gold script on the artwork rather than as panels. */
+.welcome-button {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(78, 44, 14, 0.62),
+            rgba(34, 17, 5, 0.72));
+    -fx-border-color: rgba(226, 176, 74, 0.85);
+    -fx-border-width: 1.6;
+    -fx-background-radius: 13;
+    -fx-border-radius: 13;
+    -fx-font-size: 19px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.72), 14, 0.34, 0, 4);
+}
+
+.welcome-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(140, 84, 26, 0.82),
+            rgba(60, 30, 8, 0.88));
+    -fx-border-color: #ffe4a0;
+}
+
+/* Trial of Skill: the button that takes the outcome into your own hands */
+.trial-button {
+    -fx-background-color: linear-gradient(to bottom, #8a6212, #4a3208);
+    -fx-border-color: #ffd76a;
+}
+
+.trial-button:hover {
+    -fx-background-color: linear-gradient(to bottom, #ab7c1c, #5e4009);
+    -fx-border-color: #fff0b8;
+}
+
+/* The Physician's Draught shelf */
+.herb-button {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #f7e6c0;
+    -fx-text-alignment: center;
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(96, 58, 20, 0.92),
+            rgba(40, 20, 6, 0.95));
+    -fx-border-color: rgba(214, 168, 60, 0.82);
+    -fx-border-width: 1.6;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-cursor: hand;
+}
+
+.herb-button:hover {
+    -fx-border-color: #ffe4a0;
+}
+
+.herb-selected {
+    -fx-background-color:
+            linear-gradient(to bottom, #4f9c3c, #2c5c22);
+    -fx-border-color: #dcffcf;
+    -fx-text-fill: #f2fff0;
+    -fx-effect: dropshadow(gaussian, rgba(120, 230, 110, 0.70), 14, 0.42, 0, 0);
 }

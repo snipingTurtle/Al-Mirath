@@ -3,6 +3,12 @@ package com.example.al_mirath.service;
 import com.example.al_mirath.model.Choice;
 import com.example.al_mirath.model.ChoiceRequirement;
 import com.example.al_mirath.model.GameEvent;
+import com.example.al_mirath.service.arcs.CommonerArcs;
+import com.example.al_mirath.service.arcs.CourtArcs;
+import com.example.al_mirath.service.arcs.FamilyArcs;
+import com.example.al_mirath.service.arcs.MerchantArcs;
+import com.example.al_mirath.service.arcs.MilitaryArcs;
+import com.example.al_mirath.service.arcs.ScholarArcs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,23 +31,23 @@ public class EventLibrary {
         addRoyalSuccessionArc(eventPool);
         addDisgracedBloodlineArc(eventPool);
         addExileReturnArc(eventPool);
-        addPalaceSpyArc(eventPool);
-        addMarriageAllianceArc(eventPool);
-        addScholarsRiseArc(eventPool);
-        addHeresyAccusationArc(eventPool);
-        addMerchantCaravanArc(eventPool);
-        addGuildWarArc(eventPool);
-        addBreadRebellionArc(eventPool);
-        addTaxResistanceArc(eventPool);
-        addOrphanPatronArc(eventPool);
-        addMilitaryBarracksArc(eventPool);
-        addFrontierCommanderArc(eventPool);
-        addJanissaryLoyaltyArc(eventPool);
-        addShadowDebtArc(eventPool);
-        addDynastyTransitionArc(eventPool);
-        addFamineReliefArc(eventPool);
-        addFamilyFeudArc(eventPool);
-        addLegacyHeirArc(eventPool);
+        CourtArcs.addPalaceSpyArc(eventPool);
+        FamilyArcs.addMarriageAllianceArc(eventPool);
+        ScholarArcs.addScholarsRiseArc(eventPool);
+        ScholarArcs.addHeresyAccusationArc(eventPool);
+        MerchantArcs.addMerchantCaravanArc(eventPool);
+        MerchantArcs.addGuildWarArc(eventPool);
+        CommonerArcs.addBreadRebellionArc(eventPool);
+        CommonerArcs.addTaxResistanceArc(eventPool);
+        CommonerArcs.addOrphanPatronArc(eventPool);
+        MilitaryArcs.addMilitaryBarracksArc(eventPool);
+        MilitaryArcs.addFrontierCommanderArc(eventPool);
+        MilitaryArcs.addJanissaryLoyaltyArc(eventPool);
+        CourtArcs.addShadowDebtArc(eventPool);
+        CourtArcs.addDynastyTransitionArc(eventPool);
+        CommonerArcs.addFamineReliefArc(eventPool);
+        FamilyArcs.addFamilyFeudArc(eventPool);
+        FamilyArcs.addLegacyHeirArc(eventPool);
 
         addConsequenceEvents(eventPool);
 
@@ -60,7 +66,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", -15,
                                         "familyLoyalty", 10,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", 8,
@@ -81,7 +87,7 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 10,
                                         "politicalPower", 5,
-                                        "stress", 15
+                                        "stress", 10
                                 ),
                                 Map.of(
                                         "commonPeople", 15,
@@ -97,7 +103,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", -8,
                                         "morality", -10,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", 3,
@@ -135,7 +141,7 @@ public class EventLibrary {
                                 Map.of(
                                         "education", 15,
                                         "politicalPower", 5,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "court", 10,
@@ -149,7 +155,7 @@ public class EventLibrary {
                                         "wealth", 5,
                                         "education", -10,
                                         "reputation", -5,
-                                        "stress", -5
+                                        "stress", -6
                                 ),
                                 Map.of(
                                         "nobles", 5,
@@ -164,7 +170,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -5,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "shadowNetwork", 15,
@@ -193,7 +199,7 @@ public class EventLibrary {
                                 "You take on responsibilities early. Your family relies on you more, but childhood feels shorter.",
                                 Map.of(
                                         "familyLoyalty", 10,
-                                        "stress", 8,
+                                        "stress", 6,
                                         "wealth", 5
                                 ),
                                 Map.of(
@@ -209,7 +215,7 @@ public class EventLibrary {
                                 Map.of(
                                         "education", 10,
                                         "reputation", 3,
-                                        "stress", 3
+                                        "stress", 2
                                 ),
                                 Map.of(
                                         "scholars", 5,
@@ -222,7 +228,7 @@ public class EventLibrary {
                                 "Hide from responsibility whenever possible",
                                 "You avoid pressure for now, but others begin to doubt your discipline.",
                                 Map.of(
-                                        "stress", -8,
+                                        "stress", -10,
                                         "familyLoyalty", -5,
                                         "reputation", -3
                                 ),
@@ -244,7 +250,7 @@ public class EventLibrary {
                                 "Accept the shame quietly",
                                 "You swallow the pain and learn patience. People forget the mistake faster than expected.",
                                 Map.of(
-                                        "stress", 5,
+                                        "stress", 4,
                                         "morality", 5,
                                         "reputation", 3
                                 ),
@@ -260,7 +266,7 @@ public class EventLibrary {
                                 "You escape the shame for now, but dishonesty becomes easier the next time.",
                                 Map.of(
                                         "morality", -8,
-                                        "stress", -3,
+                                        "stress", -4,
                                         "reputation", 2
                                 ),
                                 Map.of(
@@ -276,7 +282,7 @@ public class EventLibrary {
                                 Map.of(
                                         "health", -5,
                                         "reputation", 5,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "commonPeople", -3,
@@ -299,7 +305,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", 5,
                                         "morality", 5,
-                                        "stress", -5
+                                        "stress", -6
                                 ),
                                 Map.of(
                                         "commonPeople", 5,
@@ -314,7 +320,7 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 5,
                                         "wealth", -5,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "nobles", 3,
@@ -329,7 +335,7 @@ public class EventLibrary {
                                 Map.of(
                                         "education", 5,
                                         "politicalPower", 3,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "shadowNetwork", 5
@@ -351,7 +357,7 @@ public class EventLibrary {
                                 Map.of(
                                         "familyLoyalty", 10,
                                         "morality", 5,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "familyCouncil", 10
@@ -364,7 +370,7 @@ public class EventLibrary {
                                 "You gain one person's trust and another person's resentment.",
                                 Map.of(
                                         "politicalPower", 4,
-                                        "stress", 8,
+                                        "stress", 6,
                                         "familyLoyalty", -3
                                 ),
                                 Map.of(
@@ -377,7 +383,7 @@ public class EventLibrary {
                                 "Leave the room silently",
                                 "You avoid the argument, but distance grows between you and the household.",
                                 Map.of(
-                                        "stress", -5,
+                                        "stress", -6,
                                         "familyLoyalty", -6
                                 ),
                                 Map.of(
@@ -401,7 +407,7 @@ public class EventLibrary {
                                 "You gain knowledge and a new path opens before you.",
                                 Map.of(
                                         "education", 20,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "scholars", 20,
@@ -414,7 +420,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", 10,
                                         "education", -5,
-                                        "stress", -5
+                                        "stress", -6
                                 ),
                                 Map.of(
                                         "merchants", 10,
@@ -434,7 +440,7 @@ public class EventLibrary {
                                 ),
                                 Map.of(
                                         "reputation", -10,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "scholars", 10,
@@ -467,7 +473,7 @@ public class EventLibrary {
                                 "Your discipline impresses the soldiers around you.",
                                 Map.of(
                                         "health", 10,
-                                        "stress", 10,
+                                        "stress", 7,
                                         "reputation", 5
                                 ),
                                 Map.of(
@@ -483,12 +489,12 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 15,
                                         "politicalPower", 10,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "health", -15,
                                         "reputation", -10,
-                                        "stress", 15
+                                        "stress", 10
                                 ),
                                 Map.of(
                                         "military", 20
@@ -503,7 +509,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -10,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", 5,
@@ -534,7 +540,7 @@ public class EventLibrary {
                                 "You commit yourself to study and self-control. Some find you serious beyond your years.",
                                 Map.of(
                                         "education", 15,
-                                        "stress", 6,
+                                        "stress", 5,
                                         "morality", 5
                                 ),
                                 Map.of(
@@ -549,7 +555,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 12,
                                         "morality", -3,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "court", 8,
@@ -564,7 +570,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", 12,
                                         "morality", -5,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "merchants", 10
@@ -586,7 +592,7 @@ public class EventLibrary {
                                 Map.of(
                                         "education", 8,
                                         "reputation", 8,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "scholars", 5,
@@ -601,7 +607,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "morality", -10,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "shadowNetwork", 10,
@@ -614,7 +620,7 @@ public class EventLibrary {
                                 "Avoid the rivalry",
                                 "You avoid direct conflict, but others may see your silence as weakness.",
                                 Map.of(
-                                        "stress", -5,
+                                        "stress", -6,
                                         "reputation", -5
                                 ),
                                 Map.of(
@@ -638,7 +644,7 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 8,
                                         "morality", 8,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "commonPeople", 8,
@@ -668,7 +674,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "morality", -8,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", 5,
@@ -690,7 +696,7 @@ public class EventLibrary {
                                 "You enter the circle but keep your eyes open.",
                                 Map.of(
                                         "politicalPower", 6,
-                                        "stress", 5,
+                                        "stress", 4,
                                         "education", 3
                                 ),
                                 Map.of(
@@ -705,7 +711,7 @@ public class EventLibrary {
                                 "You avoid possible trouble, but some doors close quietly.",
                                 Map.of(
                                         "morality", 5,
-                                        "stress", -3,
+                                        "stress", -4,
                                         "politicalPower", -3
                                 ),
                                 Map.of(
@@ -721,7 +727,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "morality", -5,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "shadowNetwork", 12
@@ -744,7 +750,7 @@ public class EventLibrary {
                                 "Your money enters the trade road. Fortune may remember your courage.",
                                 Map.of(
                                         "wealth", 15,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "merchants", 15
@@ -761,7 +767,7 @@ public class EventLibrary {
                                 "Avoid the risk",
                                 "You keep what you have, but the guild sees no ambition in you.",
                                 Map.of(
-                                        "stress", -5
+                                        "stress", -6
                                 ),
                                 Map.of(
                                         "merchants", -5
@@ -801,7 +807,7 @@ public class EventLibrary {
                                 "Your loyalty is noticed, but someone powerful now knows you heard too much.",
                                 Map.of(
                                         "politicalPower", 10,
-                                        "stress", 15
+                                        "stress", 10
                                 ),
                                 Map.of(
                                         "court", 15,
@@ -816,7 +822,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", 15,
                                         "morality", -10,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "shadowNetwork", 20,
@@ -829,7 +835,7 @@ public class EventLibrary {
                                 "Stay silent and remember it",
                                 "You choose patience. The information may become useful later.",
                                 Map.of(
-                                        "stress", 5,
+                                        "stress", 4,
                                         "politicalPower", 5
                                 ),
                                 Map.of(
@@ -860,7 +866,7 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 10,
                                         "morality", 8,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "commonPeople", 10,
@@ -875,7 +881,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 12,
                                         "morality", -5,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "court", 8,
@@ -889,7 +895,7 @@ public class EventLibrary {
                                 "Stay out of it",
                                 "You avoid trouble, but silence has its own cost.",
                                 Map.of(
-                                        "stress", -5,
+                                        "stress", -6,
                                         "reputation", -5
                                 ),
                                 Map.of(
@@ -912,7 +918,7 @@ public class EventLibrary {
                                 "The alliance strengthens your household, though personal ambition must bend.",
                                 Map.of(
                                         "familyLoyalty", 12,
-                                        "stress", 5,
+                                        "stress", 4,
                                         "reputation", 5
                                 ),
                                 Map.of(
@@ -920,7 +926,7 @@ public class EventLibrary {
                                         "nobles", 5
                                 ),
                                 List.of(),
-                                List.of("secured_family_alliance")
+                                List.of("secured_family_alliance", "married")
                         ),
                         new Choice(
                                 "Choose political advantage",
@@ -928,7 +934,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 12,
                                         "familyLoyalty", -8,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "court", 10,
@@ -936,14 +942,14 @@ public class EventLibrary {
                                         "familyCouncil", -5
                                 ),
                                 List.of(),
-                                List.of("political_marriage")
+                                List.of("political_marriage", "married")
                         ),
                         new Choice(
                                 "Reject the arrangement",
                                 "You choose independence, angering those who expected obedience.",
                                 Map.of(
                                         "reputation", 5,
-                                        "stress", 10,
+                                        "stress", 7,
                                         "familyLoyalty", -10
                                 ),
                                 Map.of(
@@ -954,6 +960,80 @@ public class EventLibrary {
                                 List.of("rejected_family_arrangement")
                         )
                 )
+        ));
+
+        eventPool.add(new GameEvent(
+                "The First Child Is Born",
+                "A child is born into your household. The midwives finally fall silent, and in "
+                        + "that silence you understand that your choices no longer shape only your "
+                        + "own life.",
+                "Adulthood",
+                List.of(
+                        new Choice(
+                                "Devote yourself to the child's upbringing",
+                                "You give your time freely. The household grows warmer, though your "
+                                        + "own ambitions wait longer than you expected.",
+                                Map.of(
+                                        "familyLoyalty", 15,
+                                        "morality", 8,
+                                        "stress", -6,
+                                        "politicalPower", -5
+                                ),
+                                Map.of(
+                                        "familyCouncil", 15,
+                                        "commonPeople", 5
+                                ),
+                                List.of(),
+                                List.of("became_parent", "devoted_parent")
+                        ),
+                        new Choice(
+                                "Hire tutors and nurses, and return to your work",
+                                "The child is well cared for by others. Your household does not "
+                                        + "suffer, but the child will grow up knowing your absence as "
+                                        + "well as your name.",
+                                Map.of(
+                                        "wealth", -10,
+                                        "politicalPower", 8,
+                                        "familyLoyalty", -5,
+                                        "stress", 4
+                                ),
+                                Map.of(
+                                        "court", 5,
+                                        "familyCouncil", -3
+                                ),
+                                List.of(
+                                        ChoiceRequirement.statAtLeast(
+                                                "wealth",
+                                                10,
+                                                "Locked: Requires Wealth 10."
+                                        )
+                                ),
+                                List.of("became_parent", "distant_parent")
+                        ),
+                        new Choice(
+                                "Begin shaping the child's future immediately",
+                                "You speak of legacy before the child can walk. Some call it "
+                                        + "foresight. Others call it a burden placed on a child too young "
+                                        + "to refuse it.",
+                                Map.of(
+                                        "politicalPower", 10,
+                                        "familyLoyalty", 5,
+                                        "stress", 7,
+                                        "morality", -5
+                                ),
+                                Map.of(
+                                        "familyCouncil", 10,
+                                        "nobles", 5
+                                ),
+                                List.of(),
+                                List.of("became_parent", "child_groomed_for_legacy")
+                        )
+                ),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of("married"),
+                List.of("became_parent")
         ));
 
         eventPool.add(new GameEvent(
@@ -995,7 +1075,7 @@ public class EventLibrary {
                                 "Turn them away",
                                 "You avoid extra burden, but lose a chance to build loyalty.",
                                 Map.of(
-                                        "stress", -5,
+                                        "stress", -6,
                                         "reputation", -3
                                 ),
                                 Map.of(
@@ -1019,7 +1099,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", -15,
                                         "morality", 8,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "merchants", 5,
@@ -1038,7 +1118,7 @@ public class EventLibrary {
                                 "Delay payment with promises",
                                 "You buy time, but trust weakens.",
                                 Map.of(
-                                        "stress", 10,
+                                        "stress", 7,
                                         "reputation", -5
                                 ),
                                 Map.of(
@@ -1053,7 +1133,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 5,
                                         "morality", -10,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", 5,
@@ -1077,7 +1157,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 15,
                                         "morality", -5,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "court", 12,
@@ -1091,7 +1171,7 @@ public class EventLibrary {
                                 "You keep your independence, but advancement becomes harder.",
                                 Map.of(
                                         "morality", 8,
-                                        "stress", 8,
+                                        "stress", 6,
                                         "politicalPower", -5
                                 ),
                                 Map.of(
@@ -1107,7 +1187,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "morality", -5,
-                                        "stress", 12
+                                        "stress", 9
                                 ),
                                 Map.of(
                                         "shadowNetwork", 10,
@@ -1130,7 +1210,7 @@ public class EventLibrary {
                                 Map.of(
                                         "morality", 10,
                                         "reputation", 10,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "scholars", 12,
@@ -1145,7 +1225,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -10,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", 10,
@@ -1159,7 +1239,7 @@ public class EventLibrary {
                                 "Refuse to judge",
                                 "You avoid danger, but some expected courage from you.",
                                 Map.of(
-                                        "stress", -5,
+                                        "stress", -6,
                                         "reputation", -5
                                 ),
                                 Map.of(
@@ -1189,7 +1269,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", 10,
                                         "reputation", 6,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "merchants", 15,
@@ -1219,7 +1299,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "morality", -8,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", 12,
@@ -1248,7 +1328,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "reputation", 8,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "military", 15,
@@ -1263,7 +1343,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "wealth", -8,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "military", 18,
@@ -1278,7 +1358,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 15,
                                         "morality", -12,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "military", 10,
@@ -1310,7 +1390,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "reputation", 5,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "court", 15,
@@ -1324,7 +1404,7 @@ public class EventLibrary {
                                 "You do not commit yet, but dangerous doors begin to open.",
                                 Map.of(
                                         "politicalPower", 5,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "shadowNetwork", 10,
@@ -1339,7 +1419,7 @@ public class EventLibrary {
                                 "You survive quietly for now, but history rarely respects silence.",
                                 Map.of(
                                         "familyLoyalty", 10,
-                                        "stress", -5,
+                                        "stress", -6,
                                         "politicalPower", -5
                                 ),
                                 Map.of(
@@ -1364,7 +1444,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 12,
                                         "reputation", -5,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "court", 12,
@@ -1383,11 +1463,11 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 10,
                                         "morality", 8,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "reputation", -10,
-                                        "stress", 15,
+                                        "stress", 10,
                                         "politicalPower", -8
                                 ),
                                 Map.of(
@@ -1408,7 +1488,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -10,
-                                        "stress", 12
+                                        "stress", 9
                                 ),
                                 Map.of(
                                         "shadowNetwork", 15,
@@ -1432,7 +1512,7 @@ public class EventLibrary {
                                         "wealth", -12,
                                         "reputation", 12,
                                         "morality", 8,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "commonPeople", 18,
@@ -1453,7 +1533,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -5,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "court", 12,
@@ -1468,7 +1548,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "morality", -8,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "shadowNetwork", 15,
@@ -1491,7 +1571,7 @@ public class EventLibrary {
                                 Map.of(
                                         "education", 5,
                                         "reputation", 12,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "scholars", 12,
@@ -1507,7 +1587,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -5,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", 12,
@@ -1520,7 +1600,7 @@ public class EventLibrary {
                                 "Avoid taking any position",
                                 "You avoid danger, but your silence is noticed.",
                                 Map.of(
-                                        "stress", -5,
+                                        "stress", -6,
                                         "reputation", -6
                                 ),
                                 Map.of(
@@ -1543,7 +1623,7 @@ public class EventLibrary {
                                 "The court rewards your loyalty, but others see you as part of the ruling order.",
                                 Map.of(
                                         "politicalPower", 10,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "court", 15,
@@ -1558,7 +1638,7 @@ public class EventLibrary {
                                 "The people trust you more, but officials begin watching your movements.",
                                 Map.of(
                                         "reputation", 12,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "commonPeople", 15,
@@ -1572,7 +1652,7 @@ public class EventLibrary {
                                 "You keep your independence, but no faction fully trusts you.",
                                 Map.of(
                                         "morality", 5,
-                                        "stress", 12
+                                        "stress", 9
                                 ),
                                 Map.of(
                                         "court", -5,
@@ -1596,7 +1676,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 12,
                                         "reputation", -4,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "court", 15,
@@ -1614,12 +1694,12 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 12,
                                         "politicalPower", 8,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "reputation", -10,
                                         "politicalPower", -8,
-                                        "stress", 15
+                                        "stress", 10
                                 ),
                                 Map.of(
                                         "court", 5,
@@ -1638,7 +1718,7 @@ public class EventLibrary {
                                 "Secretly prepare an escape plan",
                                 "You do not fully trust the court anymore. Survival becomes your real loyalty.",
                                 Map.of(
-                                        "stress", 10,
+                                        "stress", 7,
                                         "politicalPower", 5,
                                         "morality", -3
                                 ),
@@ -1668,7 +1748,7 @@ public class EventLibrary {
                                 "The payment buys temporary peace, but hidden debts rarely disappear forever.",
                                 Map.of(
                                         "wealth", -15,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "shadowNetwork", -5,
@@ -1689,7 +1769,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -15,
-                                        "stress", 12
+                                        "stress", 9
                                 ),
                                 Map.of(
                                         "shadowNetwork", 15,
@@ -1707,10 +1787,10 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 12,
                                         "morality", 10,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
-                                        "stress", 20,
+                                        "stress", 12,
                                         "reputation", -10,
                                         "politicalPower", -8
                                 ),
@@ -1749,7 +1829,7 @@ public class EventLibrary {
                                 Map.of(
                                         "familyLoyalty", 10,
                                         "morality", 5,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "familyCouncil", 15,
@@ -1762,7 +1842,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", 15,
                                         "morality", -5,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "merchants", 15,
@@ -1774,7 +1854,7 @@ public class EventLibrary {
                                 "You spend your final strength building connections with the powerful.",
                                 Map.of(
                                         "politicalPower", 15,
-                                        "stress", 10,
+                                        "stress", 7,
                                         "familyLoyalty", -5
                                 ),
                                 Map.of(
@@ -1796,7 +1876,7 @@ public class EventLibrary {
                                 Map.of(
                                         "familyLoyalty", 15,
                                         "morality", 5,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "familyCouncil", 15
@@ -1810,7 +1890,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "familyLoyalty", -5,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "nobles", 8,
@@ -1824,7 +1904,7 @@ public class EventLibrary {
                                 "You focus on practical survival and inheritance.",
                                 Map.of(
                                         "wealth", 10,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "merchants", 8,
@@ -1860,7 +1940,7 @@ public class EventLibrary {
                                 "You place your remaining influence behind force and order.",
                                 Map.of(
                                         "politicalPower", 8,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "military", 15,
@@ -1905,7 +1985,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", -15,
                                         "morality", -5,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "court", 3,
@@ -1928,12 +2008,12 @@ public class EventLibrary {
                                 "Your threat fails. The collector laughs and begins preparing a report against you.",
                                 Map.of(
                                         "politicalPower", 10,
-                                        "stress", 10,
+                                        "stress", 7,
                                         "morality", -5
                                 ),
                                 Map.of(
                                         "reputation", -10,
-                                        "stress", 20
+                                        "stress", 12
                                 ),
                                 Map.of(
                                         "shadowNetwork", 15,
@@ -1953,7 +2033,7 @@ public class EventLibrary {
                                 Map.of(
                                         "morality", 10,
                                         "reputation", -5,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "court", -5,
@@ -1981,7 +2061,7 @@ public class EventLibrary {
                                 Map.of(
                                         "morality", 5,
                                         "reputation", -5,
-                                        "stress", 5
+                                        "stress", 4
                                 ),
                                 Map.of(
                                         "scholars", 15,
@@ -1994,7 +2074,7 @@ public class EventLibrary {
                                 "Your family pressure slows the report, but court officials now watch you carefully.",
                                 Map.of(
                                         "politicalPower", 5,
-                                        "stress", 10,
+                                        "stress", 7,
                                         "morality", -5
                                 ),
                                 Map.of(
@@ -2017,7 +2097,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -15,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "shadowNetwork", 20,
@@ -2052,7 +2132,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -15,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "court", 5,
@@ -2069,11 +2149,11 @@ public class EventLibrary {
                                 "The evidence disappears. Only a few whispers remain.",
                                 "You fail to destroy the evidence. The court now suspects you directly.",
                                 Map.of(
-                                        "stress", 10,
+                                        "stress", 7,
                                         "politicalPower", 5
                                 ),
                                 Map.of(
-                                        "stress", 25,
+                                        "stress", 15,
                                         "reputation", -15,
                                         "politicalPower", -10
                                 ),
@@ -2095,7 +2175,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 5,
                                         "morality", -10,
-                                        "stress", 15
+                                        "stress", 10
                                 ),
                                 Map.of(
                                         "shadowNetwork", 20,
@@ -2134,7 +2214,7 @@ public class EventLibrary {
                                 Map.of(
                                         "morality", 10,
                                         "reputation", -5,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "scholars", 5,
@@ -2149,7 +2229,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "morality", -12,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "shadowNetwork", 12,
@@ -2162,7 +2242,7 @@ public class EventLibrary {
                                 "Ask powerful friends for protection",
                                 "You survive through connections, but now you owe favors.",
                                 Map.of(
-                                        "stress", 8,
+                                        "stress", 6,
                                         "politicalPower", 5
                                 ),
                                 Map.of(
@@ -2195,7 +2275,7 @@ public class EventLibrary {
                                 "Offer a careful apology",
                                 "Your apology reduces the danger, but it costs pride.",
                                 Map.of(
-                                        "stress", 5,
+                                        "stress", 4,
                                         "reputation", -3,
                                         "morality", 5
                                 ),
@@ -2215,11 +2295,11 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 12,
                                         "politicalPower", 8,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "reputation", -15,
-                                        "stress", 18,
+                                        "stress", 12,
                                         "politicalPower", -8
                                 ),
                                 Map.of(
@@ -2240,7 +2320,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 5,
                                         "morality", -8,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "shadowNetwork", 18,
@@ -2271,7 +2351,7 @@ public class EventLibrary {
                                 Map.of(
                                         "familyLoyalty", 12,
                                         "morality", 5,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "court", 8,
@@ -2287,7 +2367,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 14,
                                         "familyLoyalty", -6,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "court", 8,
@@ -2306,13 +2386,13 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 16,
                                         "reputation", 8,
-                                        "stress", 12,
+                                        "stress", 9,
                                         "familyLoyalty", -10
                                 ),
                                 Map.of(
                                         "reputation", -12,
                                         "politicalPower", -8,
-                                        "stress", 15,
+                                        "stress", 10,
                                         "familyLoyalty", -8
                                 ),
                                 Map.of(
@@ -2350,7 +2430,7 @@ public class EventLibrary {
                                 Map.of(
                                         "familyLoyalty", 10,
                                         "morality", 6,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "familyCouncil", 12,
@@ -2365,7 +2445,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 10,
                                         "familyLoyalty", -12,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "court", 8,
@@ -2381,7 +2461,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 16,
                                         "morality", -20,
-                                        "stress", 15,
+                                        "stress", 10,
                                         "familyLoyalty", -15
                                 ),
                                 Map.of(
@@ -2420,12 +2500,12 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 20,
                                         "reputation", 10,
-                                        "stress", 15
+                                        "stress", 10
                                 ),
                                 Map.of(
                                         "politicalPower", -18,
                                         "reputation", -15,
-                                        "stress", 20
+                                        "stress", 12
                                 ),
                                 Map.of(
                                         "court", 18,
@@ -2447,7 +2527,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 14,
                                         "reputation", 6,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "court", 12,
@@ -2464,7 +2544,7 @@ public class EventLibrary {
                                         "familyLoyalty", 16,
                                         "morality", 10,
                                         "politicalPower", -10,
-                                        "stress", -5
+                                        "stress", -6
                                 ),
                                 Map.of(
                                         "familyCouncil", 15,
@@ -2493,7 +2573,7 @@ public class EventLibrary {
                                 Map.of(
                                         "morality", 12,
                                         "reputation", 10,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "commonPeople", 12,
@@ -2509,7 +2589,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 18,
                                         "morality", -14,
-                                        "stress", 12
+                                        "stress", 9
                                 ),
                                 Map.of(
                                         "court", 12,
@@ -2525,7 +2605,7 @@ public class EventLibrary {
                                 Map.of(
                                         "wealth", -18,
                                         "reputation", 8,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "merchants", 8,
@@ -2563,7 +2643,7 @@ public class EventLibrary {
                                     Map.of(
                                             "reputation", 8,
                                             "morality", 6,
-                                            "stress", 8
+                                            "stress", 6
                                     ),
                                     Map.of(
                                             "scholars", 6,
@@ -2577,7 +2657,7 @@ public class EventLibrary {
                                     "Hide the family shame",
                                     "You avoid speaking of the past. Silence protects you for now, but hidden shame grows heavier.",
                                     Map.of(
-                                            "stress", 6,
+                                            "stress", 5,
                                             "reputation", 3,
                                             "morality", -3
                                     ),
@@ -2594,7 +2674,7 @@ public class EventLibrary {
                                     Map.of(
                                             "politicalPower", 8,
                                             "morality", -10,
-                                            "stress", 10
+                                            "stress", 7
                                     ),
                                     Map.of(
                                             "shadowNetwork", 10,
@@ -2634,11 +2714,11 @@ public class EventLibrary {
                                     Map.of(
                                             "reputation", 12,
                                             "morality", 6,
-                                            "stress", 8
+                                            "stress", 6
                                     ),
                                     Map.of(
                                             "reputation", -10,
-                                            "stress", 14
+                                            "stress", 10
                                     ),
                                     Map.of(
                                             "scholars", 8,
@@ -2659,7 +2739,7 @@ public class EventLibrary {
                                     Map.of(
                                             "politicalPower", 10,
                                             "morality", -8,
-                                            "stress", 10
+                                            "stress", 7
                                     ),
                                     Map.of(
                                             "nobles", 6,
@@ -2673,7 +2753,7 @@ public class EventLibrary {
                                     "Leave without answering",
                                     "You refuse to perform for the room. Some respect your restraint. Others call it cowardice.",
                                     Map.of(
-                                            "stress", -4,
+                                            "stress", -5,
                                             "reputation", -6,
                                             "morality", 4
                                     ),
@@ -2703,7 +2783,7 @@ public class EventLibrary {
                                     Map.of(
                                             "reputation", 10,
                                             "morality", 10,
-                                            "stress", 8
+                                            "stress", 6
                                     ),
                                     Map.of(
                                             "scholars", 12,
@@ -2720,7 +2800,7 @@ public class EventLibrary {
                                             "reputation", 8,
                                             "politicalPower", 8,
                                             "morality", -14,
-                                            "stress", 10
+                                            "stress", 7
                                     ),
                                     Map.of(
                                             "court", 6,
@@ -2734,7 +2814,7 @@ public class EventLibrary {
                                     "Destroy the record",
                                     "The record disappears. The past remains unclear, but the chance for full restoration disappears with it.",
                                     Map.of(
-                                            "stress", -5,
+                                            "stress", -6,
                                             "morality", -8,
                                             "reputation", -5
                                     ),
@@ -2767,12 +2847,12 @@ public class EventLibrary {
                                     Map.of(
                                             "reputation", 16,
                                             "familyLoyalty", 12,
-                                            "stress", 10
+                                            "stress", 7
                                     ),
                                     Map.of(
                                             "reputation", -14,
                                             "familyLoyalty", -8,
-                                            "stress", 18
+                                            "stress", 12
                                     ),
                                     Map.of(
                                             "court", 10,
@@ -2795,7 +2875,7 @@ public class EventLibrary {
                                             "politicalPower", 16,
                                             "reputation", 8,
                                             "morality", -5,
-                                            "stress", 10
+                                            "stress", 7
                                     ),
                                     Map.of(
                                             "court", 8,
@@ -2809,7 +2889,7 @@ public class EventLibrary {
                                     "Abandon the old family name",
                                     "You choose to live beyond the wound of inheritance. The family council sees this as betrayal, but your life becomes your own.",
                                     Map.of(
-                                            "stress", -8,
+                                            "stress", -10,
                                             "morality", 8,
                                             "familyLoyalty", -14,
                                             "reputation", 4
@@ -2856,7 +2936,7 @@ public class EventLibrary {
                                     Map.of(
                                             "politicalPower", 12,
                                             "morality", -6,
-                                            "stress", 6
+                                            "stress", 5
                                     ),
                                     Map.of(
                                             "court", 8,
@@ -2870,7 +2950,7 @@ public class EventLibrary {
                                     "Let the old story fade",
                                     "You allow silence to bury the past. Not every wound needs to become a monument.",
                                     Map.of(
-                                            "stress", -6,
+                                            "stress", -8,
                                             "reputation", 4,
                                             "familyLoyalty", -3
                                     ),
@@ -2903,7 +2983,7 @@ public class EventLibrary {
                                 Map.of(
                                         "education", 10,
                                         "politicalPower", 5,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "scholars", 6,
@@ -2917,7 +2997,7 @@ public class EventLibrary {
                                 "You search for someone with enough influence to open the road. Patronage can help, but it rarely comes free.",
                                 Map.of(
                                         "politicalPower", 8,
-                                        "stress", 8,
+                                        "stress", 6,
                                         "familyLoyalty", 4
                                 ),
                                 Map.of(
@@ -2934,7 +3014,7 @@ public class EventLibrary {
                                         "familyLoyalty", 12,
                                         "wealth", 5,
                                         "politicalPower", -4,
-                                        "stress", -4
+                                        "stress", -5
                                 ),
                                 Map.of(
                                         "familyCouncil", 12
@@ -2968,7 +3048,7 @@ public class EventLibrary {
                                 "The gate opens, but your return begins with humiliation and loss.",
                                 Map.of(
                                         "wealth", -10,
-                                        "stress", 8,
+                                        "stress", 6,
                                         "reputation", -3
                                 ),
                                 Map.of(
@@ -2993,11 +3073,11 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 8,
                                         "politicalPower", 6,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "reputation", -8,
-                                        "stress", 12,
+                                        "stress", 9,
                                         "politicalPower", -4
                                 ),
                                 Map.of(
@@ -3018,7 +3098,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 6,
                                         "morality", -6,
-                                        "stress", 8
+                                        "stress", 6
                                 ),
                                 Map.of(
                                         "shadowNetwork", 12,
@@ -3049,12 +3129,12 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 12,
                                         "politicalPower", 8,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "reputation", -12,
                                         "politicalPower", -6,
-                                        "stress", 14
+                                        "stress", 10
                                 ),
                                 Map.of(
                                         "commonPeople", 8,
@@ -3073,7 +3153,7 @@ public class EventLibrary {
                                 "You try to bury old conflict quietly. Peace becomes possible, but some will call it weakness.",
                                 Map.of(
                                         "wealth", -8,
-                                        "stress", 6,
+                                        "stress", 5,
                                         "familyLoyalty", 6
                                 ),
                                 Map.of(
@@ -3095,7 +3175,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "morality", -4,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "shadowNetwork", 10,
@@ -3127,12 +3207,12 @@ public class EventLibrary {
                                         "politicalPower", 16,
                                         "reputation", 12,
                                         "familyLoyalty", 10,
-                                        "stress", 10
+                                        "stress", 7
                                 ),
                                 Map.of(
                                         "politicalPower", -12,
                                         "reputation", -10,
-                                        "stress", 16
+                                        "stress", 10
                                 ),
                                 Map.of(
                                         "court", 15,
@@ -3154,7 +3234,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 8,
                                         "familyLoyalty", 8,
-                                        "stress", 6
+                                        "stress", 5
                                 ),
                                 Map.of(
                                         "court", 8,
@@ -3169,7 +3249,7 @@ public class EventLibrary {
                                 Map.of(
                                         "politicalPower", 14,
                                         "morality", -4,
-                                        "stress", 12
+                                        "stress", 9
                                 ),
                                 Map.of(
                                         "commonPeople", 8,
@@ -3212,7 +3292,7 @@ public class EventLibrary {
                                 "You teach that power must be protected because courts can exile today and smile tomorrow.",
                                 Map.of(
                                         "politicalPower", 10,
-                                        "stress", 6,
+                                        "stress", 5,
                                         "morality", -4
                                 ),
                                 Map.of(
@@ -3229,7 +3309,7 @@ public class EventLibrary {
                                 Map.of(
                                         "reputation", 8,
                                         "familyLoyalty", 6,
-                                        "stress", -4
+                                        "stress", -5
                                 ),
                                 Map.of(
                                         "commonPeople", 8,
@@ -3247,71 +3327,20 @@ public class EventLibrary {
         ));
     }
 
-    private static void addPalaceSpyArc(List<GameEvent> eventPool) {
 
-    }
 
-    private static void addMarriageAllianceArc(List<GameEvent> eventPool) {
 
-    }
 
-    private static void addScholarsRiseArc(List<GameEvent> eventPool) {
 
-    }
 
-    private static void addHeresyAccusationArc(List<GameEvent> eventPool) {
 
-    }
 
-    private static void addMerchantCaravanArc(List<GameEvent> eventPool) {
 
-    }
 
-    private static void addGuildWarArc(List<GameEvent> eventPool) {
 
-    }
 
-    private static void addBreadRebellionArc(List<GameEvent> eventPool) {
 
-    }
 
-    private static void addTaxResistanceArc(List<GameEvent> eventPool) {
 
-    }
 
-    private static void addOrphanPatronArc(List<GameEvent> eventPool) {
-
-    }
-
-    private static void addMilitaryBarracksArc(List<GameEvent> eventPool) {
-
-    }
-
-    private static void addFrontierCommanderArc(List<GameEvent> eventPool) {
-
-    }
-
-    private static void addJanissaryLoyaltyArc(List<GameEvent> eventPool) {
-
-    }
-
-    private static void addShadowDebtArc(List<GameEvent> eventPool) {
-
-    }
-
-    private static void addDynastyTransitionArc(List<GameEvent> eventPool) {
-
-    }
-
-    private static void addFamineReliefArc(List<GameEvent> eventPool) {
-
-    }
-
-    private static void addFamilyFeudArc(List<GameEvent> eventPool) {
-
-    }
-
-    private static void addLegacyHeirArc(List<GameEvent> eventPool) {
-
-    }
 }

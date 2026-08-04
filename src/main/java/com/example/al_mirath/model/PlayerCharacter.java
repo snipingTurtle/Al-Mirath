@@ -73,6 +73,41 @@ public class PlayerCharacter {
         };
     }
 
+    /**
+     * Overwrites a stat outright instead of nudging it by a delta.
+     * Used when rewinding a life back to a recorded snapshot.
+     */
+    public void setStatValue(String stat, int value) {
+        int clamped = clamp(value);
+
+        switch (stat) {
+            case "health" -> health = clamped;
+            case "wealth" -> wealth = clamped;
+            case "education" -> education = clamped;
+            case "reputation" -> reputation = clamped;
+            case "politicalPower" -> politicalPower = clamped;
+            case "morality" -> morality = clamped;
+            case "familyLoyalty" -> familyLoyalty = clamped;
+            case "stress" -> stress = clamped;
+            default -> System.out.println("Unknown stat: " + stat);
+        }
+    }
+
+    public void setAge(int age) {
+        this.age = Math.max(0, age);
+    }
+
+    /** Brings the character back to life when a rewind undoes a fatal choice. */
+    public void restoreLife() {
+        this.alive = true;
+        this.deathReason = "";
+    }
+
+    public void replaceLegacyTitles(List<String> titles) {
+        legacyTitles.clear();
+        legacyTitles.addAll(titles);
+    }
+
     public void applyChange(String stat, int amount) {
         switch (stat) {
             case "health" -> health = clamp(health + amount);
@@ -82,9 +117,37 @@ public class PlayerCharacter {
             case "politicalPower" -> politicalPower = clamp(politicalPower + amount);
             case "morality" -> morality = clamp(morality + amount);
             case "familyLoyalty" -> familyLoyalty = clamp(familyLoyalty + amount);
-            case "stress" -> stress = clamp(stress + amount);
+            case "stress" -> stress = clamp(stress + dampenStressIncrease(amount));
             default -> System.out.println("Unknown stat: " + stat);
         }
+    }
+
+    /**
+     * Softens further stress increases once stress is already high.
+     *
+     * <p>Without this, stress reaches 100 within a handful of choices and stays
+     * there for the rest of the life, flattening every later decision. A person
+     * already under heavy pressure grows some resistance to additional strain,
+     * while relief (a negative amount) is never dampened.
+     */
+    private int dampenStressIncrease(int amount) {
+        if (amount <= 0) {
+            return amount;
+        }
+
+        double factor;
+
+        if (stress >= 85) {
+            factor = 0.35;
+        } else if (stress >= 70) {
+            factor = 0.55;
+        } else if (stress >= 55) {
+            factor = 0.78;
+        } else {
+            factor = 1.0;
+        }
+
+        return Math.max(1, (int) Math.round(amount * factor));
     }
 
     private int clamp(int value) {

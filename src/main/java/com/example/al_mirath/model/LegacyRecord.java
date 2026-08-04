@@ -1,5 +1,8 @@
 package com.example.al_mirath.model;
 
+/**
+ * One completed life, as stored in the Legacy Records archive.
+ */
 public class LegacyRecord {
 
     private final String characterName;
@@ -8,6 +11,9 @@ public class LegacyRecord {
     private final String familyCondition;
     private final String endingTitle;
     private final String legacyTitles;
+    private final int ageAtEnd;
+    private final String finalStatus;
+    private final int score;
 
     public LegacyRecord(
             String characterName,
@@ -15,7 +21,10 @@ public class LegacyRecord {
             String origin,
             String familyCondition,
             String endingTitle,
-            String legacyTitles
+            String legacyTitles,
+            int ageAtEnd,
+            String finalStatus,
+            int score
     ) {
         this.characterName = characterName;
         this.era = era;
@@ -23,6 +32,9 @@ public class LegacyRecord {
         this.familyCondition = familyCondition;
         this.endingTitle = endingTitle;
         this.legacyTitles = legacyTitles;
+        this.ageAtEnd = ageAtEnd;
+        this.finalStatus = finalStatus;
+        this.score = score;
     }
 
     public String getCharacterName() {
@@ -49,12 +61,27 @@ public class LegacyRecord {
         return legacyTitles;
     }
 
+    public int getAgeAtEnd() {
+        return ageAtEnd;
+    }
+
+    public String getFinalStatus() {
+        return finalStatus;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
     public String getDisplayText() {
         return characterName
                 + "\nEra: " + era
                 + "\nOrigin: " + origin
                 + "\nFamily: " + familyCondition
+                + "\nDied at: " + ageAtEnd
+                + "\nFinal Status: " + finalStatus
                 + "\nEnding: " + endingTitle
-                + "\nTitles: " + legacyTitles;
+                + "\nTitles: " + legacyTitles
+                + "\nScore: " + score;
     }
 }

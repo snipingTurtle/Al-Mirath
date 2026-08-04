@@ -30,31 +30,19 @@
                mouseTransparent="true"/>
 
     <VBox alignment="CENTER"
-          spacing="22"
-          maxWidth="650">
+          spacing="26"
+          maxWidth="900">
 
         <styleClass>
             <String fx:value="welcome-card"/>
         </styleClass>
 
-        <Label text="Al-Mirath">
-            <styleClass>
-                <String fx:value="welcome-title"/>
-            </styleClass>
-        </Label>
-
-        <Label text="The Legacy">
-            <styleClass>
-                <String fx:value="welcome-subtitle"/>
-            </styleClass>
-        </Label>
-
-        <Label text="A historical life and dynasty simulator where choices echo across bloodlines, courts, scholars, soldiers, merchants, and forgotten households."
+        <Label text="Al-Mirath : Heirs of the Golden Age"
                wrapText="true"
                textAlignment="CENTER"
-               maxWidth="540">
+               maxWidth="900">
             <styleClass>
-                <String fx:value="welcome-description"/>
+                <String fx:value="welcome-title"/>
             </styleClass>
         </Label>
 
@@ -82,6 +70,24 @@
                     prefWidth="280"
                     minHeight="48"
                     onAction="#openLegacyRecords">
+                <styleClass>
+                    <String fx:value="welcome-button"/>
+                </styleClass>
+            </Button>
+
+            <Button text="Hall of Legacy"
+                    prefWidth="280"
+                    minHeight="48"
+                    onAction="#openAchievements">
+                <styleClass>
+                    <String fx:value="welcome-button"/>
+                </styleClass>
+            </Button>
+
+            <Button text="Settings"
+                    prefWidth="280"
+                    minHeight="48"
+                    onAction="#openSettings">
                 <styleClass>
                     <String fx:value="welcome-button"/>
                 </styleClass>

@@ -125,6 +125,70 @@ public class BackgroundLibrary {
             case "The Palace Whisper" -> Category.SHADOW;
             case "A Reputation Tested" -> Category.COURT;
             case "Marriage Alliance" -> Category.FAMILY;
+            case "The First Child Is Born" -> Category.FAMILY;
+
+            // --- Scholar arcs ---
+            case "The Circle of the Teacher" -> Category.SCHOLAR;
+            case "The Copyist's Wage" -> Category.SCHOLAR;
+            case "The Chair Falls Vacant" -> Category.SCHOLAR;
+            case "What the Students Carry" -> Category.SCHOLAR;
+            case "The Question That Should Not Be Asked" -> Category.SCHOLAR;
+            case "The Accusation Is Filed" -> Category.COURT;
+            case "The Inquisitor's Season" -> Category.COURT;
+            case "The Verdict History Keeps" -> Category.LEGACY;
+
+            // --- Merchant arcs ---
+            case "A Share in the Cargo" -> Category.BAZAAR;
+            case "The Toll at the Pass" -> Category.EXILE;
+            case "The Letter of Credit" -> Category.BAZAAR;
+            case "What the House Becomes" -> Category.BAZAAR;
+            case "The Guild Closes Its Books" -> Category.BAZAAR;
+            case "Fire in the Workshops" -> Category.BAZAAR;
+            case "The Court Takes an Interest" -> Category.COURT;
+
+            // --- Military arcs ---
+            case "The Oath and the Iron" -> Category.MILITARY;
+            case "The Pay Does Not Arrive" -> Category.MILITARY;
+            case "The Night the Corps Decides" -> Category.MILITARY;
+            case "The Ribat at the Edge" -> Category.MILITARY;
+            case "The Siege" -> Category.MILITARY;
+            case "What the Frontier Owes You" -> Category.MILITARY;
+            case "Taken for the Corps" -> Category.MILITARY;
+            case "The Kettle Is Overturned" -> Category.MILITARY;
+            case "The Village You Came From" -> Category.COMMONER;
+
+            // --- Court and shadow arcs ---
+            case "The Quiet Offer" -> Category.SHADOW;
+            case "The Report They Want" -> Category.SHADOW;
+            case "The Net Draws In" -> Category.SHADOW;
+            case "A Small Favour" -> Category.SHADOW;
+            case "The Interest Compounds" -> Category.SHADOW;
+            case "What They Ask For Last" -> Category.SHADOW;
+            case "The Old Order Thins" -> Category.PALACE;
+            case "The Turning" -> Category.CRISIS;
+            case "Who Survived, and How" -> Category.LEGACY;
+
+            // --- Commoner arcs ---
+            case "The Price of Bread Doubles" -> Category.CRISIS;
+            case "The Crowd Finds a Voice" -> Category.CRISIS;
+            case "The Reckoning After" -> Category.COURT;
+            case "The Assessment Is Wrong" -> Category.COMMONER;
+            case "The Collector Returns With Soldiers" -> Category.COMMONER;
+            case "The Granary Is Yours to Open" -> Category.CRISIS;
+            case "What the Famine Left" -> Category.CRISIS;
+            case "The Hand That Lifts You" -> Category.COMMONER;
+            case "The Patron Falls" -> Category.COURT;
+            case "A Child in a Doorway" -> Category.COMMONER;
+
+            // --- Family arcs ---
+            case "The Contract Is Negotiated" -> Category.FAMILY;
+            case "Your Spouse's House Wants Something" -> Category.FAMILY;
+            case "Forty Years of It" -> Category.FAMILY;
+            case "The Estate Is Divided Badly" -> Category.FAMILY;
+            case "Blood in the Watercourse" -> Category.FAMILY;
+            case "The Quarrel You Hand Down" -> Category.FAMILY;
+            case "Which of Them Receives It" -> Category.FAMILY;
+            case "The Last Instruction" -> Category.LEGACY;
             case "A Chance to Mentor" -> Category.SCHOLAR;
             case "Debt Comes Due" -> Category.COMMONER;
             case "A Private Offer" -> Category.SHADOW;
@@ -334,6 +398,12 @@ public class BackgroundLibrary {
         if (p.contains("tiny")) return false;
         if (p.contains("logo")) return false;
         if (p.contains("watermark")) return false;
+
+        // Single-subject close-ups that read poorly stretched full-bleed
+        // behind the HUD, as opposed to the environment/scene shots this
+        // library is built for.
+        if (p.contains("princes_")) return false;
+        if (p.contains("royal_woman_")) return false;
 
         return true;
     }

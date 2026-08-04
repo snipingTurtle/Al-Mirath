@@ -54,6 +54,13 @@
                     <String fx:value="top-bar"/>
                 </styleClass>
 
+                <Label fx:id="fateTokenLabel"
+                       text="Threads of Fate: 1">
+                    <styleClass>
+                        <String fx:value="fate-token-label"/>
+                    </styleClass>
+                </Label>
+
                 <Region HBox.hgrow="ALWAYS"/>
 
                 <Button text="Restart Life"
@@ -106,6 +113,14 @@
                         </styleClass>
                     </Label>
 
+                    <!-- STRENGTHS: higher is always better -->
+                    <Label text="Strengths">
+                        <styleClass>
+                            <String fx:value="stat-group-title"/>
+                            <String fx:value="stat-group-strengths"/>
+                        </styleClass>
+                    </Label>
+
                     <Label fx:id="healthLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
@@ -155,12 +170,24 @@
                     </Label>
                     <ProgressBar fx:id="familyBar" prefWidth="210"/>
 
+                    <!-- BURDENS: lower is always better -->
+                    <Label text="Burdens">
+                        <styleClass>
+                            <String fx:value="stat-group-title"/>
+                            <String fx:value="stat-group-burdens"/>
+                        </styleClass>
+                    </Label>
+
                     <Label fx:id="stressLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="stressBar" prefWidth="210"/>
+                    <ProgressBar fx:id="stressBar" prefWidth="210">
+                        <styleClass>
+                            <String fx:value="stress-bar"/>
+                        </styleClass>
+                    </ProgressBar>
                 </VBox>
 
                 <!-- MAIN EVENT PANEL -->
@@ -586,15 +613,32 @@
                     </styleClass>
                 </Label>
 
-                <Button fx:id="popupContinueButton"
-                        text="Continue"
-                        onAction="#closePopup">
+                <HBox fx:id="popupButtonRow"
+                      alignment="CENTER"
+                      spacing="14">
 
-                    <styleClass>
-                        <String fx:value="scroll-popup-button"/>
-                        <String fx:value="continue-button"/>
-                    </styleClass>
-                </Button>
+                    <Button fx:id="popupRewindButton"
+                            text="Challenge Fate"
+                            visible="false"
+                            managed="false"
+                            onAction="#openRewindChallenge">
+
+                        <styleClass>
+                            <String fx:value="scroll-popup-button"/>
+                            <String fx:value="rewind-button"/>
+                        </styleClass>
+                    </Button>
+
+                    <Button fx:id="popupContinueButton"
+                            text="Continue"
+                            onAction="#closePopup">
+
+                        <styleClass>
+                            <String fx:value="scroll-popup-button"/>
+                            <String fx:value="continue-button"/>
+                        </styleClass>
+                    </Button>
+                </HBox>
 
                 <Label fx:id="popupBottomOrnament"
                        text="❦ ❦ ❦"

@@ -4,6 +4,7 @@ import com.example.al_mirath.Main;
 import com.example.al_mirath.service.BackgroundLibrary;
 import com.example.al_mirath.service.GameEngine;
 import com.example.al_mirath.service.SaveManager;
+import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -25,12 +26,14 @@ public class WelcomeController {
     @FXML private Button continueButton;
 
     private boolean motionStarted = false;
+    private Timeline backgroundRotation;
 
     @FXML
     public void initialize() {
         bindBackground();
         loadMenuBackground();
         animateBackground();
+        startBackgroundRotation();
         updateContinueButtonState();
 
         System.out.println("WelcomeController initialized.");
@@ -86,6 +89,57 @@ public class WelcomeController {
         }
     }
 
+    /**
+     * Cycles the menu art every ten seconds with a cross-fade, so the title
+     * screen keeps moving instead of sitting on one still image.
+     */
+    private void startBackgroundRotation() {
+        if (menuBackground == null) {
+            return;
+        }
+
+        backgroundRotation = new Timeline(new KeyFrame(
+                Duration.seconds(10),
+                event -> crossFadeToNextBackground()
+        ));
+
+        backgroundRotation.setCycleCount(Timeline.INDEFINITE);
+        backgroundRotation.play();
+    }
+
+    private void crossFadeToNextBackground() {
+        String path = BackgroundLibrary.getMenuBackground();
+
+        if (path == null || path.isBlank()) {
+            return;
+        }
+
+        Image next;
+
+        try {
+            // Loaded eagerly so the fade-in never reveals a half-decoded image.
+            next = new Image(getClass().getResource(path).toExternalForm(), false);
+        } catch (Exception e) {
+            System.out.println("Could not load next menu background: " + path);
+            return;
+        }
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(700), menuBackground);
+        fadeOut.setFromValue(menuBackground.getOpacity());
+        fadeOut.setToValue(0.0);
+
+        fadeOut.setOnFinished(event -> {
+            menuBackground.setImage(next);
+
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(900), menuBackground);
+            fadeIn.setFromValue(0.0);
+            fadeIn.setToValue(1.0);
+            fadeIn.play();
+        });
+
+        fadeOut.play();
+    }
+
     private void animateBackground() {
         if (motionStarted || menuBackground == null) {
             return;
@@ -117,6 +171,12 @@ public class WelcomeController {
             System.out.println("ERROR: mainApp is null in WelcomeController.");
             return;
         }
+
+        // A brand-new life must start clean — Threads of Fate back at one,
+        // no stage rewards or world events carried over from whatever was
+        // saved before. Without this, an old in-progress save could still be
+        // sitting in the database and get picked up later by "Continue".
+        SaveManager.clearSave();
 
         mainApp.showGameScreen();
     }
@@ -151,6 +211,26 @@ public class WelcomeController {
         }
 
         mainApp.showLegacyRecordsScreen();
+    }
+
+    @FXML
+    private void openAchievements() {
+        if (mainApp == null) {
+            System.out.println("ERROR: mainApp is null in WelcomeController.");
+            return;
+        }
+
+        mainApp.showAchievementsScreen();
+    }
+
+    @FXML
+    private void openSettings() {
+        if (mainApp == null) {
+            System.out.println("ERROR: mainApp is null in WelcomeController.");
+            return;
+        }
+
+        mainApp.showSettingsScreen();
     }
 
     @FXML

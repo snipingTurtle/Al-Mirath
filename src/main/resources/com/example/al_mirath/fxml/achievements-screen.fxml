@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.String?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.al_mirath.controller.AchievementsController"
+            prefWidth="1280"
+            prefHeight="720"
+            stylesheets="@../css/almirath-theme.css">
+
+    <styleClass>
+        <String fx:value="welcome-root"/>
+    </styleClass>
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="16">
+            <padding>
+                <Insets top="24" right="36" bottom="12" left="36"/>
+            </padding>
+
+            <Label text="Hall of Legacy">
+                <styleClass>
+                    <String fx:value="records-title"/>
+                </styleClass>
+            </Label>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Button text="Main Menu" onAction="#returnToMainMenu">
+                <styleClass>
+                    <String fx:value="menu-button"/>
+                </styleClass>
+            </Button>
+        </HBox>
+    </top>
+
+    <center>
+        <VBox spacing="16">
+            <padding>
+                <Insets top="0" right="36" bottom="24" left="36"/>
+            </padding>
+
+            <!-- COMPLETION SUMMARY -->
+            <VBox spacing="10">
+                <styleClass>
+                    <String fx:value="parchment-panel"/>
+                </styleClass>
+
+                <HBox alignment="CENTER_LEFT" spacing="14">
+                    <Label fx:id="progressLabel" text="0 of 0 unlocked">
+                        <styleClass>
+                            <String fx:value="section-title"/>
+                        </styleClass>
+                    </Label>
+
+                    <Region HBox.hgrow="ALWAYS"/>
+
+                    <Label fx:id="percentLabel" text="0%">
+                        <styleClass>
+                            <String fx:value="section-title"/>
+                        </styleClass>
+                    </Label>
+                </HBox>
+
+                <ProgressBar fx:id="completionBar"
+                             progress="0"
+                             maxWidth="Infinity"/>
+
+                <!-- LIFETIME STATISTICS -->
+                <FlowPane fx:id="statisticsPane"
+                          hgap="28"
+                          vgap="10">
+                    <padding>
+                        <Insets top="8" right="0" bottom="0" left="0"/>
+                    </padding>
+                </FlowPane>
+            </VBox>
+
+            <!-- ACHIEVEMENT CARDS -->
+            <ScrollPane fx:id="achievementScroll"
+                        fitToWidth="true"
+                        hbarPolicy="NEVER"
+                        vbarPolicy="AS_NEEDED"
+                        VBox.vgrow="ALWAYS">
+
+                <styleClass>
+                    <String fx:value="records-scroll"/>
+                </styleClass>
+
+                <content>
+                    <FlowPane fx:id="achievementPane"
+                              hgap="16"
+                              vgap="16">
+                        <padding>
+                            <Insets top="4" right="8" bottom="16" left="4"/>
+                        </padding>
+                    </FlowPane>
+                </content>
+            </ScrollPane>
+        </VBox>
+    </center>
+
+</BorderPane>

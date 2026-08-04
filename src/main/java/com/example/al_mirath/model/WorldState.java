@@ -21,6 +21,15 @@ public class WorldState {
         return flags;
     }
 
+    /** Replaces every flag at once when rewinding to a snapshot. */
+    public void replaceFlags(Iterable<String> newFlags) {
+        flags.clear();
+
+        for (String flag : newFlags) {
+            flags.add(flag);
+        }
+    }
+
     public boolean hasFlag(String flag) {
         return flags.contains(flag);
     }

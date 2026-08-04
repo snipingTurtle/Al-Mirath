@@ -13,8 +13,9 @@ public class LegacyRecordDAO {
     public void saveRecord(LegacyRecord record) {
         String sql = """
                 INSERT INTO legacy_records
-                (character_name, era, origin, family_condition, ending_title, legacy_titles)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (character_name, era, origin, family_condition, ending_title,
+                 legacy_titles, age_at_end, final_status, score)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (
@@ -27,22 +28,39 @@ public class LegacyRecordDAO {
             statement.setString(4, record.getFamilyCondition());
             statement.setString(5, record.getEndingTitle());
             statement.setString(6, record.getLegacyTitles());
+            statement.setInt(7, record.getAgeAtEnd());
+            statement.setString(8, record.getFinalStatus());
+            statement.setInt(9, record.getScore());
 
             statement.executeUpdate();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Failed to save legacy record: " + e.getMessage());
         }
     }
 
     public List<LegacyRecord> getAllRecords() {
-        List<LegacyRecord> records = new ArrayList<>();
-
-        String sql = """
-                SELECT character_name, era, origin, family_condition, ending_title, legacy_titles
+        return queryRecords("""
+                SELECT character_name, era, origin, family_condition, ending_title,
+                       legacy_titles, age_at_end, final_status, score
                 FROM legacy_records
                 ORDER BY created_at DESC
-                """;
+                """);
+    }
+
+    /** Highest-scoring lives first, for the hall-of-fame view. */
+    public List<LegacyRecord> getTopRecords(int limit) {
+        return queryRecords("""
+                SELECT character_name, era, origin, family_condition, ending_title,
+                       legacy_titles, age_at_end, final_status, score
+                FROM legacy_records
+                ORDER BY score DESC, created_at DESC
+                LIMIT
+                """ + " " + Math.max(1, limit));
+    }
+
+    private List<LegacyRecord> queryRecords(String sql) {
+        List<LegacyRecord> records = new ArrayList<>();
 
         try (
                 Connection connection = DatabaseConnection.getConnection();
@@ -50,20 +68,21 @@ public class LegacyRecordDAO {
                 ResultSet resultSet = statement.executeQuery()
         ) {
             while (resultSet.next()) {
-                LegacyRecord record = new LegacyRecord(
+                records.add(new LegacyRecord(
                         resultSet.getString("character_name"),
                         resultSet.getString("era"),
                         resultSet.getString("origin"),
                         resultSet.getString("family_condition"),
                         resultSet.getString("ending_title"),
-                        resultSet.getString("legacy_titles")
-                );
-
-                records.add(record);
+                        resultSet.getString("legacy_titles"),
+                        resultSet.getInt("age_at_end"),
+                        resultSet.getString("final_status"),
+                        resultSet.getInt("score")
+                ));
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println("Failed to load legacy records: " + e.getMessage());
         }
 
         return records;

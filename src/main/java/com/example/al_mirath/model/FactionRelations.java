@@ -56,6 +56,40 @@ public class FactionRelations {
         }
     }
 
+    public int getValue(String faction) {
+        return switch (faction) {
+            case "court" -> court;
+            case "nobles" -> nobles;
+            case "military" -> military;
+            case "scholars" -> scholars;
+            case "merchants" -> merchants;
+            case "commonPeople" -> commonPeople;
+            case "familyCouncil" -> familyCouncil;
+            case "shadowNetwork" -> shadowNetwork;
+            default -> 0;
+        };
+    }
+
+    /**
+     * Overwrites a standing outright instead of nudging it by a delta.
+     * Used when rewinding a life back to a recorded snapshot.
+     */
+    public void setValue(String faction, int value) {
+        int clamped = clamp(value);
+
+        switch (faction) {
+            case "court" -> court = clamped;
+            case "nobles" -> nobles = clamped;
+            case "military" -> military = clamped;
+            case "scholars" -> scholars = clamped;
+            case "merchants" -> merchants = clamped;
+            case "commonPeople" -> commonPeople = clamped;
+            case "familyCouncil" -> familyCouncil = clamped;
+            case "shadowNetwork" -> shadowNetwork = clamped;
+            default -> System.out.println("Unknown faction: " + faction);
+        }
+    }
+
     private int clamp(int value) {
         return Math.max(0, Math.min(100, value));
     }

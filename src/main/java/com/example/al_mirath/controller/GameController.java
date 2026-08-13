@@ -78,15 +78,22 @@ public class GameController {
 
     private boolean characterDrawerOpen = false;
     private boolean factionDrawerOpen = false;
+    private boolean relationsDrawerOpen = false;
 
     private static final double CHARACTER_DRAWER_CLOSED_X = -305;
     private static final double FACTION_DRAWER_CLOSED_X = 305;
+
+    /** Shares the right-hand space with the faction drawer, so only one opens. */
+    private static final double RELATIONS_DRAWER_CLOSED_X = 305;
 
     private static final double CHARACTER_HANDLE_CLOSED_X = -34;
     private static final double CHARACTER_HANDLE_OPEN_X = 241;
 
     private static final double FACTION_HANDLE_CLOSED_X = 25;
     private static final double FACTION_HANDLE_OPEN_X = -250;
+
+    private static final double RELATIONS_HANDLE_CLOSED_X = 25;
+    private static final double RELATIONS_HANDLE_OPEN_X = -250;
 
     private String activePopupTitle = "";
     private PopupCategory activePopupCategory;
@@ -112,9 +119,13 @@ public class GameController {
     @FXML private VBox characterPanel;
     @FXML private VBox eventPanel;
     @FXML private VBox factionPanel;
+    @FXML private VBox relationsPanel;
 
     @FXML private Button characterDrawerButton;
     @FXML private Button factionDrawerButton;
+    @FXML private Button relationsDrawerButton;
+
+    @FXML private Label relationsLabel;
 
     @FXML private Label nameLabel;
     @FXML private Label eraLabel;
@@ -626,6 +637,12 @@ public class GameController {
             factionDrawerButton.setManaged(visible);
             factionDrawerButton.setMouseTransparent(!visible);
         }
+
+        if (relationsDrawerButton != null) {
+            relationsDrawerButton.setVisible(visible);
+            relationsDrawerButton.setManaged(visible);
+            relationsDrawerButton.setMouseTransparent(!visible);
+        }
     }
 
     private void fadeNode(Node node, double targetOpacity) {
@@ -655,6 +672,35 @@ public class GameController {
                             + "\nTitles: " + player.getLegacyTitlesText()
             );
         }
+
+        updateRelations();
+    }
+
+    /**
+     * Surfaces what the recurring cast did while the years passed. These are
+     * toasts rather than popups on purpose: a friend becoming a general is
+     * worth noticing, but it should not interrupt the run to be acknowledged.
+     */
+    private void showCastAnnouncements() {
+        for (String announcement : engine.consumeCastAnnouncements()) {
+            if (toastLayer != null) {
+                toastLayer.show("The Years Pass", announcement, "toast-fate");
+            }
+        }
+    }
+
+    private void updateRelations() {
+        if (relationsLabel == null) {
+            return;
+        }
+
+        String summary = engine.getRecurringCharacterSummary();
+
+        relationsLabel.setText(
+                summary.isBlank()
+                        ? "No one has yet left a mark on your life."
+                        : summary
+        );
     }
 
     private void updateStats() {
@@ -1046,6 +1092,8 @@ public class GameController {
             pendingEchoTitle = echoTitle;
             pendingEchoMessage = engine.consumeLatestConsequenceEchoMessage();
         }
+
+        showCastAnnouncements();
 
         AchievementEvaluator.afterChoice(engine);
 
@@ -1741,6 +1789,15 @@ public class GameController {
         }
     }
 
+    @FXML
+    private void toggleRelationsDrawer() {
+        if (relationsDrawerOpen) {
+            closeRelationsDrawer();
+        } else {
+            openRelationsDrawer();
+        }
+    }
+
     private void openCharacterDrawer() {
         characterDrawerOpen = true;
 
@@ -1756,6 +1813,9 @@ public class GameController {
     }
 
     private void openFactionDrawer() {
+        // Both right-hand drawers occupy the same strip of screen.
+        closeRelationsDrawer();
+
         factionDrawerOpen = true;
 
         slideNode(factionPanel, 0);
@@ -1769,9 +1829,28 @@ public class GameController {
         slideNode(factionDrawerButton, FACTION_HANDLE_CLOSED_X);
     }
 
+    private void openRelationsDrawer() {
+        closeFactionDrawer();
+
+        relationsDrawerOpen = true;
+
+        updateRelations();
+
+        slideNode(relationsPanel, 0);
+        slideNode(relationsDrawerButton, RELATIONS_HANDLE_OPEN_X);
+    }
+
+    private void closeRelationsDrawer() {
+        relationsDrawerOpen = false;
+
+        slideNode(relationsPanel, RELATIONS_DRAWER_CLOSED_X);
+        slideNode(relationsDrawerButton, RELATIONS_HANDLE_CLOSED_X);
+    }
+
     private void closeDrawersInstantly() {
         characterDrawerOpen = false;
         factionDrawerOpen = false;
+        relationsDrawerOpen = false;
 
         if (characterPanel != null) {
             characterPanel.setTranslateX(CHARACTER_DRAWER_CLOSED_X);
@@ -1781,12 +1860,20 @@ public class GameController {
             factionPanel.setTranslateX(FACTION_DRAWER_CLOSED_X);
         }
 
+        if (relationsPanel != null) {
+            relationsPanel.setTranslateX(RELATIONS_DRAWER_CLOSED_X);
+        }
+
         if (characterDrawerButton != null) {
             characterDrawerButton.setTranslateX(CHARACTER_HANDLE_CLOSED_X);
         }
 
         if (factionDrawerButton != null) {
             factionDrawerButton.setTranslateX(FACTION_HANDLE_CLOSED_X);
+        }
+
+        if (relationsDrawerButton != null) {
+            relationsDrawerButton.setTranslateX(RELATIONS_HANDLE_CLOSED_X);
         }
     }
 

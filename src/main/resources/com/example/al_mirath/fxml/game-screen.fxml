@@ -481,6 +481,79 @@
         <ProgressBar fx:id="shadowNetworkBar" prefWidth="220"/>
     </VBox>
 
+    <!-- RIGHT BONDS DRAWER -->
+    <VBox fx:id="relationsPanel"
+          alignment="TOP_LEFT"
+          spacing="8"
+          prefWidth="275"
+          maxWidth="275"
+          prefHeight="555"
+          maxHeight="555"
+          translateX="305"
+          StackPane.alignment="CENTER_RIGHT">
+
+        <StackPane.margin>
+            <Insets top="88" bottom="32" left="0" right="14"/>
+        </StackPane.margin>
+
+        <styleClass>
+            <String fx:value="drawer-panel"/>
+            <String fx:value="medieval-drawer"/>
+            <String fx:value="right-drawer"/>
+        </styleClass>
+
+        <Label text="Bonds"
+               maxWidth="235"
+               alignment="CENTER">
+
+            <styleClass>
+                <String fx:value="drawer-title"/>
+            </styleClass>
+        </Label>
+
+        <Label text="━━━━━━━━━━━━"
+               maxWidth="235"
+               alignment="CENTER">
+
+            <styleClass>
+                <String fx:value="drawer-separator-text"/>
+            </styleClass>
+        </Label>
+
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    pannable="true"
+                    prefViewportHeight="360"
+                    maxWidth="245"
+                    VBox.vgrow="ALWAYS">
+
+            <styleClass>
+                <String fx:value="popup-scroll"/>
+            </styleClass>
+
+            <content>
+                <Label fx:id="relationsLabel"
+                       wrapText="true"
+                       maxWidth="205">
+                    <styleClass>
+                        <String fx:value="drawer-text"/>
+                    </styleClass>
+                </Label>
+            </content>
+        </ScrollPane>
+
+        <Label text="The people who keep returning to your life, and what they still remember."
+               wrapText="true"
+               maxWidth="235"
+               textAlignment="CENTER"
+               alignment="CENTER">
+            <styleClass>
+                <String fx:value="drawer-note"/>
+            </styleClass>
+        </Label>
+    </VBox>
+
     <Button fx:id="characterDrawerButton"
             text="CHARACTER"
             onAction="#toggleCharacterDrawer"
@@ -503,6 +576,23 @@
             prefWidth="110"
             prefHeight="38"
             translateX="25"
+            translateY="-72"
+            StackPane.alignment="CENTER_RIGHT">
+        <styleClass>
+            <String fx:value="drawer-tab"/>
+            <String fx:value="drawer-handle"/>
+            <String fx:value="right-drawer-handle"/>
+        </styleClass>
+    </Button>
+
+    <Button fx:id="relationsDrawerButton"
+            text="BONDS"
+            onAction="#toggleRelationsDrawer"
+            rotate="-90"
+            prefWidth="110"
+            prefHeight="38"
+            translateX="25"
+            translateY="72"
             StackPane.alignment="CENTER_RIGHT">
         <styleClass>
             <String fx:value="drawer-tab"/>

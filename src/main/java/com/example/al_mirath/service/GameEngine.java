@@ -88,6 +88,12 @@ public class GameEngine {
     private String latestConsequenceEchoTitle = "";
     private String latestConsequenceEchoMessage = "";
 
+    /**
+     * What the recurring cast did while the years passed — a title earned, a
+     * death, a child arriving. Drained by the UI into toasts after each choice.
+     */
+    private final List<String> pendingCastAnnouncements = new ArrayList<>();
+
     public GameEngine() {
         CharacterGenerator generator = new CharacterGenerator();
         this.player = generator.generateCharacter();
@@ -100,12 +106,6 @@ public class GameEngine {
                 RecurringCharacterRegistry.createFor(player);
 
         this.eventPool = EventLibrary.createEventPool();
-
-        this.eventPool.addAll(
-                RecurringCharacterEvents.create(
-                        recurringCharacters
-                )
-        );
     }
 
     /**
@@ -136,24 +136,30 @@ public class GameEngine {
 
         this.eventPool = EventLibrary.createEventPool();
 
-        this.eventPool.addAll(
-                RecurringCharacterEvents.create(
-                        this.recurringCharacters
-                )
-        );
-
         this.currentStageIndex = currentStageIndex;
         this.stageEventsPlayed.putAll(stageEventsPlayed);
         this.playedEventTitles.addAll(playedEventTitles);
 
         if (currentEventTitle != null) {
-            for (GameEvent event : eventPool) {
-                if (event.getTitle().equals(currentEventTitle)) {
-                    this.currentEvent = event;
-                    break;
-                }
+            this.currentEvent = findByTitle(eventPool, currentEventTitle);
+
+            if (this.currentEvent == null) {
+                this.currentEvent = findByTitle(
+                        RecurringCharacterEvents.create(this.recurringCharacters),
+                        currentEventTitle
+                );
             }
         }
+    }
+
+    private static GameEvent findByTitle(List<GameEvent> source, String title) {
+        for (GameEvent event : source) {
+            if (event.getTitle().equals(title)) {
+                return event;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -382,6 +388,16 @@ public class GameEngine {
 
     public String getRecurringCharacterSummary() {
         return recurringCharacters.relationshipSummary();
+    }
+
+    /**
+     * Hands over everything the cast did since the last call, and clears it.
+     * Empty when the years passed without changing anyone.
+     */
+    public List<String> consumeCastAnnouncements() {
+        List<String> announcements = List.copyOf(pendingCastAnnouncements);
+        pendingCastAnnouncements.clear();
+        return announcements;
     }
 
     public String consumeLatestStatusChangeMessage() {
@@ -705,10 +721,33 @@ public class GameEngine {
         return null;
     }
 
+    /**
+     * Looks for the next event of a stage, asking the recurring cast first.
+     *
+     * <p>Their events are generated fresh from the registry on every call
+     * rather than sitting in {@code eventPool}, so the text reflects who the
+     * cast have become since the run started. They also get first refusal:
+     * with dozens of general events competing for a handful of slots per
+     * stage, an arc left to chance almost never finishes.
+     */
     private GameEvent findEventForStage(String stage, boolean consequenceOnly) {
+        GameEvent recurring = findIn(
+                RecurringCharacterEvents.create(recurringCharacters),
+                stage,
+                consequenceOnly
+        );
+
+        if (recurring != null) {
+            return recurring;
+        }
+
+        return findIn(eventPool, stage, consequenceOnly);
+    }
+
+    private GameEvent findIn(List<GameEvent> source, String stage, boolean consequenceOnly) {
         List<GameEvent> eligibleEvents = new ArrayList<>();
 
-        for (GameEvent event : eventPool) {
+        for (GameEvent event : source) {
             if (playedEventTitles.contains(event.getTitle())) {
                 continue;
             }
@@ -800,8 +839,8 @@ public class GameEngine {
 
         int yearsPassed = advanceAgeAfterEvent();
 
-        recurringCharacters.ageEveryone(
-                yearsPassed
+        pendingCastAnnouncements.addAll(
+                recurringCharacters.ageEveryone(yearsPassed)
         );
         recoverStressOverTime(yearsPassed);
         updateCurrentStatus();

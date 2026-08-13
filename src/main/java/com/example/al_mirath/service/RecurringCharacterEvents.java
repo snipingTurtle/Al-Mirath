@@ -2,6 +2,7 @@ package com.example.al_mirath.service;
 
 import com.example.al_mirath.model.Choice;
 import com.example.al_mirath.model.GameEvent;
+import com.example.al_mirath.model.NpcMemory;
 import com.example.al_mirath.model.RecurringCharacter;
 
 import java.util.ArrayList;
@@ -13,33 +14,86 @@ public final class RecurringCharacterEvents {
     private RecurringCharacterEvents() {
     }
 
+    /**
+     * Builds the cast's events against their state at this moment.
+     *
+     * <p>The engine calls this every time it looks for an event rather than
+     * once at startup, so the text always carries the title a character has
+     * climbed to, the memory that still sits between you, and anyone who
+     * joined the cast after the run began. The dead take no further part.
+     */
     public static List<GameEvent> create(
             RecurringCharacterRegistry registry
     ) {
         List<GameEvent> events = new ArrayList<>();
 
-        RecurringCharacter companion =
-                registry.get("childhood_companion");
+        for (RecurringCharacter character : registry.all()) {
+            if (!character.isAlive()) {
+                continue;
+            }
 
-        RecurringCharacter rival =
-                registry.get("early_rival");
+            if (character.isDescendant()) {
+                addDescendantEvent(events, character);
+                continue;
+            }
 
-        RecurringCharacter mentor =
-                registry.get("elder_mentor");
+            switch (character.getId()) {
 
-        if (companion != null) {
-            addCompanionEvents(events, companion);
-        }
+                case "childhood_companion" ->
+                        addCompanionEvents(events, character);
 
-        if (rival != null) {
-            addRivalEvents(events, rival);
-        }
+                case "early_rival" ->
+                        addRivalEvents(events, character);
 
-        if (mentor != null) {
-            addMentorEvents(events, mentor);
+                case "elder_mentor" ->
+                        addMentorEvents(events, character);
+
+                default -> {
+                }
+            }
         }
 
         return events;
+    }
+
+    /**
+     * Opens an event on the moment between the two of you that still carries
+     * the most weight, so a reunion lands on shared history instead of on
+     * nothing. Returns the description untouched while nothing has passed
+     * between you yet.
+     */
+    private static String recalling(
+            RecurringCharacter character,
+            String description
+    ) {
+        NpcMemory memory = character.strongestMemory();
+
+        if (memory == null) {
+            return description;
+        }
+
+        // A descendant was not there for the memory they inherited; they were
+        // raised on it. The only memories they own outright are the ones this
+        // file's own descendant flags write.
+        boolean inherited =
+                character.isDescendant()
+                        && !memory.id().startsWith("npc_descendant_");
+
+        String opening =
+                inherited
+                        ? character.getName()
+                        + " was raised on the story of what passed between you and "
+                        + character.getParentName()
+                        + " when you were "
+                        : character.getName()
+                        + " has not forgotten what passed between you when you were ";
+
+        return opening
+                + memory.playerAge()
+                + ": "
+                + memory.description()
+                + "\n\n"
+                + description;
     }
 
     private static void addCompanionEvents(
@@ -52,10 +106,14 @@ public final class RecurringCharacterEvents {
                 new GameEvent(
                         name + " Shares a Secret",
 
-                        name
-                                + ", the child who grew up beside you, reveals where "
-                                + "a frightened family has hidden food from the tax collector. "
-                                + "The secret could save them, enrich you, or buy official favour.",
+                        recalling(
+                                companion,
+
+                                name
+                                        + ", the child who grew up beside you, reveals where "
+                                        + "a frightened family has hidden food from the tax collector. "
+                                        + "The secret could save them, enrich you, or buy official favour."
+                        ),
 
                         "Childhood",
 
@@ -80,6 +138,7 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_friend_met",
                                                 "npc_friend_secret_protected"
                                         )
                                 ),
@@ -106,6 +165,7 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_friend_met",
                                                 "npc_friend_family_helped"
                                         )
                                 ),
@@ -132,6 +192,7 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_friend_met",
                                                 "npc_friend_betrayed"
                                         )
                                 )
@@ -143,10 +204,16 @@ public final class RecurringCharacterEvents {
                 new GameEvent(
                         "A Familiar Face Returns",
 
-                        "Years have passed. "
-                                + name
-                                + " returns, no longer the child you remember. "
-                                + "Your shared past still shapes the silence between you.",
+                        recalling(
+                                companion,
+
+                                "Years have passed. "
+                                        + name
+                                        + " returns as "
+                                        + companion.getCurrentRole().toLowerCase()
+                                        + ", no longer the child you remember. "
+                                        + "Your shared past still shapes the silence between you."
+                        ),
 
                         "Adulthood",
 
@@ -250,7 +317,7 @@ public final class RecurringCharacterEvents {
                         List.of(),
 
                         List.of(
-                                "npc_friend_secret_protected"
+                                "npc_friend_met"
                         ),
 
                         List.of(
@@ -270,12 +337,16 @@ public final class RecurringCharacterEvents {
                 new GameEvent(
                         "The Rival's Challenge",
 
-                        name
-                                + " has spent years measuring every achievement "
-                                + "against yours. Before witnesses, "
-                                + name
-                                + " challenges your competence and your right "
-                                + "to be respected.",
+                        recalling(
+                                rival,
+
+                                name
+                                        + " has spent years measuring every achievement "
+                                        + "against yours. Before witnesses, "
+                                        + name
+                                        + " challenges your competence and your right "
+                                        + "to be respected."
+                        ),
 
                         "Youth",
 
@@ -317,10 +388,12 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_rival_met",
                                                 "npc_rival_outdebated"
                                         ),
 
                                         List.of(
+                                                "npc_rival_met",
                                                 "npc_rival_humiliated_you"
                                         )
                                 ),
@@ -360,10 +433,12 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_rival_met",
                                                 "npc_rival_respected"
                                         ),
 
                                         List.of(
+                                                "npc_rival_met",
                                                 "npc_rival_emboldened"
                                         )
                                 ),
@@ -388,6 +463,7 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_rival_met",
                                                 "npc_rival_publicly_humiliated"
                                         )
                                 )
@@ -399,10 +475,16 @@ public final class RecurringCharacterEvents {
                 new GameEvent(
                         "Your Rival Holds Power",
 
-                        name
-                                + " now occupies a position from which a signature "
-                                + "could protect your household or ruin it. "
-                                + "Neither of you has forgotten the past.",
+                        recalling(
+                                rival,
+
+                                name
+                                        + " is "
+                                        + rival.getCurrentRole().toLowerCase()
+                                        + " now, and occupies a position from which a signature "
+                                        + "could protect your household or ruin it. "
+                                        + "Neither of you has forgotten the past."
+                        ),
 
                         "Political Crisis",
 
@@ -524,7 +606,19 @@ public final class RecurringCharacterEvents {
                                                 "npc_rival_owes_protection"
                                         )
                                 )
-                        )
+                        ),
+
+                        List.of(),
+
+                        List.of(),
+
+                        List.of(),
+
+                        List.of(
+                                "npc_rival_met"
+                        ),
+
+                        List.of()
                 )
         );
     }
@@ -539,11 +633,15 @@ public final class RecurringCharacterEvents {
                 new GameEvent(
                         "The Mentor's Price",
 
-                        name
-                                + ", your "
-                                + mentor.getCurrentRole().toLowerCase()
-                                + ", offers access to knowledge and influence. "
-                                + "In return, you must accept discipline and obligation.",
+                        recalling(
+                                mentor,
+
+                                name
+                                        + ", your "
+                                        + mentor.getCurrentRole().toLowerCase()
+                                        + ", offers access to knowledge and influence. "
+                                        + "In return, you must accept discipline and obligation."
+                        ),
 
                         "Youth",
 
@@ -569,6 +667,7 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_mentor_met",
                                                 "npc_mentor_guidance_accepted"
                                         )
                                 ),
@@ -611,10 +710,12 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_mentor_met",
                                                 "npc_mentor_supported_family"
                                         ),
 
                                         List.of(
+                                                "npc_mentor_met",
                                                 "npc_mentor_request_refused"
                                         )
                                 ),
@@ -638,6 +739,7 @@ public final class RecurringCharacterEvents {
                                         List.of(),
 
                                         List.of(
+                                                "npc_mentor_met",
                                                 "npc_mentor_rejected"
                                         )
                                 )
@@ -649,10 +751,18 @@ public final class RecurringCharacterEvents {
                 new GameEvent(
                         "The Last Lesson",
 
-                        name
-                                + " has grown old. The person who once judged "
-                                + "your potential now asks what you intend "
-                                + "to leave behind.",
+                        recalling(
+                                mentor,
+
+                                name
+                                        + " has grown old — "
+                                        + mentor.getCurrentRole().toLowerCase()
+                                        + " at "
+                                        + mentor.getAge()
+                                        + ". The person who once judged "
+                                        + "your potential now asks what you intend "
+                                        + "to leave behind."
+                        ),
 
                         "Legacy",
 
@@ -724,6 +834,129 @@ public final class RecurringCharacterEvents {
 
                                         List.of(
                                                 "npc_mentor_disowned_legacy"
+                                        )
+                                )
+                        ),
+
+                        List.of(),
+
+                        List.of(),
+
+                        List.of(),
+
+                        List.of(
+                                "npc_mentor_met"
+                        ),
+
+                        List.of()
+                )
+        );
+    }
+
+    /**
+     * The last beat of a bond that outlived the person who formed it. The
+     * child arrives carrying whatever their parent could not let go of.
+     */
+    private static void addDescendantEvent(
+            List<GameEvent> events,
+            RecurringCharacter heir
+    ) {
+        String name = heir.getName();
+        String parent = heir.getParentName();
+
+        events.add(
+                new GameEvent(
+                        name + " Comes Asking",
+
+                        recalling(
+                                heir,
+
+                                name
+                                        + ", child of "
+                                        + parent
+                                        + ", stands at your gate. "
+                                        + parent
+                                        + " is gone, and everything that passed between "
+                                        + "the two of you has been handed down to someone "
+                                        + "who was not there to see it."
+                        ),
+
+                        "Legacy",
+
+                        List.of(
+                                new Choice(
+                                        "Take " + name + " into your household",
+
+                                        "What began in one generation continues into "
+                                                + "another. "
+                                                + name
+                                                + " will remember who opened the door.",
+
+                                        Map.of(
+                                                "morality", 8,
+                                                "familyLoyalty", 7,
+                                                "wealth", -6
+                                        ),
+
+                                        Map.of(
+                                                "familyCouncil", 8,
+                                                "commonPeople", 6
+                                        ),
+
+                                        List.of(),
+
+                                        List.of(
+                                                "npc_descendant_sheltered"
+                                        )
+                                ),
+
+                                new Choice(
+                                        "Settle the old debt in silver",
+
+                                        "You pay what the past is worth to you and "
+                                                + "watch "
+                                                + name
+                                                + " leave with it.",
+
+                                        Map.of(
+                                                "wealth", -10,
+                                                "reputation", 3,
+                                                "stress", -2
+                                        ),
+
+                                        Map.of(
+                                                "merchants", 4
+                                        ),
+
+                                        List.of(),
+
+                                        List.of(
+                                                "npc_descendant_paid"
+                                        )
+                                ),
+
+                                new Choice(
+                                        "Refuse the claim entirely",
+
+                                        "You owe the dead nothing, you tell yourself. "
+                                                + name
+                                                + " does not argue, which is worse.",
+
+                                        Map.of(
+                                                "morality", -10,
+                                                "stress", 5,
+                                                "politicalPower", 3
+                                        ),
+
+                                        Map.of(
+                                                "commonPeople", -8,
+                                                "familyCouncil", -5
+                                        ),
+
+                                        List.of(),
+
+                                        List.of(
+                                                "npc_descendant_refused"
                                         )
                                 )
                         )

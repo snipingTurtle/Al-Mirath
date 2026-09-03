@@ -55,6 +55,8 @@
                 </styleClass>
 
                 <Label fx:id="fateTokenLabel"
+                       minWidth="-Infinity"
+                       wrapText="false"
                        text="Threads of Fate: 1">
                     <styleClass>
                         <String fx:value="fate-token-label"/>
@@ -63,21 +65,21 @@
 
                 <Region HBox.hgrow="ALWAYS"/>
 
-                <Button text="Restart Life"
+                <Button minWidth="-Infinity" text="Restart Life"
                         onAction="#restartGame">
                     <styleClass>
                         <String fx:value="menu-button"/>
                     </styleClass>
                 </Button>
 
-                <Button text="Main Menu"
+                <Button minWidth="-Infinity" text="Main Menu"
                         onAction="#returnToMainMenu">
                     <styleClass>
                         <String fx:value="menu-button"/>
                     </styleClass>
                 </Button>
 
-                <Button text="Exit"
+                <Button minWidth="-Infinity" text="Exit"
                         onAction="#exitGame">
                     <styleClass>
                         <String fx:value="menu-button"/>
@@ -99,6 +101,7 @@
                 <VBox fx:id="statsPanel"
                       alignment="TOP_CENTER"
                       spacing="8"
+                      minWidth="210"
                       prefWidth="250"
                       maxWidth="260">
 
@@ -126,49 +129,49 @@
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="healthBar" prefWidth="210"/>
+                    <ProgressBar fx:id="healthBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="wealthLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="wealthBar" prefWidth="210"/>
+                    <ProgressBar fx:id="wealthBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="educationLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="educationBar" prefWidth="210"/>
+                    <ProgressBar fx:id="educationBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="reputationLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="reputationBar" prefWidth="210"/>
+                    <ProgressBar fx:id="reputationBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="powerLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="powerBar" prefWidth="210"/>
+                    <ProgressBar fx:id="powerBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="moralityLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="moralityBar" prefWidth="210"/>
+                    <ProgressBar fx:id="moralityBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="familyLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="familyBar" prefWidth="210"/>
+                    <ProgressBar fx:id="familyBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <!-- BURDENS: lower is always better -->
                     <Label text="Burdens">
@@ -183,7 +186,7 @@
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="stressBar" prefWidth="210">
+                    <ProgressBar fx:id="stressBar" prefWidth="210" maxWidth="Infinity">
                         <styleClass>
                             <String fx:value="stress-bar"/>
                         </styleClass>
@@ -194,6 +197,8 @@
                 <VBox fx:id="eventPanel"
                       alignment="CENTER"
                       spacing="18"
+                      HBox.hgrow="ALWAYS"
+                      minWidth="300"
                       prefWidth="760"
                       maxWidth="790">
 
@@ -481,7 +486,80 @@
         <ProgressBar fx:id="shadowNetworkBar" prefWidth="220"/>
     </VBox>
 
-    <Button fx:id="characterDrawerButton"
+    <!-- RIGHT BONDS DRAWER -->
+    <VBox fx:id="relationsPanel"
+          alignment="TOP_LEFT"
+          spacing="8"
+          prefWidth="275"
+          maxWidth="275"
+          prefHeight="555"
+          maxHeight="555"
+          translateX="305"
+          StackPane.alignment="CENTER_RIGHT">
+
+        <StackPane.margin>
+            <Insets top="88" bottom="32" left="0" right="14"/>
+        </StackPane.margin>
+
+        <styleClass>
+            <String fx:value="drawer-panel"/>
+            <String fx:value="medieval-drawer"/>
+            <String fx:value="right-drawer"/>
+        </styleClass>
+
+        <Label text="Bonds"
+               maxWidth="235"
+               alignment="CENTER">
+
+            <styleClass>
+                <String fx:value="drawer-title"/>
+            </styleClass>
+        </Label>
+
+        <Label text="━━━━━━━━━━━━"
+               maxWidth="235"
+               alignment="CENTER">
+
+            <styleClass>
+                <String fx:value="drawer-separator-text"/>
+            </styleClass>
+        </Label>
+
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    pannable="true"
+                    prefViewportHeight="360"
+                    maxWidth="245"
+                    VBox.vgrow="ALWAYS">
+
+            <styleClass>
+                <String fx:value="popup-scroll"/>
+            </styleClass>
+
+            <content>
+                <Label fx:id="relationsLabel"
+                       wrapText="true"
+                       maxWidth="205">
+                    <styleClass>
+                        <String fx:value="drawer-text"/>
+                    </styleClass>
+                </Label>
+            </content>
+        </ScrollPane>
+
+        <Label text="The people who keep returning to your life, and what they still remember."
+               wrapText="true"
+               maxWidth="235"
+               textAlignment="CENTER"
+               alignment="CENTER">
+            <styleClass>
+                <String fx:value="drawer-note"/>
+            </styleClass>
+        </Label>
+    </VBox>
+
+    <Button minWidth="-Infinity" fx:id="characterDrawerButton"
             text="CHARACTER"
             onAction="#toggleCharacterDrawer"
             rotate="90"
@@ -496,13 +574,30 @@
         </styleClass>
     </Button>
 
-    <Button fx:id="factionDrawerButton"
+    <Button minWidth="-Infinity" fx:id="factionDrawerButton"
             text="REALM"
             onAction="#toggleFactionDrawer"
             rotate="-90"
             prefWidth="110"
             prefHeight="38"
             translateX="25"
+            translateY="-72"
+            StackPane.alignment="CENTER_RIGHT">
+        <styleClass>
+            <String fx:value="drawer-tab"/>
+            <String fx:value="drawer-handle"/>
+            <String fx:value="right-drawer-handle"/>
+        </styleClass>
+    </Button>
+
+    <Button minWidth="-Infinity" fx:id="relationsDrawerButton"
+            text="BONDS"
+            onAction="#toggleRelationsDrawer"
+            rotate="-90"
+            prefWidth="110"
+            prefHeight="38"
+            translateX="25"
+            translateY="72"
             StackPane.alignment="CENTER_RIGHT">
         <styleClass>
             <String fx:value="drawer-tab"/>
@@ -617,7 +712,7 @@
                       alignment="CENTER"
                       spacing="14">
 
-                    <Button fx:id="popupRewindButton"
+                    <Button minWidth="-Infinity" fx:id="popupRewindButton"
                             text="Challenge Fate"
                             visible="false"
                             managed="false"
@@ -629,7 +724,7 @@
                         </styleClass>
                     </Button>
 
-                    <Button fx:id="popupContinueButton"
+                    <Button minWidth="-Infinity" fx:id="popupContinueButton"
                             text="Continue"
                             onAction="#closePopup">
 

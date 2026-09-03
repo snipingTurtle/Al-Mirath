@@ -7,6 +7,7 @@ import com.example.al_mirath.model.RelationshipType;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,44 @@ public final class RecurringCharacterRegistry {
             "clever and secretive"
     );
 
+    /**
+     * The lives a childhood companion might grow into. One is drawn per run,
+     * so the friend you met in the street becomes a different person each
+     * time you play.
+     */
+    private static final List<List<String>> COMPANION_LADDERS = List.of(
+            List.of(
+                    "Childhood Companion",
+                    "Conscript Soldier",
+                    "Company Captain",
+                    "Garrison Commander",
+                    "General"
+            ),
+            List.of(
+                    "Childhood Companion",
+                    "Caravan Hand",
+                    "Cloth Trader",
+                    "Guild Merchant",
+                    "Master of the Caravans"
+            ),
+            List.of(
+                    "Childhood Companion",
+                    "Mosque Servant",
+                    "Reciter",
+                    "Preacher",
+                    "Voice of the Quarter"
+            )
+    );
+
+    /**
+     * Below this age nobody dies of age alone; above it the chance climbs.
+     * Values are a percentage per year lived.
+     */
+    private static final int DEATH_AGE_FLOOR = 45;
+
+    /** How strong a bond must be, either way, to leave someone behind. */
+    private static final int LEGACY_BOND = 40;
+
     private final Map<String, RecurringCharacter> characters =
             new LinkedHashMap<>();
 
@@ -92,7 +131,9 @@ public final class RecurringCharacterRegistry {
                 pickUniqueName(),
                 "A child from the same district who grew up beside you.",
                 RelationshipType.FRIEND,
-                "Childhood Companion",
+                COMPANION_LADDERS.get(
+                        random.nextInt(COMPANION_LADDERS.size())
+                ),
                 Math.max(
                         5,
                         playerAge + random.nextInt(5) - 2
@@ -105,7 +146,7 @@ public final class RecurringCharacterRegistry {
                 pickUniqueName(),
                 "Someone whose path repeatedly crosses yours, never without tension.",
                 RelationshipType.RIVAL,
-                roleForOrigin(player.getOrigin()),
+                rivalLadder(player.getOrigin()),
                 Math.max(
                         7,
                         playerAge + random.nextInt(7) - 1
@@ -118,7 +159,7 @@ public final class RecurringCharacterRegistry {
                 pickUniqueName(),
                 mentorBackground(player),
                 RelationshipType.MENTOR,
-                mentorRole(player),
+                mentorLadder(player),
                 playerAge + 18 + random.nextInt(20),
                 35
         );
@@ -129,7 +170,7 @@ public final class RecurringCharacterRegistry {
             String name,
             String background,
             RelationshipType relationshipType,
-            String currentRole,
+            List<String> roleLadder,
             int age,
             int relationship
     ) {
@@ -142,11 +183,18 @@ public final class RecurringCharacterRegistry {
                                 random.nextInt(PERSONALITIES.size())
                         ),
                         relationshipType,
-                        currentRole,
+                        roleLadder.get(0),
                         age,
                         relationship,
-                        true
+                        true,
+                        roleLadder,
+                        0,
+                        ""
                 );
+
+        // Settle them at whatever rung their age already earns, without
+        // announcing it: an elder mentor should open the game already senior.
+        character.advanceRoleForAge();
 
         characters.put(id, character);
     }
@@ -181,34 +229,64 @@ public final class RecurringCharacterRegistry {
         return false;
     }
 
-    private String roleForOrigin(String origin) {
+    private List<String> rivalLadder(String origin) {
         String value = origin.toLowerCase();
 
         if (value.contains("royal")
                 || value.contains("noble")
                 || value.contains("governor")) {
 
-            return "Young Court Rival";
+            return List.of(
+                    "Young Court Rival",
+                    "Court Page",
+                    "Chamberlain's Man",
+                    "Deputy Vizier",
+                    "Grand Vizier"
+            );
         }
 
         if (value.contains("soldier")
                 || value.contains("military")) {
 
-            return "Barracks Rival";
+            return List.of(
+                    "Barracks Rival",
+                    "Sworn Soldier",
+                    "Standard Bearer",
+                    "Field Commander",
+                    "Commander of the Host"
+            );
         }
 
         if (value.contains("scholar")
                 || value.contains("madrasa")
                 || value.contains("scribe")) {
 
-            return "Rival Student";
+            return List.of(
+                    "Rival Student",
+                    "Copyist",
+                    "Teacher of Law",
+                    "Chief Jurist",
+                    "Sheikh of the Madrasa"
+            );
         }
 
         if (value.contains("merchant")) {
-            return "Merchant's Heir";
+            return List.of(
+                    "Merchant's Heir",
+                    "Caravan Master",
+                    "Guild Broker",
+                    "Guild Master",
+                    "Master of the Markets"
+            );
         }
 
-        return "Neighbourhood Rival";
+        return List.of(
+                "Neighbourhood Rival",
+                "Ward Enforcer",
+                "Tax Farmer",
+                "District Governor",
+                "Lord of the Quarter"
+        );
     }
 
     private String mentorBackground(PlayerCharacter player) {
@@ -240,33 +318,63 @@ public final class RecurringCharacterRegistry {
         return "A respected elder who notices potential that others overlook.";
     }
 
-    private String mentorRole(PlayerCharacter player) {
+    private List<String> mentorLadder(PlayerCharacter player) {
         String origin = player.getOrigin().toLowerCase();
 
         if (origin.contains("military")
                 || origin.contains("soldier")) {
 
-            return "Veteran Instructor";
+            return List.of(
+                    "Drill Instructor",
+                    "Veteran Instructor",
+                    "Master of Arms",
+                    "Marshal of the Garrison",
+                    "Marshal of the Realm"
+            );
         }
 
         if (origin.contains("scholar")
                 || origin.contains("madrasa")
                 || origin.contains("scribe")) {
 
-            return "Learned Tutor";
+            return List.of(
+                    "Assistant Tutor",
+                    "Learned Tutor",
+                    "Master of the Madrasa",
+                    "Chief Scholar",
+                    "Sheikh of the Age"
+            );
         }
 
         if (origin.contains("royal")
                 || origin.contains("noble")) {
 
-            return "Court Adviser";
+            return List.of(
+                    "Court Attendant",
+                    "Court Adviser",
+                    "Keeper of the Seal",
+                    "Senior Vizier",
+                    "Regent of the Court"
+            );
         }
 
         if (origin.contains("merchant")) {
-            return "Guild Patron";
+            return List.of(
+                    "Guild Clerk",
+                    "Guild Patron",
+                    "Elder of the Guild",
+                    "Master of the Guild",
+                    "Prince of Merchants"
+            );
         }
 
-        return "Local Elder";
+        return List.of(
+                "Local Elder",
+                "Elder of the Quarter",
+                "Keeper of the Quarter",
+                "Judge of the Quarter",
+                "Patriarch of the Quarter"
+        );
     }
 
     public RecurringCharacter get(String id) {
@@ -436,15 +544,201 @@ public final class RecurringCharacterRegistry {
                             playerAge
                     );
 
+            case "npc_descendant_sheltered" ->
+                    changeDescendantRelationship(
+                            30,
+                            flag,
+                            "You took in the child of a bond that outlived its owner.",
+                            playerAge
+                    );
+
+            case "npc_descendant_paid" ->
+                    changeDescendantRelationship(
+                            5,
+                            flag,
+                            "You settled an inherited debt in silver.",
+                            playerAge
+                    );
+
+            case "npc_descendant_refused" ->
+                    changeDescendantRelationship(
+                            -35,
+                            flag,
+                            "You turned away the child of an old bond.",
+                            playerAge
+                    );
+
             default -> {
             }
         }
     }
 
-    public void ageEveryone(int years) {
+    /**
+     * Descendants are keyed by their parent's id, so their flags are applied
+     * by kind rather than by a name the story content cannot know in advance.
+     */
+    private void changeDescendantRelationship(
+            int amount,
+            String memoryId,
+            String memoryDescription,
+            int playerAge
+    ) {
         for (RecurringCharacter character : characters.values()) {
-            character.ageBy(years);
+            if (character.isDescendant() && character.isAlive()) {
+                changeRelationship(
+                        character.getId(),
+                        amount,
+                        memoryId,
+                        memoryDescription,
+                        playerAge
+                );
+            }
         }
+    }
+
+    /**
+     * Moves the whole cast forward by the years the player just lived: they
+     * age, climb their role ladders, and eventually die. A strong bond that
+     * ends leaves a descendant behind.
+     *
+     * @return one line per change worth telling the player about, in the
+     *         order it happened. Empty on a quiet passage of time.
+     */
+    public List<String> ageEveryone(int years) {
+        List<String> announcements = new ArrayList<>();
+
+        // Iterated over a copy so a descendant can join the cast mid-pass.
+        for (RecurringCharacter character
+                : new ArrayList<>(characters.values())) {
+
+            if (!character.isAlive()) {
+                continue;
+            }
+
+            character.ageBy(years);
+
+            if (rollForDeath(character, years)) {
+                character.markDead();
+
+                announcements.add(
+                        character.getName()
+                                + " has died at "
+                                + character.getAge()
+                                + "."
+                );
+
+                RecurringCharacter heir =
+                        createDescendant(character);
+
+                if (heir != null) {
+                    characters.put(heir.getId(), heir);
+
+                    announcements.add(
+                            heir.getName()
+                                    + ", child of "
+                                    + character.getName()
+                                    + ", has come of age."
+                    );
+                }
+
+                continue;
+            }
+
+            String newRole = character.advanceRoleForAge();
+
+            if (newRole != null) {
+                announcements.add(
+                        character.getName()
+                                + " is now "
+                                + newRole
+                                + "."
+                );
+            }
+        }
+
+        return announcements;
+    }
+
+    private boolean rollForDeath(
+            RecurringCharacter character,
+            int years
+    ) {
+        int chance =
+                deathChanceFor(character.getAge())
+                        * Math.max(1, years);
+
+        return chance > 0
+                && random.nextInt(100) < chance;
+    }
+
+    /** Percentage chance of dying per year lived, by age. */
+    private int deathChanceFor(int age) {
+        if (age >= 75) {
+            return 10;
+        }
+
+        if (age >= 60) {
+            return 5;
+        }
+
+        if (age >= DEATH_AGE_FLOOR) {
+            return 2;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Someone the player loved or hated enough leaves a child behind, seeded
+     * with half the inherited feeling and carrying the memory that mattered
+     * most. Indifference leaves nothing.
+     */
+    private RecurringCharacter createDescendant(
+            RecurringCharacter parent
+    ) {
+        if (Math.abs(parent.getRelationship()) < LEGACY_BOND) {
+            return null;
+        }
+
+        if (parent.isDescendant()) {
+            return null;
+        }
+
+        String id = parent.getId() + "_descendant";
+
+        if (characters.containsKey(id)) {
+            return null;
+        }
+
+        String role = "Child of " + parent.getName();
+
+        RecurringCharacter heir =
+                new RecurringCharacter(
+                        id,
+                        pickUniqueName(),
+                        "Born into the story you shared with "
+                                + parent.getName()
+                                + ".",
+                        PERSONALITIES.get(
+                                random.nextInt(PERSONALITIES.size())
+                        ),
+                        RelationshipType.STRANGER,
+                        role,
+                        18 + random.nextInt(8),
+                        parent.getRelationship() / 2,
+                        true,
+                        List.of(role),
+                        0,
+                        parent.getName()
+                );
+
+        NpcMemory inherited = parent.strongestMemory();
+
+        if (inherited != null) {
+            heir.addMemory(inherited);
+        }
+
+        return heir;
     }
 
     public String relationshipSummary() {
@@ -477,13 +771,14 @@ public final class RecurringCharacterRegistry {
                     .append("Personality: ")
                     .append(character.getPersonality());
 
-            if (!character.getMemories().isEmpty()) {
-                NpcMemory latest =
-                        character.getMemories()
-                                .get(character.getMemories().size() - 1);
+            NpcMemory strongest = character.strongestMemory();
 
+            if (strongest != null) {
                 result.append("\nRemembers: ")
-                        .append(latest.description());
+                        .append(strongest.description())
+                        .append(" (you were ")
+                        .append(strongest.playerAge())
+                        .append(")");
             }
 
             if (!character.isAlive()) {
@@ -523,6 +818,21 @@ public final class RecurringCharacterRegistry {
             );
 
             object.put("alive", character.isAlive());
+
+            object.put(
+                    "roleLadder",
+                    new JSONArray(character.getRoleLadder())
+            );
+
+            object.put(
+                    "roleRank",
+                    character.getRoleRank()
+            );
+
+            object.put(
+                    "parentName",
+                    character.getParentName()
+            );
 
             JSONArray memoryArray = new JSONArray();
 
@@ -572,6 +882,35 @@ public final class RecurringCharacterRegistry {
             JSONObject object =
                     array.getJSONObject(i);
 
+            String currentRole =
+                    object.optString(
+                            "currentRole",
+                            "Acquaintance"
+                    );
+
+            // Saves written before role ladders existed simply carry the one
+            // role they had, which the ladder logic treats as a finished climb.
+            List<String> roleLadder =
+                    new ArrayList<>();
+
+            JSONArray ladderArray =
+                    object.optJSONArray("roleLadder");
+
+            if (ladderArray != null) {
+                for (int rung = 0;
+                     rung < ladderArray.length();
+                     rung++) {
+
+                    roleLadder.add(
+                            ladderArray.getString(rung)
+                    );
+                }
+            }
+
+            if (roleLadder.isEmpty()) {
+                roleLadder.add(currentRole);
+            }
+
             RecurringCharacter character =
                     new RecurringCharacter(
                             object.getString("id"),
@@ -590,10 +929,7 @@ public final class RecurringCharacterRegistry {
                                             "STRANGER"
                                     )
                             ),
-                            object.optString(
-                                    "currentRole",
-                                    "Acquaintance"
-                            ),
+                            currentRole,
                             object.optInt("age", 0),
                             object.optInt(
                                     "relationship",
@@ -602,6 +938,12 @@ public final class RecurringCharacterRegistry {
                             object.optBoolean(
                                     "alive",
                                     true
+                            ),
+                            roleLadder,
+                            object.optInt("roleRank", 0),
+                            object.optString(
+                                    "parentName",
+                                    ""
                             )
                     );
 

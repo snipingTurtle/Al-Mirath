@@ -18,6 +18,7 @@ public final class GameSettings {
     private static final String KEY_EFFECTS_VOLUME = "audio.effects";
     private static final String KEY_TYPEWRITER = "ui.typewriter";
     private static final String KEY_TRIALS = "gameplay.trials";
+    private static final String KEY_AMBIENT_MOTION = "ui.ambientMotion";
 
     private static Properties properties;
 
@@ -103,6 +104,23 @@ public final class GameSettings {
 
     public static void setTrialsEnabled(boolean enabled) {
         properties().setProperty(KEY_TRIALS, String.valueOf(enabled));
+        persist();
+    }
+
+    /**
+     * Whether backgrounds drift and cross-fade behind the UI.
+     *
+     * <p>The drift repaints the whole window every frame, and every drop
+     * shadow above it is re-composited with it, which is what makes the game
+     * run warm on a laptop. Turning it off leaves the art in place and stops
+     * the continuous repaint.
+     */
+    public static boolean isAmbientMotionEnabled() {
+        return getBoolean(KEY_AMBIENT_MOTION, true);
+    }
+
+    public static void setAmbientMotionEnabled(boolean enabled) {
+        properties().setProperty(KEY_AMBIENT_MOTION, String.valueOf(enabled));
         persist();
     }
 

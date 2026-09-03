@@ -8,6 +8,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -106,6 +107,7 @@ public class CourierMiniGame extends AbstractMiniGame {
         stopButton = new Button("Stop");
         stopButton.getStyleClass().add("scroll-popup-button");
         stopButton.setPrefWidth(180);
+        stopButton.setMinWidth(Region.USE_PREF_SIZE);
         stopButton.setOnAction(event -> attemptStop());
 
         VBox root = new VBox(22, statusLabel, laneHolder, stopButton);

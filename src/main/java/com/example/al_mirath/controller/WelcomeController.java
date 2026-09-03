@@ -1,6 +1,7 @@
 package com.example.al_mirath.controller;
 
 import com.example.al_mirath.Main;
+import com.example.al_mirath.core.GameSettings;
 import com.example.al_mirath.service.BackgroundLibrary;
 import com.example.al_mirath.service.GameEngine;
 import com.example.al_mirath.service.SaveManager;
@@ -8,6 +9,8 @@ import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
@@ -16,7 +19,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
-public class WelcomeController {
+public class WelcomeController implements ScreenLifecycle {
 
     private Main mainApp;
 
@@ -26,14 +29,21 @@ public class WelcomeController {
     @FXML private Button continueButton;
 
     private boolean motionStarted = false;
+
+    // Held so dispose() can end them; both run indefinitely otherwise.
     private Timeline backgroundRotation;
+    private Timeline motion;
 
     @FXML
     public void initialize() {
         bindBackground();
         loadMenuBackground();
-        animateBackground();
-        startBackgroundRotation();
+
+        if (GameSettings.isAmbientMotionEnabled()) {
+            animateBackground();
+            startBackgroundRotation();
+        }
+
         updateContinueButtonState();
 
         System.out.println("WelcomeController initialized.");
@@ -117,13 +127,61 @@ public class WelcomeController {
         Image next;
 
         try {
-            // Loaded eagerly so the fade-in never reveals a half-decoded image.
-            next = new Image(getClass().getResource(path).toExternalForm(), false);
+            // Decoded off the FX thread. Loading a 1920x1080 JPEG synchronously
+            // here stalled the UI for the length of the decode, once every
+            // rotation.
+            next = new Image(
+                    getClass().getResource(path).toExternalForm(),
+                    1920,
+                    1080,
+                    false,
+                    true,
+                    true
+            );
         } catch (Exception e) {
             System.out.println("Could not load next menu background: " + path);
             return;
         }
 
+        whenReady(next, () -> startCrossFade(next));
+    }
+
+    /**
+     * Runs the action once a background-loading image has finished decoding,
+     * so the fade never reveals a half-drawn frame. Fires immediately for an
+     * image already in memory, and drops the swap entirely if it fails.
+     */
+    private void whenReady(Image image, Runnable action) {
+        if (image.isError()) {
+            return;
+        }
+
+        if (image.getProgress() >= 1.0) {
+            action.run();
+            return;
+        }
+
+        image.progressProperty().addListener(new ChangeListener<Number>() {
+            @Override
+            public void changed(
+                    ObservableValue<? extends Number> observable,
+                    Number previous,
+                    Number progress
+            ) {
+                if (progress.doubleValue() < 1.0) {
+                    return;
+                }
+
+                image.progressProperty().removeListener(this);
+
+                if (!image.isError()) {
+                    action.run();
+                }
+            }
+        });
+    }
+
+    private void startCrossFade(Image next) {
         FadeTransition fadeOut = new FadeTransition(Duration.millis(700), menuBackground);
         fadeOut.setFromValue(menuBackground.getOpacity());
         fadeOut.setToValue(0.0);
@@ -147,7 +205,7 @@ public class WelcomeController {
 
         motionStarted = true;
 
-        Timeline motion = new Timeline(
+        motion = new Timeline(
                 new KeyFrame(
                         Duration.ZERO,
                         new KeyValue(menuBackground.translateXProperty(), -14)
@@ -161,6 +219,26 @@ public class WelcomeController {
         motion.setAutoReverse(true);
         motion.setCycleCount(Timeline.INDEFINITE);
         motion.play();
+    }
+
+    /**
+     * Ends the menu's animations when the stage moves to another screen.
+     * Both timelines are indefinite, so without this each visit to the menu
+     * left another pair running against a scene that is no longer shown.
+     */
+    @Override
+    public void dispose() {
+        if (backgroundRotation != null) {
+            backgroundRotation.stop();
+            backgroundRotation = null;
+        }
+
+        if (motion != null) {
+            motion.stop();
+            motion = null;
+        }
+
+        motionStarted = false;
     }
 
     @FXML

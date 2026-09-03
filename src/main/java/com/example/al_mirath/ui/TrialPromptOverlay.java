@@ -8,6 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.function.Consumer;
@@ -28,6 +29,10 @@ public class TrialPromptOverlay extends StackPane {
 
     private final Consumer<Decision> onDecided;
     private boolean decided = false;
+
+    /** The measure the panel's text was written for. */
+    private static final double PANEL_MAX_WIDTH = 920;
+    private static final double PANEL_MARGIN = 48;
 
     public TrialPromptOverlay(Choice choice, int statValue, Consumer<Decision> onDecided) {
         this.onDecided = onDecided;
@@ -59,14 +64,17 @@ public class TrialPromptOverlay extends StackPane {
 
         Button play = new Button("Take the Trial");
         play.getStyleClass().addAll("scroll-popup-button", "trial-button");
+        play.setMinWidth(Region.USE_PREF_SIZE);
         play.setOnAction(event -> decide(Decision.PLAY));
 
         Button roll = new Button("Leave It to Fate  (" + odds + "%)");
         roll.getStyleClass().add("scroll-popup-button");
+        roll.setMinWidth(Region.USE_PREF_SIZE);
         roll.setOnAction(event -> decide(Decision.ROLL));
 
         Button back = new Button("Choose Differently");
         back.getStyleClass().add("scroll-popup-button");
+        back.setMinWidth(Region.USE_PREF_SIZE);
         back.setOnAction(event -> decide(Decision.CANCEL));
 
         HBox buttons = new HBox(14, play, roll, back);
@@ -74,10 +82,34 @@ public class TrialPromptOverlay extends StackPane {
 
         VBox content = new VBox(20, heading, chosen, explanation, buttons);
         content.setAlignment(Pos.CENTER);
-        content.setMaxWidth(760);
         content.getStyleClass().add("minigame-panel");
+        fitPanelToWindow(content);
 
         getChildren().add(content);
+    }
+
+    /**
+     * Widens the panel to the window, up to the measure the text was written
+     * for.
+     *
+     * <p>It was fixed at 760, and {@code .minigame-panel} spends 104 of that
+     * on padding. Three buttons reading "Take the Trial", "Leave It to Fate
+     * (49%)" and "Choose Differently" need more than the 656 that leaves, so
+     * they were being shrunk until their labels ellipsized.
+     */
+    private void fitPanelToWindow(javafx.scene.layout.Region panel) {
+        panel.maxWidthProperty().bind(
+                javafx.beans.binding.Bindings.createDoubleBinding(
+                        () -> {
+                            double available = getWidth() - PANEL_MARGIN;
+
+                            return available <= 0
+                                    ? PANEL_MAX_WIDTH
+                                    : Math.min(PANEL_MAX_WIDTH, available);
+                        },
+                        widthProperty()
+                )
+        );
     }
 
     private void decide(Decision decision) {

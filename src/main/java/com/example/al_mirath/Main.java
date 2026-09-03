@@ -3,6 +3,7 @@ package com.example.al_mirath;
 import com.example.al_mirath.controller.AchievementsController;
 import com.example.al_mirath.controller.GameController;
 import com.example.al_mirath.controller.LegacyRecordsController;
+import com.example.al_mirath.controller.ScreenLifecycle;
 import com.example.al_mirath.controller.SettingsController;
 import com.example.al_mirath.controller.WelcomeController;
 import com.example.al_mirath.service.GameEngine;
@@ -16,6 +17,12 @@ import javafx.stage.Stage;
 public class Main extends Application {
 
     private Stage primaryStage;
+
+    /**
+     * The controller behind the screen currently on the stage, so its
+     * animations can be stopped before the next screen replaces it.
+     */
+    private Object currentController;
 
     @Override
     public void start(Stage stage) {
@@ -33,7 +40,10 @@ public class Main extends Application {
      * when the scene changes unless they're explicitly reapplied afterward.
      * Centralizing the swap here means every screen gets that fix for free.
      */
-    private void applyScene(Parent root) {
+    private void applyScene(Parent root, Object controller) {
+        disposeCurrentScreen();
+        currentController = controller;
+
         boolean wasMaximized = primaryStage.isMaximized();
         boolean wasFullScreen = primaryStage.isFullScreen();
 
@@ -50,6 +60,18 @@ public class Main extends Application {
         }
     }
 
+    /**
+     * Ends the outgoing screen's animations. Without this every screen swap
+     * left its indefinite timelines running against a scene nobody can see.
+     */
+    private void disposeCurrentScreen() {
+        if (currentController instanceof ScreenLifecycle screen) {
+            screen.dispose();
+        }
+
+        currentController = null;
+    }
+
     public void showWelcomeScreen() {
         try {
             FXMLLoader loader = new FXMLLoader(
@@ -61,7 +83,7 @@ public class Main extends Application {
             WelcomeController controller = loader.getController();
             controller.setMainApp(this);
 
-            applyScene(root);
+            applyScene(root, controller);
 
             System.out.println("Welcome screen loaded.");
 
@@ -89,7 +111,7 @@ public class Main extends Application {
 
             controller.setMainApp(this);
 
-            applyScene(root);
+            applyScene(root, controller);
 
             System.out.println("Game screen loaded.");
 
@@ -110,7 +132,7 @@ public class Main extends Application {
             AchievementsController controller = loader.getController();
             controller.setMainApp(this);
 
-            applyScene(root);
+            applyScene(root, controller);
 
             System.out.println("Achievements screen loaded.");
 
@@ -131,7 +153,7 @@ public class Main extends Application {
             SettingsController controller = loader.getController();
             controller.setMainApp(this);
 
-            applyScene(root);
+            applyScene(root, controller);
 
             System.out.println("Settings screen loaded.");
 
@@ -152,7 +174,7 @@ public class Main extends Application {
             LegacyRecordsController controller = loader.getController();
             controller.setMainApp(this);
 
-            applyScene(root);
+            applyScene(root, controller);
 
             System.out.println("Legacy records screen loaded.");
 
@@ -163,6 +185,7 @@ public class Main extends Application {
     }
 
     public void exitGame() {
+        disposeCurrentScreen();
         primaryStage.close();
     }
 

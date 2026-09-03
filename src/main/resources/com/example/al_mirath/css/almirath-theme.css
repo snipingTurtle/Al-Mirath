@@ -1588,9 +1588,6 @@
     -fx-padding: 10 30 10 30;
     -fx-cursor: hand;
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.48), 8, 0.25, 0, 3);
-    /* Buttons must size to their full text — a constrained width here is
-       what was clipping "Continue" and "Challenge Fate" down to ellipses. */
-    -fx-min-width: -fx-pref-width;
 }
 
 .scroll-popup-button:hover,
@@ -2363,3 +2360,143 @@
     -fx-text-fill: #f2fff0;
     -fx-effect: dropshadow(gaussian, rgba(120, 230, 110, 0.70), 14, 0.42, 0, 0);
 }
+
+/* ===================================================== */
+/* LEGACY RECORDS: THE ARCHIVE OF COMPLETED LIVES        */
+/* ===================================================== */
+
+.records-top-bar {
+    -fx-padding: 24 36 12 36;
+}
+
+/* The archive's empty state, framed as a parchment notice so an untouched
+   archive reads as intentional rather than as a screen that failed to fill. */
+.records-empty {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 17px;
+    -fx-text-fill: #e8d2a4;
+    -fx-line-spacing: 6px;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* One completed life. Shares the parchment-panel language of the rest of
+   the game, at a slightly tighter padding since these stack vertically. */
+.legacy-record-card {
+    -fx-padding: 16 22 18 22;
+    -fx-background-radius: 16;
+    -fx-border-radius: 16;
+    -fx-border-width: 2;
+}
+
+.legacy-record-card-plain {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(80, 48, 18, 0.40),
+            rgba(30, 15, 5, 0.52),
+            rgba(8, 4, 1, 0.60));
+    -fx-border-color: rgba(220, 158, 45, 0.80);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.62), 16, 0.32, 0, 5);
+}
+
+/* The highest-scoring life in the archive, lit the way an unlocked
+   achievement is so the eye finds it while scrolling. */
+.legacy-record-card-crowned {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(112, 68, 24, 0.74),
+            rgba(46, 23, 7, 0.84));
+    -fx-border-color: rgba(255, 214, 95, 0.95);
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.60), 16, 0.32, 0, 5),
+            dropshadow(gaussian, rgba(255,206,92,0.26), 14, 0.26, 0, 0);
+}
+
+.record-crown {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffd76a;
+}
+
+.record-name {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #ffeeb8 0%,
+            #f2c455 45%,
+            #d59a2c 100%);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.95), 6, 0.42, 0, 2);
+}
+
+/* Score sits opposite the name; struck gold, like the fate counter. */
+.record-score {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #fff3c4 0%,
+            #ffd166 50%,
+            #d99a28 100%);
+    -fx-min-width: 90;
+    -fx-alignment: center-right;
+    -fx-text-alignment: right;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.90), 5, 0.36, 0, 1);
+}
+
+.record-ending {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 17px;
+    -fx-text-fill: #f8e9c6;
+    -fx-line-spacing: 4px;
+}
+
+.record-facts {
+    -fx-padding: 4 0 2 0;
+}
+
+/* Era, origin, family, age, final status — the same chip the Hall of
+   Legacy uses for its lifetime statistics. */
+.record-fact {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 13px;
+    -fx-text-fill: #f2dfb4;
+    -fx-padding: 5 12 5 12;
+    -fx-background-color: rgba(58, 32, 10, 0.62);
+    -fx-background-radius: 9;
+    -fx-border-radius: 9;
+    -fx-border-color: rgba(226, 174, 55, 0.48);
+    -fx-border-width: 1;
+}
+
+.record-titles {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: #d4bf94;
+    -fx-line-spacing: 3px;
+}
+
+/* Archive scrollbar, matched to the popup scrolls elsewhere in the game. */
+.records-scroll .scroll-bar:vertical {
+    -fx-background-color: rgba(50, 20, 4, 0.35);
+    -fx-background-radius: 8;
+    -fx-pref-width: 10px;
+}
+
+.records-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(255, 220, 121, 0.88),
+            rgba(141, 72, 17, 0.92));
+    -fx-background-radius: 8;
+}
+
+.records-scroll .scroll-bar:vertical .increment-button,
+.records-scroll .scroll-bar:vertical .decrement-button {
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+

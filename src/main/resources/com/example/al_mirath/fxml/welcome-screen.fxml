@@ -47,7 +47,7 @@
         </Label>
 
         <VBox alignment="CENTER" spacing="14">
-            <Button text="New Game"
+            <Button minWidth="-Infinity" text="New Game"
                     prefWidth="280"
                     minHeight="48"
                     onAction="#startNewGame">
@@ -56,7 +56,7 @@
                 </styleClass>
             </Button>
 
-            <Button fx:id="continueButton"
+            <Button minWidth="-Infinity" fx:id="continueButton"
         text="Continue"
         prefWidth="280"
         minHeight="48"
@@ -66,7 +66,7 @@
     </styleClass>
 </Button>
 
-            <Button text="Legacy Records"
+            <Button minWidth="-Infinity" text="Legacy Records"
                     prefWidth="280"
                     minHeight="48"
                     onAction="#openLegacyRecords">
@@ -75,7 +75,7 @@
                 </styleClass>
             </Button>
 
-            <Button text="Hall of Legacy"
+            <Button minWidth="-Infinity" text="Hall of Legacy"
                     prefWidth="280"
                     minHeight="48"
                     onAction="#openAchievements">
@@ -84,7 +84,7 @@
                 </styleClass>
             </Button>
 
-            <Button text="Settings"
+            <Button minWidth="-Infinity" text="Settings"
                     prefWidth="280"
                     minHeight="48"
                     onAction="#openSettings">
@@ -93,7 +93,7 @@
                 </styleClass>
             </Button>
 
-            <Button text="Exit"
+            <Button minWidth="-Infinity" text="Exit"
                     prefWidth="280"
                     minHeight="48"
                     onAction="#exitGame">

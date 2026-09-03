@@ -11,6 +11,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -174,6 +175,7 @@ public class MerchantMiniGame extends AbstractMiniGame {
         for (int i = 0; i < coins.size(); i++) {
             Button coin = new Button(String.valueOf(coins.get(i)));
             coin.getStyleClass().add("coin-button");
+            coin.setMinWidth(Region.USE_PREF_SIZE);
             coin.setPrefSize(72, 72);
             coin.setFocusTraversable(false);
 
@@ -200,6 +202,7 @@ public class MerchantMiniGame extends AbstractMiniGame {
 
             if (!coin.getStyleClass().contains("coin-selected")) {
                 coin.getStyleClass().add("coin-selected");
+                coin.setMinWidth(Region.USE_PREF_SIZE);
             }
         }
 

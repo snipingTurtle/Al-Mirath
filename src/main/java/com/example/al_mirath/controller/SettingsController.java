@@ -17,6 +17,7 @@ public class SettingsController {
 
     @FXML private CheckBox typewriterCheck;
     @FXML private CheckBox trialsCheck;
+    @FXML private CheckBox ambientMotionCheck;
     @FXML private Slider musicSlider;
     @FXML private Slider effectsSlider;
     @FXML private Label musicValueLabel;
@@ -37,6 +38,7 @@ public class SettingsController {
     private void initialize() {
         typewriterCheck.setSelected(GameSettings.isTypewriterEnabled());
         trialsCheck.setSelected(GameSettings.areTrialsEnabled());
+        ambientMotionCheck.setSelected(GameSettings.isAmbientMotionEnabled());
 
         musicSlider.setValue(GameSettings.getMusicVolume() * 100);
         effectsSlider.setValue(GameSettings.getEffectsVolume() * 100);
@@ -49,6 +51,12 @@ public class SettingsController {
 
         trialsCheck.selectedProperty().addListener(
                 (observable, wasSelected, isSelected) -> GameSettings.setTrialsEnabled(isSelected)
+        );
+
+        // Takes effect the next time a screen is opened; the running screen
+        // keeps whatever it started with.
+        ambientMotionCheck.selectedProperty().addListener(
+                (observable, wasSelected, isSelected) -> GameSettings.setAmbientMotionEnabled(isSelected)
         );
 
         musicSlider.valueProperty().addListener((observable, oldValue, newValue) -> {

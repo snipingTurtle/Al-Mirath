@@ -36,7 +36,7 @@
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <Button text="Main Menu" onAction="#returnToMainMenu">
+            <Button minWidth="-Infinity" text="Main Menu" onAction="#returnToMainMenu">
                 <styleClass>
                     <String fx:value="menu-button"/>
                 </styleClass>
@@ -71,6 +71,13 @@
 
                 <CheckBox fx:id="trialsCheck"
                           text="Offer a playable Trial of Skill on stat checks">
+                    <styleClass>
+                        <String fx:value="settings-check"/>
+                    </styleClass>
+                </CheckBox>
+
+                <CheckBox fx:id="ambientMotionCheck"
+                          text="Drifting, cross-fading backgrounds (uses more battery)">
                     <styleClass>
                         <String fx:value="settings-check"/>
                     </styleClass>
@@ -131,7 +138,7 @@
                 </Label>
 
                 <HBox spacing="12">
-                    <Button fx:id="resetButton"
+                    <Button minWidth="-Infinity" fx:id="resetButton"
                             text="Erase All Progress"
                             onAction="#requestReset">
                         <styleClass>

@@ -1,63 +1,163 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.String?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
 
-<BorderPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.example.al_mirath.controller.LegacyRecordsController"
-            prefWidth="1280"
-            prefHeight="720"
-            styleClass="welcome-root">
+<StackPane fx:id="recordsRoot"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.example.al_mirath.controller.LegacyRecordsController"
+           prefWidth="1280"
+           prefHeight="720"
+           stylesheets="@../css/almirath-theme.css">
 
-    <top>
-        <HBox alignment="CENTER_RIGHT"
-              spacing="12"
-              styleClass="records-top-bar">
-            <padding>
-                <Insets top="20" right="30" bottom="20" left="30"/>
-            </padding>
+    <styleClass>
+        <String fx:value="welcome-root"/>
+    </styleClass>
 
-            <Label text="Legacy Records"
-                   HBox.hgrow="ALWAYS"
-                   styleClass="records-title"/>
+    <!-- Menu art behind the archive, dimmed hard so parchment text stays
+         readable over whatever background the rotation happens to pick. -->
+    <ImageView fx:id="recordsBackground"
+               preserveRatio="false"
+               smooth="true"
+               cache="true"
+               mouseTransparent="true"/>
 
-            <Button text="Clear Records"
-                    onAction="#clearRecords"
-                    styleClass="small-menu-button"/>
+    <Rectangle fx:id="recordsOverlay"
+               fill="BLACK"
+               opacity="0.62"
+               mouseTransparent="true"/>
 
-            <Button text="Main Menu"
-                    onAction="#returnToMainMenu"
-                    styleClass="small-menu-button"/>
-        </HBox>
-    </top>
+    <BorderPane>
 
-    <center>
-        <VBox alignment="TOP_CENTER"
-              spacing="18"
-              styleClass="records-panel">
-            <padding>
-                <Insets top="30" right="80" bottom="40" left="80"/>
-            </padding>
+        <top>
+            <HBox alignment="CENTER_LEFT" spacing="16">
+                <styleClass>
+                    <String fx:value="records-top-bar"/>
+                </styleClass>
 
-            <Label fx:id="emptyLabel"
-                   text="No lives have been completed yet."
-                   styleClass="welcome-description"/>
+                <padding>
+                    <Insets top="24" right="36" bottom="12" left="36"/>
+                </padding>
 
-            <ScrollPane fitToWidth="true"
-                        prefHeight="560"
-                        styleClass="records-scroll">
-                <content>
-                    <VBox fx:id="recordsBox"
-                          spacing="14"/>
-                </content>
-            </ScrollPane>
-        </VBox>
-    </center>
+                <Label text="Legacy Records">
+                    <styleClass>
+                        <String fx:value="records-title"/>
+                    </styleClass>
+                </Label>
 
-</BorderPane>
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Button minWidth="-Infinity" text="Clear Records" onAction="#clearRecords">
+                    <styleClass>
+                        <String fx:value="menu-button"/>
+                        <String fx:value="danger-button"/>
+                    </styleClass>
+                </Button>
+
+                <Button minWidth="-Infinity" text="Main Menu" onAction="#returnToMainMenu">
+                    <styleClass>
+                        <String fx:value="menu-button"/>
+                    </styleClass>
+                </Button>
+            </HBox>
+        </top>
+
+        <center>
+            <VBox spacing="16">
+                <padding>
+                    <Insets top="0" right="36" bottom="24" left="36"/>
+                </padding>
+
+                <!-- ARCHIVE SUMMARY -->
+                <VBox fx:id="summaryPanel" spacing="10">
+                    <styleClass>
+                        <String fx:value="parchment-panel"/>
+                    </styleClass>
+
+                    <HBox alignment="CENTER_LEFT" spacing="14">
+                        <Label fx:id="archiveCountLabel" text="0 lives recorded">
+                            <styleClass>
+                                <String fx:value="section-title"/>
+                            </styleClass>
+                        </Label>
+
+                        <Region HBox.hgrow="ALWAYS"/>
+
+                        <Label fx:id="bestScoreLabel" text="Best 0">
+                            <styleClass>
+                                <String fx:value="section-title"/>
+                            </styleClass>
+                        </Label>
+                    </HBox>
+
+                    <FlowPane fx:id="summaryPane"
+                              hgap="28"
+                              vgap="10">
+                        <padding>
+                            <Insets top="4" right="0" bottom="0" left="0"/>
+                        </padding>
+                    </FlowPane>
+                </VBox>
+
+                <!-- EMPTY ARCHIVE -->
+                <VBox fx:id="emptyPanel"
+                      alignment="CENTER"
+                      VBox.vgrow="ALWAYS">
+
+                    <VBox alignment="CENTER" spacing="10" maxWidth="620">
+                        <styleClass>
+                            <String fx:value="parchment-panel"/>
+                        </styleClass>
+
+                        <Label text="The Archive Stands Empty">
+                            <styleClass>
+                                <String fx:value="section-title"/>
+                            </styleClass>
+                        </Label>
+
+                        <Label text="No lives have been completed yet. The archive fills as each story reaches its end."
+                               wrapText="true"
+                               textAlignment="CENTER">
+                            <styleClass>
+                                <String fx:value="records-empty"/>
+                            </styleClass>
+                        </Label>
+                    </VBox>
+                </VBox>
+
+                <!-- COMPLETED LIVES -->
+                <ScrollPane fx:id="recordsScroll"
+                            fitToWidth="true"
+                            hbarPolicy="NEVER"
+                            vbarPolicy="AS_NEEDED"
+                            VBox.vgrow="ALWAYS">
+
+                    <styleClass>
+                        <String fx:value="records-scroll"/>
+                    </styleClass>
+
+                    <content>
+                        <VBox fx:id="recordsBox" spacing="14">
+                            <padding>
+                                <Insets top="4" right="8" bottom="16" left="4"/>
+                            </padding>
+                        </VBox>
+                    </content>
+                </ScrollPane>
+            </VBox>
+        </center>
+
+    </BorderPane>
+</StackPane>

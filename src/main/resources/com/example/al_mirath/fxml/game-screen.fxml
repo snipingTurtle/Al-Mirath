@@ -55,6 +55,8 @@
                 </styleClass>
 
                 <Label fx:id="fateTokenLabel"
+                       minWidth="-Infinity"
+                       wrapText="false"
                        text="Threads of Fate: 1">
                     <styleClass>
                         <String fx:value="fate-token-label"/>
@@ -63,21 +65,21 @@
 
                 <Region HBox.hgrow="ALWAYS"/>
 
-                <Button text="Restart Life"
+                <Button minWidth="-Infinity" text="Restart Life"
                         onAction="#restartGame">
                     <styleClass>
                         <String fx:value="menu-button"/>
                     </styleClass>
                 </Button>
 
-                <Button text="Main Menu"
+                <Button minWidth="-Infinity" text="Main Menu"
                         onAction="#returnToMainMenu">
                     <styleClass>
                         <String fx:value="menu-button"/>
                     </styleClass>
                 </Button>
 
-                <Button text="Exit"
+                <Button minWidth="-Infinity" text="Exit"
                         onAction="#exitGame">
                     <styleClass>
                         <String fx:value="menu-button"/>
@@ -99,6 +101,7 @@
                 <VBox fx:id="statsPanel"
                       alignment="TOP_CENTER"
                       spacing="8"
+                      minWidth="210"
                       prefWidth="250"
                       maxWidth="260">
 
@@ -126,49 +129,49 @@
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="healthBar" prefWidth="210"/>
+                    <ProgressBar fx:id="healthBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="wealthLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="wealthBar" prefWidth="210"/>
+                    <ProgressBar fx:id="wealthBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="educationLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="educationBar" prefWidth="210"/>
+                    <ProgressBar fx:id="educationBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="reputationLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="reputationBar" prefWidth="210"/>
+                    <ProgressBar fx:id="reputationBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="powerLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="powerBar" prefWidth="210"/>
+                    <ProgressBar fx:id="powerBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="moralityLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="moralityBar" prefWidth="210"/>
+                    <ProgressBar fx:id="moralityBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <Label fx:id="familyLabel">
                         <styleClass>
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="familyBar" prefWidth="210"/>
+                    <ProgressBar fx:id="familyBar" prefWidth="210" maxWidth="Infinity"/>
 
                     <!-- BURDENS: lower is always better -->
                     <Label text="Burdens">
@@ -183,7 +186,7 @@
                             <String fx:value="info-label"/>
                         </styleClass>
                     </Label>
-                    <ProgressBar fx:id="stressBar" prefWidth="210">
+                    <ProgressBar fx:id="stressBar" prefWidth="210" maxWidth="Infinity">
                         <styleClass>
                             <String fx:value="stress-bar"/>
                         </styleClass>
@@ -194,6 +197,8 @@
                 <VBox fx:id="eventPanel"
                       alignment="CENTER"
                       spacing="18"
+                      HBox.hgrow="ALWAYS"
+                      minWidth="300"
                       prefWidth="760"
                       maxWidth="790">
 
@@ -554,7 +559,7 @@
         </Label>
     </VBox>
 
-    <Button fx:id="characterDrawerButton"
+    <Button minWidth="-Infinity" fx:id="characterDrawerButton"
             text="CHARACTER"
             onAction="#toggleCharacterDrawer"
             rotate="90"
@@ -569,7 +574,7 @@
         </styleClass>
     </Button>
 
-    <Button fx:id="factionDrawerButton"
+    <Button minWidth="-Infinity" fx:id="factionDrawerButton"
             text="REALM"
             onAction="#toggleFactionDrawer"
             rotate="-90"
@@ -585,7 +590,7 @@
         </styleClass>
     </Button>
 
-    <Button fx:id="relationsDrawerButton"
+    <Button minWidth="-Infinity" fx:id="relationsDrawerButton"
             text="BONDS"
             onAction="#toggleRelationsDrawer"
             rotate="-90"
@@ -707,7 +712,7 @@
                       alignment="CENTER"
                       spacing="14">
 
-                    <Button fx:id="popupRewindButton"
+                    <Button minWidth="-Infinity" fx:id="popupRewindButton"
                             text="Challenge Fate"
                             visible="false"
                             managed="false"
@@ -719,7 +724,7 @@
                         </styleClass>
                     </Button>
 
-                    <Button fx:id="popupContinueButton"
+                    <Button minWidth="-Infinity" fx:id="popupContinueButton"
                             text="Continue"
                             onAction="#closePopup">
 

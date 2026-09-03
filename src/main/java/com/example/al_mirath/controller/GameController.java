@@ -22,7 +22,10 @@ import com.example.al_mirath.ui.ToastLayer;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.Animation;
 import javafx.animation.Timeline;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.DoubleBinding;
 import javafx.animation.TranslateTransition;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
@@ -30,7 +33,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.control.Tooltip;
 import javafx.scene.effect.ColorAdjust;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.Glow;
@@ -42,6 +44,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.transform.Scale;
 import javafx.util.Duration;
 import javafx.application.Platform;
 
@@ -49,7 +52,7 @@ import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class GameController {
+public class GameController implements ScreenLifecycle {
 
     /**
      * Which kind of popup is on screen. Driving layout and color from this
@@ -74,6 +77,9 @@ public class GameController {
     private boolean legacyRecorded = false;
     private boolean birthIntroShown = false;
     private boolean backgroundMotionStarted = false;
+
+    /** Held so dispose() can end it; it runs indefinitely otherwise. */
+    private Timeline backgroundMotion;
     private boolean finalChronicleShown = false;
 
     private boolean characterDrawerOpen = false;
@@ -101,12 +107,52 @@ public class GameController {
 
     private Image popupScrollImage;
 
+    /**
+     * Decoded backgrounds, most-recently-used last.
+     *
+     * <p>JavaFX does not cache {@code Image}s, so revisiting a background
+     * re-decoded the same 1920x1080 JPEG — about 40ms of CPU, once per event.
+     * Bounded because each decoded frame costs roughly 8MB.
+     */
+    private static final int BACKGROUND_CACHE_SIZE = 6;
+
+    private final java.util.LinkedHashMap<String, Image> backgroundCache =
+            new java.util.LinkedHashMap<>(BACKGROUND_CACHE_SIZE, 0.75f, true) {
+                @Override
+                protected boolean removeEldestEntry(
+                        java.util.Map.Entry<String, Image> eldest
+                ) {
+                    return size() > BACKGROUND_CACHE_SIZE;
+                }
+            };
+
     private ToastLayer toastLayer;
 
     /** Set while a rewind is available so the popup can offer the challenge. */
     private boolean rewindOfferAvailable = false;
 
     private Timeline typewriterTimeline;
+
+    /** The messenger-scroll artwork's own dimensions; it is never upscaled. */
+    private static final double POPUP_ART_WIDTH = 980;
+    private static final double POPUP_ART_HEIGHT = 560;
+
+    /**
+     * Below this the stats column and a readable event panel cannot both fit,
+     * so the stats step aside. Sized from the two panels' own floors plus the
+     * gap and the HUD padding.
+     */
+    private static final double STATS_PANEL_BREAKPOINT = 620;
+
+    /** Breathing room between the scroll and the window edge. */
+    private static final double POPUP_MARGIN = 40;
+
+    /** Below this the text stops being readable; better to clip the art. */
+    private static final double POPUP_MIN_SCALE = 0.42;
+
+    /** Reveal cadence: ~30 fps, at the original 12ms-per-character speed. */
+    private static final double TYPEWRITER_TICK_MILLIS = 33;
+    private static final int CHARACTERS_PER_TICK = 3;
     private boolean typewriterEnabled = GameSettings.isTypewriterEnabled();
 
     @FXML private StackPane gameRoot;
@@ -213,6 +259,9 @@ public class GameController {
         rewindOfferAvailable = false;
 
         bindBackgroundToWindow();
+        bindPopupToWindow();
+        bindPanelsToWindow();
+        bindBackgroundMotionToPopup();
         initializePopupAssets();
         initializeToastLayer();
         installKeyboardShortcuts();
@@ -403,22 +452,41 @@ public class GameController {
 
         eventDescriptionLabel.setText("");
 
-        typewriterTimeline = new Timeline();
+        // One tick reveals however many characters are due, rather than one
+        // keyframe per character: the old form built a timeline of several
+        // hundred frames and re-wrapped the whole paragraph 83 times a second,
+        // shadow and all. The reveal reads at the same speed.
+        int[] revealed = {0};
 
-        // One keyframe per character, then a final frame guaranteeing the full text.
-        double perCharacter = 12;
+        Timeline reveal = new Timeline();
 
-        for (int i = 1; i <= safeText.length(); i++) {
-            final int end = i;
+        reveal.getKeyFrames().add(new KeyFrame(
+                Duration.millis(TYPEWRITER_TICK_MILLIS),
+                event -> {
+                    revealed[0] += CHARACTERS_PER_TICK;
 
-            typewriterTimeline.getKeyFrames().add(new KeyFrame(
-                    Duration.millis(i * perCharacter),
-                    event -> eventDescriptionLabel.setText(safeText.substring(0, end))
-            ));
-        }
+                    if (revealed[0] >= safeText.length()) {
+                        eventDescriptionLabel.setText(safeText);
+                        reveal.stop();
 
-        typewriterTimeline.setOnFinished(event -> eventDescriptionLabel.setText(safeText));
-        typewriterTimeline.play();
+                        // Only clear the field if this reveal still owns it.
+                        if (typewriterTimeline == reveal) {
+                            typewriterTimeline = null;
+                        }
+
+                        return;
+                    }
+
+                    eventDescriptionLabel.setText(
+                            safeText.substring(0, revealed[0])
+                    );
+                }
+        ));
+
+        reveal.setCycleCount(Timeline.INDEFINITE);
+
+        typewriterTimeline = reveal;
+        reveal.play();
     }
 
     /** Lets a click or key finish the reveal instantly. */
@@ -489,12 +557,142 @@ public class GameController {
                 return null;
             }
 
-            return new Image(stream);
+            // Decoded at the size it is drawn rather than its full 1536x1024.
+            // The GPU was resampling every surplus pixel of an alpha image on
+            // each frame, and the surplus was most of them.
+            return new Image(
+                    stream,
+                    POPUP_ART_WIDTH,
+                    POPUP_ART_HEIGHT,
+                    true,
+                    true
+            );
         } catch (Exception e) {
             System.out.println("Failed to load popup scroll image: " + path);
             e.printStackTrace();
             return null;
         }
+    }
+
+    /**
+     * Fits the messenger scroll to the window.
+     *
+     * <p>The popup is a fixed composition drawn at 980x560: art, parchment
+     * column, title, reading window and buttons are all sized to each other.
+     * It used to keep those exact numbers whatever the window did, so in a
+     * narrow window the art ran off both edges and the button row was
+     * squeezed until JavaFX ellipsized the labels to "Chall..." and "Acce...".
+     *
+     * <p>Rebinding the frame alone does not help, because the type inside it
+     * does not shrink with it — the text simply overflows a smaller scroll
+     * instead. So the whole thing is scaled as one piece by a transform,
+     * keeping every proportion the composition was designed with. It is never
+     * scaled above 1: enlarging the artwork past its own resolution only
+     * softens it.
+     */
+    private void bindPopupToWindow() {
+        if (gameRoot == null || popupShell == null) {
+            return;
+        }
+
+        // Measured against the window, not the overlay: the overlay is a
+        // StackPane sized by this very shell, so asking it how much room there
+        // is always answered "980", however small the window actually was.
+        // Depends on the shell's own size as well as the window's: the scroll
+        // is resized at runtime per popup kind — 680x860 upright, 1180x640 for
+        // a birth scroll — so a scale worked out against the default 980x560
+        // would let the tall variants run off the screen.
+        DoubleBinding scale = Bindings.createDoubleBinding(
+                () -> popupScale(
+                        gameRoot.getWidth(),
+                        gameRoot.getHeight(),
+                        popupShell.getWidth(),
+                        popupShell.getHeight()
+                ),
+                gameRoot.widthProperty(),
+                gameRoot.heightProperty(),
+                popupShell.widthProperty(),
+                popupShell.heightProperty()
+        );
+
+        Scale zoom = new Scale(1, 1);
+
+        // Pivot on the middle so the scroll shrinks towards its own centre and
+        // stays centred in the window.
+        zoom.pivotXProperty().bind(popupShell.widthProperty().divide(2));
+        zoom.pivotYProperty().bind(popupShell.heightProperty().divide(2));
+
+        zoom.xProperty().bind(scale);
+        zoom.yProperty().bind(scale);
+
+        popupShell.getTransforms().add(zoom);
+    }
+
+    /**
+     * How far the scroll must shrink to sit inside the window with a margin.
+     * Capped at 1, and floored so it never becomes unreadable.
+     */
+    private double popupScale(
+            double availableWidth,
+            double availableHeight,
+            double shellWidth,
+            double shellHeight
+    ) {
+        if (availableWidth <= 0 || availableHeight <= 0) {
+            return 1;
+        }
+
+        // Before the first layout the shell has no size yet; fall back to the
+        // dimensions the artwork was drawn at.
+        double width = shellWidth > 0 ? shellWidth : POPUP_ART_WIDTH;
+        double height = shellHeight > 0 ? shellHeight : POPUP_ART_HEIGHT;
+
+        double byWidth = (availableWidth - POPUP_MARGIN) / width;
+        double byHeight = (availableHeight - POPUP_MARGIN) / height;
+
+        return Math.max(POPUP_MIN_SCALE, Math.min(1, Math.min(byWidth, byHeight)));
+    }
+
+    /**
+     * Drops the stats column when the window is too narrow to hold both it and
+     * a readable event panel.
+     *
+     * <p>The layout is authored for roughly 1090px: a 250px stats column, a
+     * 760px event panel and the gap between them. Below that the two simply
+     * shared out whatever was there, and the stats labels were squeezed until
+     * "Family Loyalty" broke into four one-syllable lines. They now hold a
+     * readable floor and the event panel absorbs the difference; past the
+     * point where even that stops working, the stats column steps aside so the
+     * event — the part you actually have to read to play — keeps its room.
+     */
+    private void bindPanelsToWindow() {
+        if (gameRoot == null || statsPanel == null) {
+            return;
+        }
+
+        gameRoot.widthProperty().addListener(
+                (observable, previous, width) ->
+                        updateStatsPanelVisibility(width.doubleValue())
+        );
+
+        updateStatsPanelVisibility(gameRoot.getWidth());
+    }
+
+    private void updateStatsPanelVisibility(double windowWidth) {
+        // Width 0 means the window has not been measured yet; assume there is
+        // room rather than flashing the panel out and back in on startup.
+        boolean roomForStats =
+                windowWidth <= 0 || windowWidth >= STATS_PANEL_BREAKPOINT;
+
+        if (statsPanel.isVisible() == roomForStats) {
+            updateFateTokenLabel();
+            return;
+        }
+
+        statsPanel.setVisible(roomForStats);
+        statsPanel.setManaged(roomForStats);
+
+        updateFateTokenLabel();
     }
 
     private void bindBackgroundToWindow() {
@@ -561,14 +759,20 @@ public class GameController {
 
         boolean darkScenario = isDarkScenario(imagePath);
 
-        gameRoot.getStyleClass().removeAll("light-scenario", "dark-scenario");
+        String wanted = darkScenario ? "dark-scenario" : "light-scenario";
 
-        if (darkScenario) {
-            gameRoot.getStyleClass().add("dark-scenario");
-            if (darkOverlay != null) darkOverlay.setOpacity(0.15);
-        } else {
-            gameRoot.getStyleClass().add("light-scenario");
-            if (darkOverlay != null) darkOverlay.setOpacity(0.06);
+        // Touching the root's style classes reapplies CSS to the whole scene
+        // graph. That ran on every event even when the scenario had not
+        // changed, which is most of them.
+        if (gameRoot.getStyleClass().contains(wanted)) {
+            return;
+        }
+
+        gameRoot.getStyleClass().removeAll("light-scenario", "dark-scenario");
+        gameRoot.getStyleClass().add(wanted);
+
+        if (darkOverlay != null) {
+            darkOverlay.setOpacity(darkScenario ? 0.15 : 0.06);
         }
     }
 
@@ -596,19 +800,94 @@ public class GameController {
             return;
         }
 
+        // The drift repaints the whole window every frame, and re-composites
+        // every shadowed node above it. Players who would rather keep their
+        // laptop cool can turn it off.
+        if (!GameSettings.isAmbientMotionEnabled()) {
+            return;
+        }
+
         backgroundMotionStarted = true;
 
         backgroundImage.setScaleX(1.06);
         backgroundImage.setScaleY(1.06);
 
-        Timeline motion = new Timeline(
+        backgroundMotion = new Timeline(
                 new KeyFrame(Duration.ZERO, new KeyValue(backgroundImage.translateXProperty(), -14)),
                 new KeyFrame(Duration.seconds(15), new KeyValue(backgroundImage.translateXProperty(), 14))
         );
 
-        motion.setAutoReverse(true);
-        motion.setCycleCount(Timeline.INDEFINITE);
-        motion.play();
+        backgroundMotion.setAutoReverse(true);
+        backgroundMotion.setCycleCount(Timeline.INDEFINITE);
+        backgroundMotion.play();
+    }
+
+    /**
+     * Ends this screen's animations when the stage moves on. The background
+     * drift is indefinite, so without this every visit to the game screen left
+     * another copy running against a scene nobody can see, holding its decoded
+     * background in memory.
+     */
+    @Override
+    public void dispose() {
+        if (backgroundMotion != null) {
+            backgroundMotion.stop();
+            backgroundMotion = null;
+        }
+
+        if (typewriterTimeline != null) {
+            typewriterTimeline.stop();
+            typewriterTimeline = null;
+        }
+
+        backgroundMotionStarted = false;
+    }
+
+    /**
+     * Holds the background still whenever a scroll is on screen.
+     *
+     * <p>The drift dirties the whole window every frame, and everything above
+     * it is blended again with it: the dark scrim, the HUD and its shadows,
+     * and the scroll art's alpha channel. Measured on this scene, the scrim
+     * costs about 3ms a frame and the HUD another 4ms — none of it visible
+     * behind a full-screen scroll, all of it repainted sixty times a second.
+     * Held still, the popup costs nothing after the first frame.
+     *
+     * <p>Driven by the popup's own visibility rather than by the show and
+     * close methods, because four separate paths hide it — a trial starting,
+     * a reset, a restart, and the ordinary close — and a resume missed on any
+     * one of them would strand the background frozen for the rest of the run.
+     */
+    private void bindBackgroundMotionToPopup() {
+        if (resultPopup == null) {
+            return;
+        }
+
+        resultPopup.visibleProperty().addListener(
+                (observable, wasVisible, isVisible) -> {
+                    if (isVisible) {
+                        pauseBackgroundMotion();
+                    } else {
+                        resumeBackgroundMotion();
+                    }
+                }
+        );
+    }
+
+    private void pauseBackgroundMotion() {
+        if (backgroundMotion != null
+                && backgroundMotion.getStatus() == Animation.Status.RUNNING) {
+
+            backgroundMotion.pause();
+        }
+    }
+
+    private void resumeBackgroundMotion() {
+        if (backgroundMotion != null
+                && backgroundMotion.getStatus() == Animation.Status.PAUSED) {
+
+            backgroundMotion.play();
+        }
     }
 
     private void setGameplayPanelsVisible(boolean visible) {
@@ -765,6 +1044,12 @@ public class GameController {
             return null;
         }
 
+        Image cached = backgroundCache.get(imagePath);
+
+        if (cached != null && !cached.isError()) {
+            return cached;
+        }
+
         try {
             var resource = getClass().getResource(imagePath);
 
@@ -773,7 +1058,7 @@ public class GameController {
                 return null;
             }
 
-            return new Image(
+            Image image = new Image(
                     resource.toExternalForm(),
                     1920,
                     1080,
@@ -781,6 +1066,10 @@ public class GameController {
                     true,
                     true
             );
+
+            backgroundCache.put(imagePath, image);
+
+            return image;
 
         } catch (Exception e) {
             System.out.println("Could not load background: " + imagePath);
@@ -908,10 +1197,10 @@ public class GameController {
 
         button.setWrapText(true);
 
-        Tooltip tooltip = new Tooltip(buildChoicePreview(choice, lockedReason));
-        tooltip.setWrapText(true);
-        tooltip.setMaxWidth(380);
-        button.setTooltip(tooltip);
+        // Hovering a choice used to raise a "Choice Preview" tooltip spelling
+        // out the stat check behind it. It covered the choice being read and
+        // gave away the roll, so the button now says only what it says.
+        button.setTooltip(null);
 
         if (lockedReason.isEmpty()) {
             button.setText(choice.getText());
@@ -920,33 +1209,6 @@ public class GameController {
             button.setText(choice.getText() + "\n" + lockedReason);
             button.setDisable(true);
         }
-    }
-
-    private String buildChoicePreview(Choice choice, String lockedReason) {
-        StringBuilder preview = new StringBuilder();
-
-        preview.append("Choice Preview\n\n");
-
-        if (lockedReason.isEmpty()) {
-            preview.append("Status: Available\n");
-        } else {
-            preview.append("Status: Locked\n");
-            preview.append(lockedReason).append("\n");
-        }
-
-        if (choice.requiresStatCheck()) {
-            preview.append("\nAlgorithm Check:\n");
-            preview.append("Checks: ").append(choice.getCheckStat()).append("\n");
-            preview.append("Difficulty: ").append(choice.getDifficulty()).append("\n");
-            preview.append("Result: Success or failure depends on stat value.\n");
-        } else {
-            preview.append("\nAlgorithm Check:\n");
-            preview.append("Guaranteed outcome if selected.\n");
-        }
-
-        preview.append("\nThis choice may change stats, factions, memory flags, status, and future events.");
-
-        return preview.toString();
     }
 
     @FXML
@@ -1243,7 +1505,17 @@ public class GameController {
 
         int tokens = engine.getFateTokens();
 
-        fateTokenLabel.setText("Threads of Fate: " + tokens);
+        // The counter keeps its full width rather than wrapping, so in a very
+        // narrow window it is the long name that has to give, not the number.
+        boolean roomForFullName =
+                gameRoot == null
+                        || gameRoot.getWidth() <= 0
+                        || gameRoot.getWidth() >= STATS_PANEL_BREAKPOINT;
+
+        fateTokenLabel.setText(
+                (roomForFullName ? "Threads of Fate: " : "Fate: ") + tokens
+        );
+
         fateTokenLabel.setOpacity(tokens > 0 ? 1.0 : 0.45);
     }
 

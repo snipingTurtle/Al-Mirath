@@ -9,6 +9,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.function.Consumer;
@@ -30,6 +31,10 @@ public class MiniGameOverlay extends StackPane {
 
     private MiniGameResult result;
 
+    /** The measure the panel's text was written for. */
+    private static final double PANEL_MAX_WIDTH = 920;
+    private static final double PANEL_MARGIN = 48;
+
     public MiniGameOverlay(MiniGame miniGame, Consumer<MiniGameResult> onComplete) {
         this.miniGame = miniGame;
         this.onComplete = onComplete;
@@ -38,12 +43,36 @@ public class MiniGameOverlay extends StackPane {
         setAlignment(Pos.CENTER);
 
         contentBox.setAlignment(Pos.CENTER);
-        contentBox.setMaxWidth(760);
         contentBox.getStyleClass().add("minigame-panel");
+        fitPanelToWindow(contentBox);
 
         getChildren().add(contentBox);
 
         showBriefing();
+    }
+
+    /**
+     * Widens the panel to the window, up to the measure the text was written
+     * for.
+     *
+     * <p>It was fixed at 760, and {@code .minigame-panel} spends 104 of that
+     * on padding. Three buttons reading "Take the Trial", "Leave It to Fate
+     * (49%)" and "Choose Differently" need more than the 656 that leaves, so
+     * they were being shrunk until their labels ellipsized.
+     */
+    private void fitPanelToWindow(javafx.scene.layout.Region panel) {
+        panel.maxWidthProperty().bind(
+                javafx.beans.binding.Bindings.createDoubleBinding(
+                        () -> {
+                            double available = getWidth() - PANEL_MARGIN;
+
+                            return available <= 0
+                                    ? PANEL_MAX_WIDTH
+                                    : Math.min(PANEL_MAX_WIDTH, available);
+                        },
+                        widthProperty()
+                )
+        );
     }
 
     /** Beat one: what this challenge is and what it costs. */
@@ -63,10 +92,12 @@ public class MiniGameOverlay extends StackPane {
 
         Button begin = new Button("Begin the Trial");
         begin.getStyleClass().add("scroll-popup-button");
+        begin.setMinWidth(Region.USE_PREF_SIZE);
         begin.setOnAction(event -> showGame());
 
         Button withdraw = new Button("Withdraw");
         withdraw.getStyleClass().add("scroll-popup-button");
+        withdraw.setMinWidth(Region.USE_PREF_SIZE);
         withdraw.setOnAction(event -> {
             // Backing out costs nothing: the token is only spent on a real attempt.
             result = null;
@@ -121,6 +152,7 @@ public class MiniGameOverlay extends StackPane {
 
         Button close = new Button(gameResult.success() ? "Return and Choose" : "Accept It");
         close.getStyleClass().add("scroll-popup-button");
+        close.setMinWidth(Region.USE_PREF_SIZE);
         close.setOnAction(event -> dismiss());
 
         replaceContent(title, summary, score, consequence, close);

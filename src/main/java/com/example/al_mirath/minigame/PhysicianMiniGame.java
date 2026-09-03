@@ -8,6 +8,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -192,6 +193,7 @@ public class PhysicianMiniGame extends AbstractMiniGame {
                             + formatSigned(herb.moisture()) + " moist"
             );
             button.getStyleClass().add("herb-button");
+            button.setMinWidth(Region.USE_PREF_SIZE);
             button.setPrefSize(148, 62);
             button.setFocusTraversable(false);
 
@@ -218,6 +220,7 @@ public class PhysicianMiniGame extends AbstractMiniGame {
 
             if (!button.getStyleClass().contains("herb-selected")) {
                 button.getStyleClass().add("herb-selected");
+                button.setMinWidth(Region.USE_PREF_SIZE);
             }
         }
 

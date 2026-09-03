@@ -9,6 +9,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -104,6 +105,7 @@ public class OratorMiniGame extends AbstractMiniGame {
         for (String response : List.of("Concede", "Reason", "Assert")) {
             Button button = new Button(response);
             button.getStyleClass().add("scroll-popup-button");
+            button.setMinWidth(Region.USE_PREF_SIZE);
             button.setPrefWidth(170);
             button.setFocusTraversable(false);
             button.setOnAction(event -> answer(response));

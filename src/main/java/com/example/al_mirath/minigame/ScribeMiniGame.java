@@ -8,6 +8,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.util.Duration;
 
 import java.util.ArrayList;
@@ -84,6 +85,7 @@ public class ScribeMiniGame extends AbstractMiniGame {
         for (int i = 0; i < gridSize; i++) {
             Button glyph = new Button(GLYPHS[i]);
             glyph.getStyleClass().add("glyph-button");
+            glyph.setMinWidth(Region.USE_PREF_SIZE);
             glyph.setPrefSize(90, 90);
             glyph.setFocusTraversable(false);
 
@@ -211,6 +213,7 @@ public class ScribeMiniGame extends AbstractMiniGame {
         if (active) {
             if (!glyph.getStyleClass().contains("glyph-active")) {
                 glyph.getStyleClass().add("glyph-active");
+                glyph.setMinWidth(Region.USE_PREF_SIZE);
             }
         } else {
             glyph.getStyleClass().remove("glyph-active");

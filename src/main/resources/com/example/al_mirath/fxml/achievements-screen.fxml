@@ -37,7 +37,7 @@
 
             <Region HBox.hgrow="ALWAYS"/>
 
-            <Button text="Main Menu" onAction="#returnToMainMenu">
+            <Button minWidth="-Infinity" text="Main Menu" onAction="#returnToMainMenu">
                 <styleClass>
                     <String fx:value="menu-button"/>
                 </styleClass>

@@ -6,6 +6,8 @@ import com.example.al_mirath.model.RelationshipType;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -144,6 +146,50 @@ class RecurringCharacterRegistryTest {
                         "protected_secret"
                 )
         );
+    }
+
+    /**
+     * The cast is small and the name pools are not, so nobody should ever be
+     * introduced as someone else's name with a number stuck on the end.
+     */
+    @Test
+    void nobodyIsCalledSomebodyElseTwo() {
+        for (int run = 0; run < 200; run++) {
+            RecurringCharacterRegistry registry =
+                    new RecurringCharacterRegistry(new Random());
+
+            registry.generateInitialCast(createPlayer());
+
+            // Strong bonds, so every death leaves an heir and the cast grows
+            // past the three it starts with.
+            registry.changeRelationship(
+                    "childhood_companion", 90, "m1", "A strong bond.", 10);
+            registry.changeRelationship(
+                    "elder_mentor", 90, "m2", "A strong bond.", 10);
+            registry.changeRelationship(
+                    "early_rival", -90, "m3", "A deep quarrel.", 10);
+
+            for (int pass = 0; pass < 15; pass++) {
+                registry.ageEveryone(10);
+            }
+
+            Set<String> names = new HashSet<>();
+
+            for (RecurringCharacter character : registry.all()) {
+                String name = character.getName();
+
+                assertFalse(
+                        name.matches(".*\\s\\d+$"),
+                        "a character was named \"" + name
+                                + "\" to dodge a collision"
+                );
+
+                assertTrue(
+                        names.add(name),
+                        "two characters share the name " + name
+                );
+            }
+        }
     }
 
     @Test

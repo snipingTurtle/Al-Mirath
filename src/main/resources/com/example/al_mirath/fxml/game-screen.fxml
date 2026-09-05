@@ -507,7 +507,7 @@
             <String fx:value="right-drawer"/>
         </styleClass>
 
-        <Label text="Bonds"
+        <Label text="Your People"
                maxWidth="235"
                alignment="CENTER">
 
@@ -538,17 +538,43 @@
             </styleClass>
 
             <content>
-                <Label fx:id="relationsLabel"
-                       wrapText="true"
-                       maxWidth="205">
-                    <styleClass>
-                        <String fx:value="drawer-text"/>
-                    </styleClass>
-                </Label>
+                <VBox spacing="10">
+                    <Label text="Household"
+                           maxWidth="205"
+                           alignment="CENTER">
+                        <styleClass>
+                            <String fx:value="drawer-separator-text"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label fx:id="householdLabel"
+                           wrapText="true"
+                           maxWidth="205">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label text="Bonds"
+                           maxWidth="205"
+                           alignment="CENTER">
+                        <styleClass>
+                            <String fx:value="drawer-separator-text"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label fx:id="relationsLabel"
+                           wrapText="true"
+                           maxWidth="205">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                </VBox>
             </content>
         </ScrollPane>
 
-        <Label text="The people who keep returning to your life, and what they still remember."
+        <Label text="Your blood, and the people who keep returning to your life."
                wrapText="true"
                maxWidth="235"
                textAlignment="CENTER"

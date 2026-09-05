@@ -11,6 +11,7 @@ import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.DeathCause;
 import com.example.al_mirath.model.EndingResult;
+import com.example.al_mirath.model.FamilyMember;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -34,6 +35,7 @@ public class GameEngine {
     private final Map<String, Integer> stageEventsPlayed = new HashMap<>();
     private final String birthIntroMessage;
     private final RecurringCharacterRegistry recurringCharacters;
+    private final FamilyRegistry family;
 
     private final Map<String, Integer> maxEventsByStage = Map.of(
             "Childhood", 5,
@@ -106,6 +108,8 @@ public class GameEngine {
         this.recurringCharacters =
                 RecurringCharacterRegistry.createFor(player);
 
+        this.family = FamilyRegistry.createFor(player);
+
         this.eventPool = EventLibrary.createEventPool();
     }
 
@@ -119,6 +123,7 @@ public class GameEngine {
             FactionRelations factions,
             WorldState worldState,
             RecurringCharacterRegistry recurringCharacters,
+            FamilyRegistry family,
             int currentStageIndex,
             Map<String, Integer> stageEventsPlayed,
             Set<String> playedEventTitles,
@@ -135,6 +140,11 @@ public class GameEngine {
                         ? RecurringCharacterRegistry.createFor(player)
                         : recurringCharacters;
 
+        this.family =
+                family == null
+                        ? FamilyRegistry.createFor(player)
+                        : family;
+
         this.eventPool = EventLibrary.createEventPool();
 
         this.currentStageIndex = currentStageIndex;
@@ -147,6 +157,13 @@ public class GameEngine {
             if (this.currentEvent == null) {
                 this.currentEvent = findByTitle(
                         RecurringCharacterEvents.create(this.recurringCharacters),
+                        currentEventTitle
+                );
+            }
+
+            if (this.currentEvent == null) {
+                this.currentEvent = findByTitle(
+                        FamilyEvents.create(this.family),
                         currentEventTitle
                 );
             }
@@ -229,6 +246,8 @@ public class GameEngine {
                 recurringCharacters.toJson()
         );
 
+        root.put("family", family.toJson());
+
         return root.toString();
     }
 
@@ -272,6 +291,15 @@ public class GameEngine {
         } else {
             recurringCharacters =
                     RecurringCharacterRegistry.createFor(player);
+        }
+
+        FamilyRegistry family;
+
+        if (root.has("family")) {
+            family = FamilyRegistry.fromJson(root.getJSONObject("family"));
+        } else {
+            // A save written before the household existed still has to load.
+            family = FamilyRegistry.createFor(player);
         }
 
         JSONArray legacyTitlesJson = playerJson.getJSONArray("legacyTitles");
@@ -320,6 +348,7 @@ public class GameEngine {
                 factions,
                 worldState,
                 recurringCharacters,
+                family,
                 root.getInt("currentStageIndex"),
                 stageEventsPlayed,
                 playedEventTitles,
@@ -381,6 +410,15 @@ public class GameEngine {
 
     public String getBirthIntroMessage() {
         return birthIntroMessage;
+    }
+
+    public FamilyRegistry getFamily() {
+        return family;
+    }
+
+    /** The Household panel's text. */
+    public String getHouseholdSummary() {
+        return family.householdSummary();
     }
 
     public RecurringCharacterRegistry getRecurringCharacters() {
@@ -744,10 +782,20 @@ public class GameEngine {
      * cast have become since the run started.
      */
     private GameEvent findEventForStage(String stage, boolean consequenceOnly) {
+        // The household draws at the same weight as the cast: both are people
+        // the player is supposed to stay attached to across a whole run.
         List<GameEvent> cast = eligibleIn(
                 RecurringCharacterEvents.create(recurringCharacters),
                 stage,
                 consequenceOnly
+        );
+
+        cast.addAll(
+                eligibleIn(
+                        FamilyEvents.create(family),
+                        stage,
+                        consequenceOnly
+                )
         );
 
         List<GameEvent> general = eligibleIn(
@@ -873,12 +921,18 @@ public class GameEngine {
                     flag,
                     player.getAge()
             );
+
+            family.applyStoryFlag(flag);
         }
 
         int yearsPassed = advanceAgeAfterEvent();
 
         pendingCastAnnouncements.addAll(
                 recurringCharacters.ageEveryone(yearsPassed)
+        );
+
+        pendingCastAnnouncements.addAll(
+                family.advanceYears(yearsPassed, player)
         );
         recoverStressOverTime(yearsPassed);
         updateCurrentStatus();
@@ -988,7 +1042,8 @@ public class GameEngine {
                 currentEvent == null ? "" : currentEvent.getTitle(),
                 currentEvent == null ? "" : currentEvent.getLifeStage(),
                 choice == null ? "" : choice.getText(),
-                recurringCharacters.toJson().toString()
+                recurringCharacters.toJson().toString(),
+                family.toJson().toString()
         );
     }
 
@@ -1089,6 +1144,14 @@ public class GameEngine {
             );
         }
 
+        String familyJson = snapshot.getFamilyJson();
+
+        if (familyJson != null && !familyJson.isBlank()) {
+            family.replaceWith(
+                    FamilyRegistry.fromJson(new JSONObject(familyJson))
+            );
+        }
+
         currentStageIndex = snapshot.getCurrentStageIndex();
 
         stageEventsPlayed.clear();
@@ -1112,6 +1175,13 @@ public class GameEngine {
             if (currentEvent == null) {
                 currentEvent = findByTitle(
                         RecurringCharacterEvents.create(recurringCharacters),
+                        title
+                );
+            }
+
+            if (currentEvent == null) {
+                currentEvent = findByTitle(
+                        FamilyEvents.create(family),
                         title
                 );
             }

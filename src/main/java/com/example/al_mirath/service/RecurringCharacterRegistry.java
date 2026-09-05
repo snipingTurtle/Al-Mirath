@@ -200,15 +200,34 @@ public final class RecurringCharacterRegistry {
         characters.put(id, character);
     }
 
+    /**
+     * A name nobody in the cast is using.
+     *
+     * <p>This used to pick blind and then disambiguate a collision by
+     * appending a number, which put characters called "Nadir" and "Nadir 2"
+     * in the same run. With twenty-four names and up to six characters,
+     * collisions were common. Choosing from the unused names instead makes
+     * the numeric suffix what it should always have been: unreachable in
+     * practice, and there only so a cast larger than the pool cannot fail.
+     */
     private String pickUniqueName() {
-        List<String> source =
-                random.nextBoolean()
-                        ? MALE_NAMES
-                        : FEMALE_NAMES;
+        boolean preferMale = random.nextBoolean();
 
-        String original =
-                source.get(random.nextInt(source.size()));
+        List<String> preferred = preferMale ? MALE_NAMES : FEMALE_NAMES;
+        List<String> fallback = preferMale ? FEMALE_NAMES : MALE_NAMES;
 
+        String name = pickUnusedFrom(preferred);
+
+        if (name == null) {
+            name = pickUnusedFrom(fallback);
+        }
+
+        if (name != null) {
+            return name;
+        }
+
+        // Every name in both pools is taken.
+        String original = preferred.get(random.nextInt(preferred.size()));
         String candidate = original;
         int number = 2;
 
@@ -218,6 +237,21 @@ public final class RecurringCharacterRegistry {
         }
 
         return candidate;
+    }
+
+    /** A random name from this pool that no living or dead character holds. */
+    private String pickUnusedFrom(List<String> source) {
+        List<String> free = new ArrayList<>();
+
+        for (String name : source) {
+            if (!containsName(name)) {
+                free.add(name);
+            }
+        }
+
+        return free.isEmpty()
+                ? null
+                : free.get(random.nextInt(free.size()));
     }
 
     private boolean containsName(String name) {

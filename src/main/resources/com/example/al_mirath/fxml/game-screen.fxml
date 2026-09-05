@@ -570,11 +570,28 @@
                             <String fx:value="drawer-text"/>
                         </styleClass>
                     </Label>
+
+                    <Label text="Known For"
+                           maxWidth="205"
+                           alignment="CENTER">
+                        <styleClass>
+                            <String fx:value="drawer-separator-text"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label fx:id="renownLabel"
+                           wrapText="true"
+                           maxWidth="205">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+
                 </VBox>
             </content>
         </ScrollPane>
 
-        <Label text="Your blood, and the people who keep returning to your life."
+        <Label text="Your blood, the people who keep returning, and what the world says about you."
                wrapText="true"
                maxWidth="235"
                textAlignment="CENTER"

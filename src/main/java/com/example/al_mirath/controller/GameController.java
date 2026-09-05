@@ -173,6 +173,7 @@ public class GameController implements ScreenLifecycle {
 
     @FXML private Label relationsLabel;
     @FXML private Label householdLabel;
+    @FXML private Label renownLabel;
 
     @FXML private Label nameLabel;
     @FXML private Label eraLabel;
@@ -971,6 +972,7 @@ public class GameController implements ScreenLifecycle {
 
     private void updateRelations() {
         updateHousehold();
+        updateRenown();
 
         if (relationsLabel == null) {
             return;
@@ -981,6 +983,20 @@ public class GameController implements ScreenLifecycle {
         relationsLabel.setText(
                 summary.isBlank()
                         ? "No one has yet left a mark on your life."
+                        : summary
+        );
+    }
+
+    private void updateRenown() {
+        if (renownLabel == null) {
+            return;
+        }
+
+        String summary = engine.getRenownSummary();
+
+        renownLabel.setText(
+                summary.isBlank()
+                        ? "You have not yet done anything worth repeating."
                         : summary
         );
     }

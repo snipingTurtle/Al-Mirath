@@ -27,6 +27,18 @@ public final class RecurringCharacterEvents {
     public static List<GameEvent> create(
             RecurringCharacterRegistry registry
     ) {
+        return create(registry, null);
+    }
+
+    /**
+     * @param renown what the player is known for, so the cast can open with
+     *               the version of the player their circle has heard about.
+     *               Null leaves every scene as it was written.
+     */
+    public static List<GameEvent> create(
+            RecurringCharacterRegistry registry,
+            RenownRegistry renown
+    ) {
         List<GameEvent> events = new ArrayList<>();
 
         for (RecurringCharacter character : registry.all()) {
@@ -35,20 +47,20 @@ public final class RecurringCharacterEvents {
             }
 
             if (character.isDescendant()) {
-                addDescendantEvent(events, character);
+                addDescendantEvent(events, character, renown);
                 continue;
             }
 
             switch (character.getId()) {
 
                 case "childhood_companion" ->
-                        addCompanionEvents(events, character);
+                        addCompanionEvents(events, character, renown);
 
                 case "early_rival" ->
-                        addRivalEvents(events, character);
+                        addRivalEvents(events, character, renown);
 
                 case "elder_mentor" ->
-                        addMentorEvents(events, character);
+                        addMentorEvents(events, character, renown);
 
                 default -> {
                 }
@@ -64,14 +76,55 @@ public final class RecurringCharacterEvents {
      * nothing. Returns the description untouched while nothing has passed
      * between you yet.
      */
+    /**
+     * Which circle a cast member moves in, and so which version of the
+     * player's name has reached them.
+     */
+    private static String circleOf(RecurringCharacter character) {
+        String id = character.getId();
+
+        if (id.startsWith("childhood_companion")) {
+            return "commonPeople";
+        }
+
+        if (id.startsWith("early_rival")) {
+            return "court";
+        }
+
+        if (id.startsWith("elder_mentor")) {
+            return "scholars";
+        }
+
+        return "commonPeople";
+    }
+
+    /**
+     * How this person opens, given what their circle has heard. Prepended to
+     * the scene rather than woven through it, so one line of reputation does
+     * not require rewriting every event that exists.
+     */
+    private static String greeting(
+            RecurringCharacter character,
+            RenownRegistry renown
+    ) {
+        if (renown == null) {
+            return "";
+        }
+
+        String line = renown.greetingFrom(circleOf(character));
+
+        return line == null ? "" : line + "\n\n";
+    }
+
     private static String recalling(
             RecurringCharacter character,
+            RenownRegistry renown,
             String description
     ) {
         NpcMemory memory = character.strongestMemory();
 
         if (memory == null) {
-            return description;
+            return greeting(character, renown) + description;
         }
 
         // A descendant was not there for the memory they inherited; they were
@@ -90,7 +143,8 @@ public final class RecurringCharacterEvents {
                         : character.getName()
                         + " has not forgotten what passed between you when you were ";
 
-        return opening
+        return greeting(character, renown)
+                + opening
                 + memory.playerAge()
                 + ": "
                 + memory.description()
@@ -100,7 +154,8 @@ public final class RecurringCharacterEvents {
 
     private static void addCompanionEvents(
             List<GameEvent> events,
-            RecurringCharacter companion
+            RecurringCharacter companion,
+            RenownRegistry renown
     ) {
         String name = companion.getName();
 
@@ -110,6 +165,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 companion,
+                                renown,
 
                                 name
                                         + ", the child who grew up beside you, reveals where "
@@ -208,6 +264,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 companion,
+                                renown,
 
                                 "Years have passed. "
                                         + name
@@ -339,12 +396,13 @@ public final class RecurringCharacterEvents {
 
     private static void addRivalEvents(
             List<GameEvent> events,
-            RecurringCharacter rival
+            RecurringCharacter rival,
+            RenownRegistry renown
     ) {
         String name = rival.getName();
 
-        addRivalRetaliation(events, rival);
-        addRivalIntroduction(events, rival);
+        addRivalRetaliation(events, rival, renown);
+        addRivalIntroduction(events, rival, renown);
 
         events.add(
                 new GameEvent(
@@ -352,6 +410,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 rival,
+                                renown,
 
                                 name
                                         + " has spent years measuring every achievement "
@@ -490,6 +549,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 rival,
+                                renown,
 
                                 name
                                         + " is "
@@ -650,7 +710,8 @@ public final class RecurringCharacterEvents {
      */
     private static void addRivalRetaliation(
             List<GameEvent> events,
-            RecurringCharacter rival
+            RecurringCharacter rival,
+            RenownRegistry renown
     ) {
         RivalFeud feud = rival.feud();
         String name = rival.getName();
@@ -659,13 +720,13 @@ public final class RecurringCharacterEvents {
         if (feud.isAtLeast(RivalFeud.RESENTFUL)
                 && rival.getRoleRank() >= RANK_TO_OBSTRUCT) {
 
-            events.add(obstructionEvent(rival, name, role));
+            events.add(obstructionEvent(rival, name, role, renown));
         }
 
         if (feud.isAtLeast(RivalFeud.VENGEFUL)
                 && rival.getRoleRank() >= RANK_TO_STRIKE) {
 
-            events.add(strikeEvent(rival, name, role));
+            events.add(strikeEvent(rival, name, role, renown));
         }
     }
 
@@ -673,13 +734,15 @@ public final class RecurringCharacterEvents {
     private static GameEvent obstructionEvent(
             RecurringCharacter rival,
             String name,
-            String role
+            String role,
+            RenownRegistry renown
     ) {
         return new GameEvent(
                 "The Hand Behind the Door",
 
                 recalling(
                         rival,
+                        renown,
 
                         "A petition of yours has been sitting unanswered for a season. "
                                 + "The clerk is apologetic and useless. Eventually someone tells "
@@ -792,13 +855,15 @@ public final class RecurringCharacterEvents {
     private static GameEvent strikeEvent(
             RecurringCharacter rival,
             String name,
-            String role
+            String role,
+            RenownRegistry renown
     ) {
         return new GameEvent(
                 name + " Moves Against Your House",
 
                 recalling(
                         rival,
+                        renown,
 
                         name
                                 + " is "
@@ -919,7 +984,8 @@ public final class RecurringCharacterEvents {
      */
     private static void addRivalIntroduction(
             List<GameEvent> events,
-            RecurringCharacter rival
+            RecurringCharacter rival,
+            RenownRegistry renown
     ) {
         String name = rival.getName();
 
@@ -929,6 +995,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 rival,
+                                renown,
 
                                 "The teacher sets the class a passage to recite and "
                                         + "asks who will go first. "
@@ -1047,7 +1114,8 @@ public final class RecurringCharacterEvents {
      */
     private static void addMentorIntroduction(
             List<GameEvent> events,
-            RecurringCharacter mentor
+            RecurringCharacter mentor,
+            RenownRegistry renown
     ) {
         String name = mentor.getName();
 
@@ -1057,6 +1125,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 mentor,
+                                renown,
 
                                 name
                                         + " has been watching the class from the doorway "
@@ -1165,11 +1234,12 @@ public final class RecurringCharacterEvents {
 
     private static void addMentorEvents(
             List<GameEvent> events,
-            RecurringCharacter mentor
+            RecurringCharacter mentor,
+            RenownRegistry renown
     ) {
         String name = mentor.getName();
 
-        addMentorIntroduction(events, mentor);
+        addMentorIntroduction(events, mentor, renown);
 
         events.add(
                 new GameEvent(
@@ -1177,6 +1247,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 mentor,
+                                renown,
 
                                 name
                                         + ", your "
@@ -1295,6 +1366,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 mentor,
+                                renown,
 
                                 name
                                         + " has grown old — "
@@ -1404,14 +1476,15 @@ public final class RecurringCharacterEvents {
      */
     private static void addDescendantEvent(
             List<GameEvent> events,
-            RecurringCharacter heir
+            RecurringCharacter heir,
+            RenownRegistry renown
     ) {
         if (heir.getRelationshipType() == RelationshipType.RIVAL) {
-            addInheritedFeudEvent(events, heir);
+            addInheritedFeudEvent(events, heir, renown);
             return;
         }
 
-        addPetitioningHeirEvent(events, heir);
+        addPetitioningHeirEvent(events, heir, renown);
     }
 
     /**
@@ -1423,7 +1496,8 @@ public final class RecurringCharacterEvents {
      */
     private static void addInheritedFeudEvent(
             List<GameEvent> events,
-            RecurringCharacter heir
+            RecurringCharacter heir,
+            RenownRegistry renown
     ) {
         String name = heir.getName();
         String parent = heir.getParentName();
@@ -1434,6 +1508,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 heir,
+                                renown,
 
                                 name
                                         + ", child of "
@@ -1551,7 +1626,8 @@ public final class RecurringCharacterEvents {
 
     private static void addPetitioningHeirEvent(
             List<GameEvent> events,
-            RecurringCharacter heir
+            RecurringCharacter heir,
+            RenownRegistry renown
     ) {
         String name = heir.getName();
         String parent = heir.getParentName();
@@ -1562,6 +1638,7 @@ public final class RecurringCharacterEvents {
 
                         recalling(
                                 heir,
+                                renown,
 
                                 name
                                         + ", child of "

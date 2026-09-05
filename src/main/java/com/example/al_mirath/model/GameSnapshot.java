@@ -33,6 +33,7 @@ public final class GameSnapshot {
     private final String choiceText;
 
     private final String recurringCharactersJson;
+    private final String familyJson;
 
     public GameSnapshot(
             String characterName,
@@ -69,7 +70,8 @@ public final class GameSnapshot {
                 eventTitle,
                 eventStage,
                 choiceText,
-                "{\"characters\":[]}"
+                "{\"characters\":[]}",
+                "{\"members\":[]}"
         );
     }
 
@@ -90,7 +92,8 @@ public final class GameSnapshot {
             String eventTitle,
             String eventStage,
             String choiceText,
-            String recurringCharactersJson
+            String recurringCharactersJson,
+            String familyJson
     ) {
         this.characterName = characterName;
         this.age = age;
@@ -122,6 +125,11 @@ public final class GameSnapshot {
                 recurringCharactersJson == null
                         ? "{\"characters\":[]}"
                         : recurringCharactersJson;
+
+        this.familyJson =
+                familyJson == null
+                        ? "{\"members\":[]}"
+                        : familyJson;
     }
 
     public String getCharacterName() {
@@ -190,5 +198,9 @@ public final class GameSnapshot {
 
     public String getRecurringCharactersJson() {
         return recurringCharactersJson;
+    }
+
+    public String getFamilyJson() {
+        return familyJson;
     }
 }

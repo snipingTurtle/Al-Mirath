@@ -172,6 +172,7 @@ public class GameController implements ScreenLifecycle {
     @FXML private Button relationsDrawerButton;
 
     @FXML private Label relationsLabel;
+    @FXML private Label householdLabel;
 
     @FXML private Label nameLabel;
     @FXML private Label eraLabel;
@@ -969,6 +970,8 @@ public class GameController implements ScreenLifecycle {
     }
 
     private void updateRelations() {
+        updateHousehold();
+
         if (relationsLabel == null) {
             return;
         }
@@ -978,6 +981,20 @@ public class GameController implements ScreenLifecycle {
         relationsLabel.setText(
                 summary.isBlank()
                         ? "No one has yet left a mark on your life."
+                        : summary
+        );
+    }
+
+    private void updateHousehold() {
+        if (householdLabel == null) {
+            return;
+        }
+
+        String summary = engine.getHouseholdSummary();
+
+        householdLabel.setText(
+                summary.isBlank()
+                        ? "You have no family left to speak of."
                         : summary
         );
     }

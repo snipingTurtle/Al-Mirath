@@ -1350,9 +1350,17 @@ public class GameEngine {
             }
         }
 
-        // Young death should be possible, but only under heavy danger
+        // Young death should be possible, but only under heavy danger.
+        //
+        // Capping the risk was not enough: every branch above that raises the
+        // risk also names a reason, so an empty reason means the only thing
+        // against this character was a failed skill check. That left a healthy
+        // eight-year-old with an 8% chance of dying for fumbling a recitation,
+        // reported as "your life ended before your ambitions could unfold" —
+        // 4.7% of runs ended before age 13. Real danger still kills the young;
+        // an ordinary bad afternoon does not.
         if (player.getAge() < 25 && player.getHealth() > 35 && player.getStress() < 80) {
-            risk = Math.min(risk, 8);
+            risk = reason.isEmpty() ? 0 : Math.min(risk, 8);
         }
 
         // Keep risk controlled

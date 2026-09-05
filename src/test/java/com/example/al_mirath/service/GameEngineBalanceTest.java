@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -87,29 +88,97 @@ class GameEngineBalanceTest {
         assertFalse(stage.isBlank());
     }
 
+    /**
+     * A healthy, unstressed young character must not die of nothing.
+     *
+     * <p>The mortality check caps young-death risk rather than clearing it, so
+     * a failed skill check used to carry an 8% chance of killing an
+     * eight-year-old at full health — reported with the generic message,
+     * because no named danger had contributed anything. That message on a
+     * character under 25 is the signature of the bug.
+     */
     @Test
-    @DisplayName("a long life surfaces at least one world event without error")
-    void worldEventsEventuallyFire() {
-        GameEngine engine = new GameEngine();
+    @DisplayName("the young do not die without a named danger")
+    void youngDeathsAlwaysHaveACause() {
+        String generic =
+                "Your life ended before your ambitions could fully unfold.";
 
+        int runs = 300;
+
+        for (int run = 0; run < runs; run++) {
+            GameEngine engine = new GameEngine();
+
+            for (int i = 0; i < 40 && engine.getCurrentEvent() != null; i++) {
+                engine.applyChoice(
+                        firstAvailableChoice(engine, engine.getCurrentEvent())
+                );
+
+                if (!engine.getPlayer().isAlive()) {
+                    int age = engine.getPlayer().getAge();
+
+                    if (age < 25) {
+                        assertNotEquals(
+                                generic,
+                                engine.getPlayer().getDeathReason(),
+                                "died at " + age + " with health "
+                                        + engine.getPlayer().getStatValue("health")
+                                        + " and stress "
+                                        + engine.getPlayer().getStatValue("stress")
+                                        + ", for no stated reason"
+                        );
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * The roll is per choice, not per life, so this counts choices rather than
+     * lives. Tying it to one life made it fail whenever that life ended early
+     * — a premise the test never actually needed.
+     */
+    @Test
+    @DisplayName("world events surface over a run of choices, without error")
+    void worldEventsEventuallyFire() {
+        int choicesToMake = 60;
+        int choicesMade = 0;
         boolean sawWorldEvent = false;
 
-        for (int i = 0; i < 40 && engine.getCurrentEvent() != null; i++) {
-            engine.applyChoice(firstAvailableChoice(engine, engine.getCurrentEvent()));
+        while (choicesMade < choicesToMake) {
+            GameEngine engine = new GameEngine();
 
-            if (!engine.getLatestWorldEventTitle().isBlank()) {
-                sawWorldEvent = true;
+            while (choicesMade < choicesToMake
+                    && engine.getCurrentEvent() != null) {
 
-                String title = engine.getLatestWorldEventTitle();
-                String message = engine.consumeLatestWorldEventMessage();
+                engine.applyChoice(
+                        firstAvailableChoice(engine, engine.getCurrentEvent())
+                );
 
-                assertFalse(title.isBlank());
-                assertFalse(message.isBlank());
-                assertTrue(engine.getLatestWorldEventTitle().isBlank(), "consuming must clear the pending title too");
+                choicesMade++;
+
+                if (!engine.getLatestWorldEventTitle().isBlank()) {
+                    sawWorldEvent = true;
+
+                    String title = engine.getLatestWorldEventTitle();
+                    String message = engine.consumeLatestWorldEventMessage();
+
+                    assertFalse(title.isBlank());
+                    assertFalse(message.isBlank());
+                    assertTrue(
+                            engine.getLatestWorldEventTitle().isBlank(),
+                            "consuming must clear the pending title too"
+                    );
+                }
             }
         }
 
-        assertTrue(sawWorldEvent, "no world event fired in 40 choices; the ~22% roll may be broken");
+        assertTrue(
+                sawWorldEvent,
+                "no world event fired in " + choicesToMake
+                        + " choices; the ~22% roll may be broken"
+        );
     }
 
     @Test

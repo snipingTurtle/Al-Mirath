@@ -722,29 +722,70 @@ public class GameEngine {
     }
 
     /**
-     * Looks for the next event of a stage, asking the recurring cast first.
+     * How many times more likely a cast event is than a general one, per
+     * candidate.
      *
-     * <p>Their events are generated fresh from the registry on every call
+     * <p>The cast used to get outright first refusal, which was the right
+     * instinct badly applied: with dozens of general events competing for a
+     * handful of slots per stage, an arc left to pure chance almost never
+     * finishes. But "always wins" made the opening of a run a fixed cutscene,
+     * because Childhood had exactly one cast event to choose from. Weighting
+     * keeps the arcs finishing without making them mandatory.
+     */
+    private static final int CAST_EVENT_WEIGHT = 4;
+
+    /**
+     * Looks for the next event of a stage, drawing from the cast and the
+     * general pool together.
+     *
+     * <p>Cast events are generated fresh from the registry on every call
      * rather than sitting in {@code eventPool}, so the text reflects who the
-     * cast have become since the run started. They also get first refusal:
-     * with dozens of general events competing for a handful of slots per
-     * stage, an arc left to chance almost never finishes.
+     * cast have become since the run started.
      */
     private GameEvent findEventForStage(String stage, boolean consequenceOnly) {
-        GameEvent recurring = findIn(
+        List<GameEvent> cast = eligibleIn(
                 RecurringCharacterEvents.create(recurringCharacters),
                 stage,
                 consequenceOnly
         );
 
-        if (recurring != null) {
-            return recurring;
-        }
+        List<GameEvent> general = eligibleIn(
+                eventPool,
+                stage,
+                consequenceOnly
+        );
 
-        return findIn(eventPool, stage, consequenceOnly);
+        return drawWeighted(cast, general);
     }
 
-    private GameEvent findIn(List<GameEvent> source, String stage, boolean consequenceOnly) {
+    /**
+     * Picks from two candidate lists at once, counting each cast event
+     * {@link #CAST_EVENT_WEIGHT} times. Weighting the draw rather than
+     * concatenating a repeated list keeps this allocation-free.
+     */
+    private GameEvent drawWeighted(
+            List<GameEvent> cast,
+            List<GameEvent> general
+    ) {
+        int castShare = cast.size() * CAST_EVENT_WEIGHT;
+        int total = castShare + general.size();
+
+        if (total == 0) {
+            return null;
+        }
+
+        int roll = random.nextInt(total);
+
+        return roll < castShare
+                ? cast.get(roll / CAST_EVENT_WEIGHT)
+                : general.get(roll - castShare);
+    }
+
+    private List<GameEvent> eligibleIn(
+            List<GameEvent> source,
+            String stage,
+            boolean consequenceOnly
+    ) {
         List<GameEvent> eligibleEvents = new ArrayList<>();
 
         for (GameEvent event : source) {
@@ -769,11 +810,7 @@ public class GameEngine {
             }
         }
 
-        if (eligibleEvents.isEmpty()) {
-            return null;
-        }
-
-        return eligibleEvents.get(random.nextInt(eligibleEvents.size()));
+        return eligibleEvents;
     }
 
     public String applyChoice(Choice choice) {
@@ -1060,15 +1097,22 @@ public class GameEngine {
         playedEventTitles.addAll(snapshot.getPlayedEventTitles());
 
         // Put the player back in front of the same event, not a fresh roll.
+        // Cast events are generated from the registry rather than living in
+        // eventPool, so searching only the pool used to leave currentEvent
+        // null and hand the player a different scene entirely — the exact
+        // silent corruption a rewind is supposed to prevent. The registry has
+        // already been restored above, so the regenerated titles match.
         currentEvent = null;
         String title = snapshot.getCurrentEventTitle();
 
         if (title != null) {
-            for (GameEvent event : eventPool) {
-                if (event.getTitle().equals(title)) {
-                    currentEvent = event;
-                    break;
-                }
+            currentEvent = findByTitle(eventPool, title);
+
+            if (currentEvent == null) {
+                currentEvent = findByTitle(
+                        RecurringCharacterEvents.create(recurringCharacters),
+                        title
+                );
             }
         }
 

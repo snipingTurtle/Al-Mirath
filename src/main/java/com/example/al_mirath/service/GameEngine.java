@@ -9,6 +9,7 @@ import com.example.al_mirath.model.GameSnapshot;
 import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
+import com.example.al_mirath.model.DeathCause;
 import com.example.al_mirath.model.EndingResult;
 
 import org.json.JSONArray;
@@ -1276,63 +1277,79 @@ public class GameEngine {
         }
 
         int risk = 0;
-        String reason = "";
+
+        // The cause is picked here and turned into a sentence at the end, so
+        // the wording can take the player's age into account. Later branches
+        // overwrite earlier ones: the most specific danger is the one the
+        // death panel names.
+        DeathCause cause = null;
 
         // Very low health is dangerous at any age
         if (player.getHealth() <= 10) {
             risk += 45;
-            reason = "Your body finally failed after years of hardship.";
+            cause = DeathCause.FRAILTY;
         } else if (player.getHealth() <= 20) {
             risk += 25;
-            reason = "Your weakened body could not fully recover from the burdens of life.";
+            cause = DeathCause.FRAILTY;
         } else if (player.getHealth() <= 35) {
             risk += 10;
-            reason = "Poor health made every crisis more dangerous.";
+            cause = DeathCause.FRAILTY;
         }
 
         // Stress makes health risk worse
         if (player.getStress() >= 90) {
             risk += 25;
-            reason = "The pressure of your life became too heavy to survive.";
+            cause = DeathCause.EXHAUSTION;
         } else if (player.getStress() >= 75) {
             risk += 12;
-            reason = "Years of pressure weakened your chance of survival.";
+            cause = DeathCause.EXHAUSTION;
+        }
+
+        // A reputation for cruelty is its own hazard: it costs you the people
+        // who would otherwise have protected you, and it gives somebody a
+        // reason to act.
+        if (player.getMorality() <= 15) {
+            risk += 15;
+            cause = DeathCause.ENMITY;
+        } else if (player.getMorality() <= 30) {
+            risk += 8;
+            cause = DeathCause.ENMITY;
         }
 
         // Age risk
         if (player.getAge() >= 90) {
             risk += 55;
-            reason = "Old age closed the final chapter of your life.";
+            cause = DeathCause.OLD_AGE;
         } else if (player.getAge() >= 80) {
             risk += 30;
-            reason = "Age made every burden harder to carry.";
+            cause = DeathCause.OLD_AGE;
         } else if (player.getAge() >= 70) {
             risk += 15;
-            reason = "You had entered the dangerous final years of life.";
+            cause = DeathCause.OLD_AGE;
         } else if (player.getAge() >= 60) {
             risk += 6;
-            reason = "Age slowly began to weaken your body.";
+            cause = DeathCause.OLD_AGE;
         }
 
         // Dangerous political consequences
         if (worldState.hasFlag("court_suspicion") && factions.getCourt() <= 25) {
             risk += 20;
-            reason = "Court suspicion surrounded your final days.";
+            cause = DeathCause.COURT_SUSPICION;
         }
 
         if (worldState.hasFlag("collector_reported_you") && factions.getCourt() <= 30) {
             risk += 18;
-            reason = "The report against you destroyed your protection.";
+            cause = DeathCause.INFORMED_ON;
         }
 
         if (worldState.hasFlag("owed_shadow_debt") && factions.getShadowNetwork() >= 70) {
             risk += 18;
-            reason = "The shadow network protected you for too long to let you walk away freely.";
+            cause = DeathCause.SHADOW_DEBT;
         }
 
         if (worldState.hasFlag("framed_innocent") && factions.getCourt() <= 30) {
             risk += 15;
-            reason = "The lie you built began to collapse around you.";
+            cause = DeathCause.BURIED_LIE;
         }
 
         // Failed stat-check choices are more dangerous
@@ -1341,26 +1358,26 @@ public class GameEngine {
 
             if (choice.getCheckStat().equals("health")) {
                 risk += 15;
-                reason = "A failed physical challenge left lasting damage.";
+                cause = DeathCause.INJURY;
             }
 
             if (choice.getCheckStat().equals("politicalPower")) {
                 risk += 10;
-                reason = "A failed power move exposed you to dangerous enemies.";
+                cause = DeathCause.POWER_MOVE;
             }
         }
 
         // Young death should be possible, but only under heavy danger.
         //
         // Capping the risk was not enough: every branch above that raises the
-        // risk also names a reason, so an empty reason means the only thing
-        // against this character was a failed skill check. That left a healthy
+        // risk also names a cause, so no cause means the only thing against
+        // this character was a failed skill check. That left a healthy
         // eight-year-old with an 8% chance of dying for fumbling a recitation,
         // reported as "your life ended before your ambitions could unfold" —
         // 4.7% of runs ended before age 13. Real danger still kills the young;
         // an ordinary bad afternoon does not.
         if (player.getAge() < 25 && player.getHealth() > 35 && player.getStress() < 80) {
-            risk = reason.isEmpty() ? 0 : Math.min(risk, 8);
+            risk = cause == null ? 0 : Math.min(risk, 8);
         }
 
         // Keep risk controlled
@@ -1369,9 +1386,10 @@ public class GameEngine {
         int roll = random.nextInt(100) + 1;
 
         if (roll <= risk) {
-            if (reason.isEmpty()) {
-                reason = "Your life ended before your ambitions could fully unfold.";
-            }
+            String reason =
+                    cause == null
+                            ? "Your life ended before your ambitions could fully unfold."
+                            : cause.describe(player.getAge());
 
             player.markDead(reason);
         }
@@ -1768,88 +1786,144 @@ public class GameEngine {
                         + "\n\nLegacy Titles: " + titles;
 
         if (player.getAge() >= 85) {
-            return new EndingResult(
+            return died(
                     "Old Age Final Chapter",
-                    "Your life reached a rare old age. By the end, your body grew weak, but your household had years to remember your choices, warnings, victories, and mistakes."
-                            + endingInfo
-            );
+                    "Your life reached a rare old age. By the end, your body grew weak, but your household had years to remember your choices, warnings, victories, and mistakes.",
+                    endingInfo
+                );
         }
 
         if (player.getAge() >= 70 && player.getHealth() <= 30) {
-            return new EndingResult(
+            return died(
                     "Final Years of Decline",
-                    "Age and poor health slowly closed your path. You survived many storms, but your final years were shaped by weakness, memory, and the consequences of earlier decisions."
-                            + endingInfo
-            );
+                    "Age and poor health slowly closed your path. You survived many storms, but your final years were shaped by weakness, memory, and the consequences of earlier decisions.",
+                    endingInfo
+                );
         }
 
         if (worldState.hasFlag("court_suspicion") && factions.getCourt() <= 30) {
-            return new EndingResult(
+            return died(
                     "Died Under Court Suspicion",
-                    "The court never fully trusted you again. Suspicion followed your name until your final days, and your household learned that survival near power always has a price."
-                            + endingInfo
-            );
+                    "The court never fully trusted you again. Suspicion followed your name until your final days, and your household learned that survival near power always has a price.",
+                    endingInfo
+                );
         }
 
         if (worldState.hasFlag("collector_reported_you") && factions.getCourt() <= 35) {
-            return new EndingResult(
+            return died(
                     "Destroyed by Corruption",
-                    "The old bribe returned at the worst possible time. The report damaged your name, weakened your protection, and left your family carrying the cost of your hidden mistake."
-                            + endingInfo
-            );
+                    "The old bribe returned at the worst possible time. The report damaged your name, weakened your protection, and left your family carrying the cost of your hidden mistake.",
+                    endingInfo
+                );
         }
 
         if (worldState.hasFlag("owed_shadow_debt") && factions.getShadowNetwork() >= 70) {
-            return new EndingResult(
+            return died(
                     "Owned by Shadows",
-                    "The hidden world protected you, but that protection became a chain. By the end, your fate belonged more to secret allies than to your own household."
-                            + endingInfo
-            );
+                    "The hidden world protected you, but that protection became a chain. By the end, your fate belonged more to secret allies than to your own household.",
+                    endingInfo
+                );
         }
 
         if (worldState.hasFlag("framed_innocent") && player.getMorality() <= 25) {
-            return new EndingResult(
+            return died(
                     "Buried by Lies",
-                    "You survived by pushing blame onto another person, but lies rarely stay quiet forever. Your final chapter was shaped by fear, suspicion, and the weight of what you chose."
-                            + endingInfo
-            );
+                    "You survived by pushing blame onto another person, but lies rarely stay quiet forever. Your final chapter was shaped by fear, suspicion, and the weight of what you chose.",
+                    endingInfo
+                );
+        }
+
+        // Everything below this speaks of final years, decline and legacy,
+        // which is the wrong register entirely for someone who never got
+        // any. The cause sentence supplies the specifics; these supply the
+        // frame.
+        if (player.getAge() < 13) {
+            return died(
+                    "A Life Barely Begun",
+                    "You did not live long enough to be judged for anything. "
+                            + "The household kept your name, argued for a while "
+                            + "about what might have been done differently, and "
+                            + "went on without you."
+            , endingInfo);
+        }
+
+        if (player.getAge() < 25) {
+            return died(
+                    "Gone Before Your Name Was Made",
+                    "You died with the whole of it still ahead of you. Those who "
+                            + "knew you were left holding a promise nobody could "
+                            + "collect on, and your family's story went to somebody "
+                            + "else to finish."
+            , endingInfo);
         }
 
         if (player.getWealth() <= 10 && player.getStress() >= 75) {
-            return new EndingResult(
+            return died(
                     "Final Years in Poverty",
-                    "Poverty followed you until the end. Your household survived on little, and your final days became a reminder that not every legacy is built from power or wealth."
-                            + endingInfo
-            );
+                    "Poverty followed you until the end. Your household survived on little, and your final days became a reminder that not every legacy is built from power or wealth.",
+                    endingInfo
+                );
         }
 
         if (player.getHealth() <= 15 && player.getStress() >= 80) {
-            return new EndingResult(
+            return died(
                     "Broken by Hardship",
-                    "Years of pressure, poor health, and difficult choices wore you down. Your life ended before your ambitions could fully settle into legacy."
-                            + endingInfo
-            );
+                    "Years of pressure, poor health, and difficult choices wore you down. Your life ended before your ambitions could fully settle into legacy.",
+                    endingInfo
+                );
         }
 
         if (player.getHealth() <= 20) {
-            return new EndingResult(
+            return died(
                     "Weak Body, Heavy Life",
-                    "Your body could no longer carry the burden of your choices. Even without glory, your struggle became part of your household's memory."
-                            + endingInfo
-            );
+                    "Your body could no longer carry the burden of your choices. Even without glory, your struggle became part of your household's memory.",
+                    endingInfo
+                );
         }
 
         if (player.getStress() >= 90) {
-            return new EndingResult(
+            return died(
                     "Crushed by Pressure",
-                    "The pressure around you never truly lifted. Politics, family, fear, and survival weighed on you until your final chapter closed too soon."
-                            + endingInfo
+                    "The pressure around you never truly lifted. Politics, family, fear, and survival weighed on you until your final chapter closed too soon.",
+                    endingInfo
+                );
+        }
+
+        // "Life Cut Short" over someone of sixty-eight who died of age reads
+        // as a mistake. Only the genuinely unfinished lives get that frame.
+        if (player.getAge() >= 60) {
+            return died(
+                    "The Last of Your Years",
+                    "You reached an age most of your generation did not. The "
+                            + "work was as done as it was going to be, and the "
+                            + "household had time to prepare for the gap you "
+                            + "would leave.",
+                    endingInfo
             );
         }
 
-        return new EndingResult(
+        return died(
                 "Life Cut Short",
-                player.getDeathReason()
+                "Your life closed before the shape of it was finished.",
+                endingInfo
+        );
+    }
+
+    /**
+     * Builds a death ending with the cause of death stated in it.
+     *
+     * <p>Only the catch-all branch used to mention why the player died, so
+     * every recognised ending — the ones with the most specific titles —
+     * silently dropped it. The death panel should always answer the question
+     * it raises.
+     */
+    private EndingResult died(String title, String body, String endingInfo) {
+        String cause = player.getDeathReason();
+
+        return new EndingResult(
+                title,
+                body
+                        + (cause == null || cause.isBlank() ? "" : "\n\n" + cause)
                         + endingInfo
         );
     }

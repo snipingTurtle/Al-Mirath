@@ -115,6 +115,53 @@ class GameEngineRewindTest {
                 "the undone decision should be presented again, not replaced by a new roll");
     }
 
+    /**
+     * The opening is drawn at random, so this hunts for the case that matters
+     * rather than hoping to land on it. Recurring-cast events are generated
+     * from the registry instead of living in the event pool, which is exactly
+     * why restoring one used to fail.
+     */
+    private GameEngine engineOpeningOnACastEvent() {
+        for (int attempt = 0; attempt < 200; attempt++) {
+            GameEngine engine = new GameEngine();
+            String title = firstEvent(engine).getTitle();
+
+            boolean fromCast =
+                    title.contains("Shares a Secret")
+                            || title.contains("Answers First")
+                            || title.contains("Stops You in the Doorway");
+
+            if (fromCast) {
+                return engine;
+            }
+        }
+
+        throw new AssertionError(
+                "no run opened on a cast event in 200 attempts"
+        );
+    }
+
+    @Test
+    @DisplayName("a rewind restores a recurring-cast event, not just a pooled one")
+    void rewindRestoresACastEvent() {
+        GameEngine engine = engineOpeningOnACastEvent();
+
+        GameEvent event = engine.getCurrentEvent();
+        String titleBefore = event.getTitle();
+
+        engine.applyChoice(firstAvailableChoice(engine, event));
+
+        engine.spendFateToken();
+        engine.rewindToLastSnapshot();
+
+        assertEquals(
+                titleBefore,
+                engine.getCurrentEvent().getTitle(),
+                "a cast event is generated rather than pooled, and a rewind "
+                        + "that only searches the pool silently swaps the scene"
+        );
+    }
+
     @Test
     @DisplayName("the same choice can be re-applied after a rewind")
     void choiceIsReplayableAfterRewind() {

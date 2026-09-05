@@ -4,6 +4,8 @@ import com.example.al_mirath.model.Choice;
 import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.NpcMemory;
 import com.example.al_mirath.model.RecurringCharacter;
+import com.example.al_mirath.model.RelationshipType;
+import com.example.al_mirath.model.RivalFeud;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -327,11 +329,22 @@ public final class RecurringCharacterEvents {
         );
     }
 
+    /**
+     * The rung a rival must have climbed before they can act on a grudge
+     * rather than merely hold one. Below this they have the will but not the
+     * standing.
+     */
+    private static final int RANK_TO_OBSTRUCT = 2;
+    private static final int RANK_TO_STRIKE = 3;
+
     private static void addRivalEvents(
             List<GameEvent> events,
             RecurringCharacter rival
     ) {
         String name = rival.getName();
+
+        addRivalRetaliation(events, rival);
+        addRivalIntroduction(events, rival);
 
         events.add(
                 new GameEvent(
@@ -623,11 +636,540 @@ public final class RecurringCharacterEvents {
         );
     }
 
+    /**
+     * What the rival does to you, rather than what they say to you.
+     *
+     * <p>Everything else in this file waits for the game to hand the player a
+     * prompt. A rival who has climbed above you and has cause to hate you
+     * should be doing something about it in the meantime, and these are the
+     * moves available to them — gated on the feud being personal enough to
+     * act on and on their holding the standing to act with.
+     *
+     * <p>Generated fresh each lookup like the rest, so the obstruction is
+     * signed with whatever title they hold at that moment.
+     */
+    private static void addRivalRetaliation(
+            List<GameEvent> events,
+            RecurringCharacter rival
+    ) {
+        RivalFeud feud = rival.feud();
+        String name = rival.getName();
+        String role = rival.getCurrentRole().toLowerCase();
+
+        if (feud.isAtLeast(RivalFeud.RESENTFUL)
+                && rival.getRoleRank() >= RANK_TO_OBSTRUCT) {
+
+            events.add(obstructionEvent(rival, name, role));
+        }
+
+        if (feud.isAtLeast(RivalFeud.VENGEFUL)
+                && rival.getRoleRank() >= RANK_TO_STRIKE) {
+
+            events.add(strikeEvent(rival, name, role));
+        }
+    }
+
+    /** The quiet version: nothing you can prove, and nothing that moves. */
+    private static GameEvent obstructionEvent(
+            RecurringCharacter rival,
+            String name,
+            String role
+    ) {
+        return new GameEvent(
+                "The Hand Behind the Door",
+
+                recalling(
+                        rival,
+
+                        "A petition of yours has been sitting unanswered for a season. "
+                                + "The clerk is apologetic and useless. Eventually someone tells "
+                                + "you what everyone else already knows: it reached the desk of "
+                                + name
+                                + ", now "
+                                + role
+                                + ", and it has not moved since. There is nothing to appeal. "
+                                + "Nothing was refused. It simply will not proceed."
+                ),
+
+                "Adulthood",
+
+                List.of(
+                        new Choice(
+                                "Pay someone who can reach around " + name,
+
+                                "The money finds a route the petition could not. It is "
+                                        + "settled quietly, and it stays settled — but you have "
+                                        + "learned what it costs to need something your rival "
+                                        + "can touch.",
+
+                                Map.of(
+                                        "wealth", -14,
+                                        "politicalPower", 4,
+                                        "stress", 4
+                                ),
+
+                                Map.of(
+                                        "shadowNetwork", 7,
+                                        "court", -3
+                                ),
+
+                                List.of(),
+
+                                List.of("npc_rival_bypassed")
+                        ),
+
+                        new Choice(
+                                "Name " + name + " in open court",
+
+                                "politicalPower",
+
+                                58,
+
+                                "You say the name aloud where it cannot be unsaid. The "
+                                        + "obstruction ends within the week, because it now has "
+                                        + "a witness. So does the enmity.",
+
+                                "You accuse a superior of pettiness and are heard as "
+                                        + "someone complaining about paperwork. "
+                                        + name
+                                        + " does not even need to answer it.",
+
+                                Map.of(
+                                        "politicalPower", 8,
+                                        "reputation", 5
+                                ),
+
+                                Map.of(
+                                        "reputation", -10,
+                                        "stress", 12
+                                ),
+
+                                Map.of("court", 4),
+
+                                Map.of("court", -8, "nobles", -5),
+
+                                List.of(),
+
+                                List.of("npc_rival_publicly_humiliated"),
+
+                                List.of("npc_rival_counterattacked")
+                        ),
+
+                        new Choice(
+                                "Withdraw the petition and find another way",
+
+                                "You take the loss without making it a quarrel. It is the "
+                                        + "cheapest thing you could have done, and "
+                                        + name
+                                        + " notes exactly how little it cost to stop you.",
+
+                                Map.of(
+                                        "stress", -4,
+                                        "politicalPower", -7
+                                ),
+
+                                Map.of("court", -4),
+
+                                List.of(),
+
+                                List.of("npc_rival_emboldened")
+                        )
+                ),
+
+                List.of(),
+
+                List.of(),
+
+                List.of(),
+
+                List.of("npc_rival_met"),
+
+                List.of()
+        );
+    }
+
+    /** The loud version: they have the standing now, and they use it. */
+    private static GameEvent strikeEvent(
+            RecurringCharacter rival,
+            String name,
+            String role
+    ) {
+        return new GameEvent(
+                name + " Moves Against Your House",
+
+                recalling(
+                        rival,
+
+                        name
+                                + " is "
+                                + role
+                                + " now, and has stopped being careful about it. An "
+                                + "audit of your household's affairs has been ordered, the "
+                                + "grounds are thin, and the official appointed to conduct it owes "
+                                + name
+                                + " their position. This is not a warning shot. It is the "
+                                + "beginning of the thing your rival has been waiting to do."
+                ),
+
+                "Political Crisis",
+
+                List.of(
+                        new Choice(
+                                "Meet the audit with a better record than theirs",
+
+                                "education",
+
+                                60,
+
+                                "You hand over books so complete that the audit becomes an "
+                                        + "embarrassment to whoever ordered it. "
+                                        + name
+                                        + " loses standing for having reached and missed.",
+
+                                "The books do not hold. What began as a fishing expedition "
+                                        + "becomes a finding, and the finding has your name on it.",
+
+                                Map.of(
+                                        "reputation", 10,
+                                        "politicalPower", 6
+                                ),
+
+                                Map.of(
+                                        "wealth", -18,
+                                        "reputation", -14,
+                                        "stress", 15
+                                ),
+
+                                Map.of("court", 8, "scholars", 5),
+
+                                Map.of("court", -14, "nobles", -8),
+
+                                List.of(),
+
+                                List.of("npc_rival_counterattacked"),
+
+                                List.of("npc_rival_struck_home")
+                        ),
+
+                        new Choice(
+                                "Ruin " + name + " before the audit reports",
+
+                                "You move first, and you move dirty. It works. You are also "
+                                        + "now someone who did that, and the people who helped you "
+                                        + "do it know where you keep your throat.",
+
+                                Map.of(
+                                        "politicalPower", 12,
+                                        "morality", -14,
+                                        "stress", 14
+                                ),
+
+                                Map.of(
+                                        "shadowNetwork", 12,
+                                        "court", -6,
+                                        "commonPeople", -5
+                                ),
+
+                                List.of(),
+
+                                List.of("npc_rival_exposed")
+                        ),
+
+                        new Choice(
+                                "Send your household out of reach and wait it out",
+
+                                "You move what matters beyond the audit's arm and let it "
+                                        + "find an empty room. Your family is safe. They also "
+                                        + "understand, now, that your quarrels are theirs.",
+
+                                Map.of(
+                                        "wealth", -20,
+                                        "familyLoyalty", -8,
+                                        "stress", 8,
+                                        "health", 4
+                                ),
+
+                                Map.of("familyCouncil", -6),
+
+                                List.of(),
+
+                                List.of("npc_rival_house_withdrew")
+                        )
+                ),
+
+                List.of(),
+
+                List.of(),
+
+                List.of(),
+
+                List.of("npc_rival_met"),
+
+                List.of()
+        );
+    }
+
+    /**
+     * Where the rivalry starts, years before it is worth anything.
+     *
+     * <p>The Youth challenge assumed a rivalry the player had never actually
+     * seen begin. This is the afternoon it begins, and it is deliberately
+     * small: a recitation in front of a teacher, decided by children who do
+     * not yet know they are deciding anything.
+     */
+    private static void addRivalIntroduction(
+            List<GameEvent> events,
+            RecurringCharacter rival
+    ) {
+        String name = rival.getName();
+
+        events.add(
+                new GameEvent(
+                        name + " Answers First",
+
+                        recalling(
+                                rival,
+
+                                "The teacher sets the class a passage to recite and "
+                                        + "asks who will go first. "
+                                        + name
+                                        + ", who has answered first every day this month, "
+                                        + "is already standing. The room is waiting, and it "
+                                        + "is waiting to see what you do about it."
+                        ),
+
+                        "Childhood",
+
+                        List.of(
+                                new Choice(
+                                        "Stand up and recite it better",
+
+                                        "education",
+
+                                        45,
+
+                                        "You get through it without a stumble, and the "
+                                                + "teacher says so. "
+                                                + name
+                                                + " sits down slowly. Neither of you has "
+                                                + "words for what just changed, but you both "
+                                                + "felt it.",
+
+                                        "You lose the thread halfway and finish badly. "
+                                                + name
+                                                + " finishes it for you, correctly, without "
+                                                + "being asked.",
+
+                                        Map.of(
+                                                "education", 5,
+                                                "reputation", 5
+                                        ),
+
+                                        Map.of(
+                                                "reputation", -4,
+                                                "stress", 5
+                                        ),
+
+                                        Map.of("scholars", 5),
+
+                                        Map.of("scholars", -3),
+
+                                        List.of(),
+
+                                        List.of(
+                                                "npc_rival_met",
+                                                "npc_rival_outdebated"
+                                        ),
+
+                                        List.of(
+                                                "npc_rival_met",
+                                                "npc_rival_humiliated_you"
+                                        )
+                                ),
+
+                                new Choice(
+                                        "Point out the mistake " + name + " just made",
+
+                                        "You wait until "
+                                                + name
+                                                + " is nearly finished, then name the error. "
+                                                + "The teacher agrees. The other children laugh, "
+                                                + "and go on laughing after the teacher has "
+                                                + "stopped finding it funny.",
+
+                                        Map.of(
+                                                "reputation", 4,
+                                                "morality", -4,
+                                                "education", 2
+                                        ),
+
+                                        Map.of("scholars", 3),
+
+                                        List.of(),
+
+                                        List.of(
+                                                "npc_rival_met",
+                                                "npc_rival_publicly_humiliated"
+                                        )
+                                ),
+
+                                new Choice(
+                                        "Let " + name + " have it",
+
+                                        "You stay in your seat. It costs you nothing today, "
+                                                + "and "
+                                                + name
+                                                + " learns today that going first is free.",
+
+                                        Map.of(
+                                                "stress", -3,
+                                                "reputation", -3
+                                        ),
+
+                                        Map.of(),
+
+                                        List.of(),
+
+                                        List.of(
+                                                "npc_rival_met",
+                                                "npc_rival_emboldened"
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
+    /**
+     * The mentor noticing the player, before there is anything in it for
+     * either of them. The Youth event bargains over an obligation; this is
+     * the moment the obligation becomes possible.
+     */
+    private static void addMentorIntroduction(
+            List<GameEvent> events,
+            RecurringCharacter mentor
+    ) {
+        String name = mentor.getName();
+
+        events.add(
+                new GameEvent(
+                        name + " Stops You in the Doorway",
+
+                        recalling(
+                                mentor,
+
+                                name
+                                        + " has been watching the class from the doorway "
+                                        + "for a week, which nobody has explained. Today "
+                                        + name
+                                        + " stops you on the way out and asks a question "
+                                        + "that was not on the lesson, and waits for the "
+                                        + "answer longer than a polite adult would."
+                        ),
+
+                        "Childhood",
+
+                        List.of(
+                                new Choice(
+                                        "Give the honest answer, even unfinished",
+
+                                        "You say what you actually think, including the "
+                                                + "part you cannot yet defend. "
+                                                + name
+                                                + " does not praise it. "
+                                                + name
+                                                + " asks a second question, which is how you "
+                                                + "learn you have passed something.",
+
+                                        Map.of(
+                                                "education", 6,
+                                                "morality", 4
+                                        ),
+
+                                        Map.of("scholars", 6),
+
+                                        List.of(),
+
+                                        List.of(
+                                                "npc_mentor_met",
+                                                "npc_mentor_guidance_accepted"
+                                        )
+                                ),
+
+                                new Choice(
+                                        "Give the answer the teacher would want",
+
+                                        "education",
+
+                                        40,
+
+                                        "You produce the correct, expected answer, and it "
+                                                + "is good enough that "
+                                                + name
+                                                + " nods and lets you go. You are not sure "
+                                                + "whether that was the outcome you wanted.",
+
+                                        name
+                                                + " listens to you repeat a lesson badly, "
+                                                + "thanks you, and does not stand in that "
+                                                + "doorway again for a long while.",
+
+                                        Map.of(
+                                                "education", 4,
+                                                "reputation", 3
+                                        ),
+
+                                        Map.of("stress", 4),
+
+                                        Map.of("scholars", 3),
+
+                                        Map.of("scholars", -3),
+
+                                        List.of(),
+
+                                        List.of("npc_mentor_met"),
+
+                                        List.of(
+                                                "npc_mentor_met",
+                                                "npc_mentor_rejected"
+                                        )
+                                ),
+
+                                new Choice(
+                                        "Say nothing and keep walking",
+
+                                        "You are a child being kept late by an adult you "
+                                                + "do not know, so you leave. "
+                                                + name
+                                                + " does not stop you, and does not ask again "
+                                                + "for years.",
+
+                                        Map.of(
+                                                "stress", -2,
+                                                "education", -2
+                                        ),
+
+                                        Map.of("scholars", -4),
+
+                                        List.of(),
+
+                                        List.of(
+                                                "npc_mentor_met",
+                                                "npc_mentor_rejected"
+                                        )
+                                )
+                        )
+                )
+        );
+    }
+
     private static void addMentorEvents(
             List<GameEvent> events,
             RecurringCharacter mentor
     ) {
         String name = mentor.getName();
+
+        addMentorIntroduction(events, mentor);
 
         events.add(
                 new GameEvent(
@@ -856,8 +1398,158 @@ public final class RecurringCharacterEvents {
     /**
      * The last beat of a bond that outlived the person who formed it. The
      * child arrives carrying whatever their parent could not let go of.
+     *
+     * <p>What they carry decides which door they come to. A friend's child
+     * comes asking; a rival's child comes collecting.
      */
     private static void addDescendantEvent(
+            List<GameEvent> events,
+            RecurringCharacter heir
+    ) {
+        if (heir.getRelationshipType() == RelationshipType.RIVAL) {
+            addInheritedFeudEvent(events, heir);
+            return;
+        }
+
+        addPetitioningHeirEvent(events, heir);
+    }
+
+    /**
+     * The quarrel outliving the person who started it.
+     *
+     * <p>This is the point of keeping a rival alive across a whole run: the
+     * humiliation you handed someone at fifteen is still being answered after
+     * they are dead, by someone who only ever heard their side.
+     */
+    private static void addInheritedFeudEvent(
+            List<GameEvent> events,
+            RecurringCharacter heir
+    ) {
+        String name = heir.getName();
+        String parent = heir.getParentName();
+
+        events.add(
+                new GameEvent(
+                        name + " Finishes It",
+
+                        recalling(
+                                heir,
+
+                                name
+                                        + ", child of "
+                                        + parent
+                                        + ", has spent an inheritance on lawyers and "
+                                        + "witnesses, and is now close enough to your household "
+                                        + "to do it harm. "
+                                        + parent
+                                        + " is years dead. The quarrel is not, because "
+                                        + name
+                                        + " was raised inside it and has never heard your half."
+                        ),
+
+                        "Legacy",
+
+                        List.of(
+                                new Choice(
+                                        "Tell " + name + " what actually happened",
+
+                                        "reputation",
+
+                                        55,
+
+                                        "You give the account no one gave them: not flattering "
+                                                + "to you, and true. "
+                                                + name
+                                                + " does not forgive you. But they stop, which "
+                                                + "is the most anyone could have asked.",
+
+                                        name
+                                                + " hears an old enemy explaining why the injury "
+                                                + "was reasonable, which is exactly what they were "
+                                                + "told to expect from you.",
+
+                                        Map.of(
+                                                "morality", 10,
+                                                "stress", -8
+                                        ),
+
+                                        Map.of(
+                                                "stress", 12,
+                                                "reputation", -8
+                                        ),
+
+                                        Map.of(
+                                                "commonPeople", 6,
+                                                "familyCouncil", 5
+                                        ),
+
+                                        Map.of("court", -6),
+
+                                        List.of(),
+
+                                        List.of("npc_rival_heir_reconciled"),
+
+                                        List.of("npc_rival_heir_unconvinced")
+                                ),
+
+                                new Choice(
+                                        "Break " + name + " as you broke " + parent,
+
+                                        "You do it well, because you have had a lifetime of "
+                                                + "practice on this family. The quarrel ends. It "
+                                                + "ends the way it was always going to, and your "
+                                                + "own children watch you end it.",
+
+                                        Map.of(
+                                                "politicalPower", 8,
+                                                "morality", -16,
+                                                "familyLoyalty", -10,
+                                                "stress", 10
+                                        ),
+
+                                        Map.of(
+                                                "shadowNetwork", 8,
+                                                "commonPeople", -10,
+                                                "familyCouncil", -6
+                                        ),
+
+                                        List.of(),
+
+                                        List.of("npc_rival_heir_crushed")
+                                ),
+
+                                new Choice(
+                                        "Settle on " + name + " what " + parent
+                                                + " was never given",
+
+                                        "You pay the debt your rival always claimed you owed, "
+                                                + "to someone who did not incur it. It is not an "
+                                                + "apology and "
+                                                + name
+                                                + " does not take it as one, but the case is "
+                                                + "withdrawn.",
+
+                                        Map.of(
+                                                "wealth", -22,
+                                                "morality", 6,
+                                                "stress", -5
+                                        ),
+
+                                        Map.of(
+                                                "merchants", 4,
+                                                "commonPeople", 5
+                                        ),
+
+                                        List.of(),
+
+                                        List.of("npc_rival_heir_bought_off")
+                                )
+                        )
+                )
+        );
+    }
+
+    private static void addPetitioningHeirEvent(
             List<GameEvent> events,
             RecurringCharacter heir
     ) {

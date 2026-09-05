@@ -144,6 +144,32 @@ public final class RecurringCharacter {
         return strongest;
     }
 
+    /**
+     * How many times something passed between you that this character took as
+     * an injury.
+     *
+     * <p>The relationship score says how badly they think of you now; this
+     * says how many separate occasions taught them to. A feud built from one
+     * catastrophe reads differently from one built from five slights, and
+     * {@link RivalFeud} treats them differently.
+     */
+    public int woundCount() {
+        int wounds = 0;
+
+        for (NpcMemory memory : memories) {
+            if (memory.emotionalWeight() < 0) {
+                wounds++;
+            }
+        }
+
+        return wounds;
+    }
+
+    /** The feud currently standing between this character and the player. */
+    public RivalFeud feud() {
+        return RivalFeud.of(this);
+    }
+
     public void ageBy(int years) {
         age += Math.max(0, years);
     }

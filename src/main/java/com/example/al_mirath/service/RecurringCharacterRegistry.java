@@ -4,6 +4,7 @@ import com.example.al_mirath.model.NpcMemory;
 import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.model.RecurringCharacter;
 import com.example.al_mirath.model.RelationshipType;
+import com.example.al_mirath.model.RivalFeud;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -514,6 +515,120 @@ public final class RecurringCharacterRegistry {
                             playerAge
                     );
 
+            case "npc_rival_counterattacked" ->
+                    changeRelationship(
+                            "early_rival",
+                            -30,
+                            flag,
+                            "You reached for your rival's throat and missed.",
+                            playerAge
+                    );
+
+            case "npc_rival_emboldened" ->
+                    changeRelationship(
+                            "early_rival",
+                            -18,
+                            flag,
+                            "Your rival mistook your restraint for weakness.",
+                            playerAge
+                    );
+
+            case "npc_rival_rejected_peace" ->
+                    changeRelationship(
+                            "early_rival",
+                            -20,
+                            flag,
+                            "Your rival refused the peace you offered.",
+                            playerAge
+                    );
+
+            // Submission is humiliating, but a contest your rival considers
+            // won is a contest they stop prosecuting.
+            case "npc_rival_owes_protection" ->
+                    changeRelationship(
+                            "early_rival",
+                            25,
+                            flag,
+                            "You bent, and your rival had no more to take.",
+                            playerAge
+                    );
+
+            case "npc_rival_heir_reconciled" ->
+                    changeDescendantRelationship(
+                            RelationshipType.RIVAL,
+                            40,
+                            flag,
+                            "You ended a quarrel the previous generation began.",
+                            playerAge
+                    );
+
+            case "npc_rival_heir_crushed" ->
+                    changeDescendantRelationship(
+                            RelationshipType.RIVAL,
+                            -45,
+                            flag,
+                            "You finished with the child what you began with the parent.",
+                            playerAge
+                    );
+
+            case "npc_rival_heir_unconvinced" ->
+                    changeDescendantRelationship(
+                            RelationshipType.RIVAL,
+                            -12,
+                            flag,
+                            "You gave your side of the quarrel and were not believed.",
+                            playerAge
+                    );
+
+            case "npc_rival_heir_bought_off" ->
+                    changeDescendantRelationship(
+                            RelationshipType.RIVAL,
+                            30,
+                            flag,
+                            "You paid a debt to the child that the parent never collected.",
+                            playerAge
+                    );
+
+            case "npc_rival_bypassed" ->
+                    changeRelationship(
+                            "early_rival",
+                            -10,
+                            flag,
+                            "You went around your rival, and they found out.",
+                            playerAge
+                    );
+
+            // A blow that lands is a grievance partly paid.
+            case "npc_rival_struck_home" ->
+                    changeRelationship(
+                            "early_rival",
+                            12,
+                            flag,
+                            "Your rival hurt you, and was satisfied by it.",
+                            playerAge
+                    );
+
+            case "npc_rival_house_withdrew" ->
+                    changeRelationship(
+                            "early_rival",
+                            10,
+                            flag,
+                            "You put your household beyond reach and left "
+                                    + "your rival the field.",
+                            playerAge
+                    );
+
+            // Asking for more before you have earned the first thing.
+            case "npc_mentor_request_refused" ->
+                    changeRelationship(
+                            "elder_mentor",
+                            -10,
+                            flag,
+                            "You bargained with your teacher before you had "
+                                    + "earned the right to.",
+                            playerAge
+                    );
+
             case "npc_mentor_guidance_accepted",
                  "npc_mentor_supported_family" ->
                     changeRelationship(
@@ -585,6 +700,34 @@ public final class RecurringCharacterRegistry {
     ) {
         for (RecurringCharacter character : characters.values()) {
             if (character.isDescendant() && character.isAlive()) {
+                changeRelationship(
+                        character.getId(),
+                        amount,
+                        memoryId,
+                        memoryDescription,
+                        playerAge
+                );
+            }
+        }
+    }
+
+    /**
+     * The same, narrowed to descendants who hold a particular stance toward
+     * the player. A rival's heir and a friend's heir are both descendants, so
+     * a flag meant for one of them must not land on the other.
+     */
+    private void changeDescendantRelationship(
+            RelationshipType kind,
+            int amount,
+            String memoryId,
+            String memoryDescription,
+            int playerAge
+    ) {
+        for (RecurringCharacter character : characters.values()) {
+            if (character.isDescendant()
+                    && character.isAlive()
+                    && character.getRelationshipType() == kind) {
+
                 changeRelationship(
                         character.getId(),
                         amount,
@@ -692,6 +835,11 @@ public final class RecurringCharacterRegistry {
      * Someone the player loved or hated enough leaves a child behind, seeded
      * with half the inherited feeling and carrying the memory that mattered
      * most. Indifference leaves nothing.
+     *
+     * <p>A rival's child is not handed the same blank slate as a friend's. The
+     * quarrel is the household they grew up in, so they arrive already knowing
+     * their side of it — which is what lets a feud you started at fifteen
+     * still be running after the person you started it with is dead.
      */
     private RecurringCharacter createDescendant(
             RecurringCharacter parent
@@ -710,19 +858,28 @@ public final class RecurringCharacterRegistry {
             return null;
         }
 
-        String role = "Child of " + parent.getName();
+        boolean feudInherited = inheritsFeud(parent);
+
+        String role =
+                feudInherited
+                        ? "Heir to " + parent.getName() + "'s Quarrel"
+                        : "Child of " + parent.getName();
 
         RecurringCharacter heir =
                 new RecurringCharacter(
                         id,
                         pickUniqueName(),
-                        "Born into the story you shared with "
-                                + parent.getName()
-                                + ".",
+                        feudInherited
+                                ? "Raised on an account of you told by "
+                                        + parent.getName()
+                                        + ", in which you are not the wronged party."
+                                : "Born into the story you shared with "
+                                        + parent.getName()
+                                        + ".",
                         PERSONALITIES.get(
                                 random.nextInt(PERSONALITIES.size())
                         ),
-                        RelationshipType.STRANGER,
+                        inheritedStance(parent),
                         role,
                         18 + random.nextInt(8),
                         parent.getRelationship() / 2,
@@ -739,6 +896,26 @@ public final class RecurringCharacterRegistry {
         }
 
         return heir;
+    }
+
+    /**
+     * What a child starts out as. A rival's heir begins as a rival rather than
+     * a stranger: they have been given a side before they ever met you.
+     */
+    private RelationshipType inheritedStance(RecurringCharacter parent) {
+        return inheritsFeud(parent)
+                ? RelationshipType.RIVAL
+                : RelationshipType.STRANGER;
+    }
+
+    /**
+     * Whether this parent leaves a quarrel behind them rather than a memory.
+     * A rival the player made peace with dies with the feud settled; one who
+     * died still hating the player hands that on.
+     */
+    private boolean inheritsFeud(RecurringCharacter parent) {
+        return parent.getRelationshipType() == RelationshipType.RIVAL
+                && parent.getRelationship() < 0;
     }
 
     public String relationshipSummary() {
@@ -779,6 +956,13 @@ public final class RecurringCharacterRegistry {
                         .append(" (you were ")
                         .append(strongest.playerAge())
                         .append(")");
+            }
+
+            RivalFeud feud = character.feud();
+
+            if (feud != RivalFeud.NONE) {
+                result.append("\nFeud: ")
+                        .append(feud.displayName());
             }
 
             if (!character.isAlive()) {

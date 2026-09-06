@@ -29,7 +29,33 @@ public final class FamilyEvents {
     private FamilyEvents() {
     }
 
+    /**
+     * What the household has heard said about the player, prepended to the
+     * scene. They live with the name as much as the player does.
+     */
+    private static String asHeardAtHome(RenownRegistry renown) {
+        if (renown == null) {
+            return "";
+        }
+
+        String line = renown.greetingFrom("familyCouncil");
+
+        return line == null ? "" : line + "\n\n";
+    }
+
     public static List<GameEvent> create(FamilyRegistry family) {
+        return create(family, null);
+    }
+
+    /**
+     * @param renown what the player is known for. The household hears the
+     *               same stories as everyone else, and has its own opinion
+     *               about them.
+     */
+    public static List<GameEvent> create(
+            FamilyRegistry family,
+            RenownRegistry renown
+    ) {
         List<GameEvent> events = new ArrayList<>();
 
         if (family == null) {
@@ -44,34 +70,34 @@ public final class FamilyEvents {
             if (member.getKinship().isElder()
                     && member.getAge() >= AGEING_PARENT) {
 
-                events.add(ageingParent(member));
+                events.add(ageingParent(member, renown));
             }
 
             if (member.getKinship() == Kinship.SIBLING) {
-                events.add(siblingAtTheDoor(member));
+                events.add(siblingAtTheDoor(member, renown));
             }
 
             if (member.getKinship() == Kinship.SPOUSE) {
-                events.add(spouseCounsel(member));
+                events.add(spouseCounsel(member, renown));
             }
 
             if (member.getKinship() == Kinship.CHILD
                     && member.getLifePath() == LifePath.UNDECIDED
                     && member.getAge() >= STEERABLE_FROM) {
 
-                events.add(steerTheChild(member));
+                events.add(steerTheChild(member, renown));
             }
 
             if (member.getKinship() == Kinship.CHILD
                     && member.getLifePath() == LifePath.CRIMINAL) {
 
-                events.add(theChildWhoWentWrong(member));
+                events.add(theChildWhoWentWrong(member, renown));
             }
 
             if (member.getKinship() == Kinship.CHILD
                     && member.getLifePath() == LifePath.RULER) {
 
-                events.add(theChildWhoRose(member));
+                events.add(theChildWhoRose(member, renown));
             }
         }
 
@@ -80,14 +106,15 @@ public final class FamilyEvents {
 
     // ---- the generation above -------------------------------------------
 
-    private static GameEvent ageingParent(FamilyMember parent) {
+    private static GameEvent ageingParent(FamilyMember parent, RenownRegistry renown) {
         String name = parent.getName();
         String relation = parent.getKinship().displayName().toLowerCase();
 
         return new GameEvent(
                 name + " Is Failing",
 
-                name
+                asHeardAtHome(renown)
+                        + name
                         + ", your "
                         + relation
                         + ", is "
@@ -179,13 +206,14 @@ public final class FamilyEvents {
         );
     }
 
-    private static GameEvent siblingAtTheDoor(FamilyMember sibling) {
+    private static GameEvent siblingAtTheDoor(FamilyMember sibling, RenownRegistry renown) {
         String name = sibling.getName();
 
         return new GameEvent(
                 name + " Asks for Help",
 
-                name
+                asHeardAtHome(renown)
+                        + name
                         + ", your sibling, is "
                         + sibling.getTrait()
                         + " and has run out of people to ask. The debt is real, the "
@@ -263,13 +291,14 @@ public final class FamilyEvents {
 
     // ---- the household you built ----------------------------------------
 
-    private static GameEvent spouseCounsel(FamilyMember spouse) {
+    private static GameEvent spouseCounsel(FamilyMember spouse, RenownRegistry renown) {
         String name = spouse.getName();
 
         return new GameEvent(
                 "What " + name + " Sees",
 
-                name
+                asHeardAtHome(renown)
+                        + name
                         + ", who is "
                         + spouse.getTrait()
                         + ", has been watching the thing you are about to do more "
@@ -350,13 +379,14 @@ public final class FamilyEvents {
      * The suggestion's whole point, in one event: a decision made decades
      * before a child is grown deciding what they grow into.
      */
-    private static GameEvent steerTheChild(FamilyMember child) {
+    private static GameEvent steerTheChild(FamilyMember child, RenownRegistry renown) {
         String name = child.getName();
 
         return new GameEvent(
                 "What " + name + " Will Become",
 
-                name
+                asHeardAtHome(renown)
+                        + name
                         + " is "
                         + child.getAge()
                         + ", "
@@ -456,13 +486,14 @@ public final class FamilyEvents {
         );
     }
 
-    private static GameEvent theChildWhoWentWrong(FamilyMember child) {
+    private static GameEvent theChildWhoWentWrong(FamilyMember child, RenownRegistry renown) {
         String name = child.getName();
 
         return new GameEvent(
                 name + " Is Not What You Raised",
 
-                "The reports about "
+                asHeardAtHome(renown)
+                        + "The reports about "
                         + name
                         + " have stopped being rumours. They keep company you have "
                         + "decided not to ask about, and now a magistrate has asked "
@@ -548,13 +579,14 @@ public final class FamilyEvents {
         );
     }
 
-    private static GameEvent theChildWhoRose(FamilyMember child) {
+    private static GameEvent theChildWhoRose(FamilyMember child, RenownRegistry renown) {
         String name = child.getName();
 
         return new GameEvent(
                 name + " Governs Now",
 
-                name
+                asHeardAtHome(renown)
+                        + name
                         + " holds an office you never came close to, and holds it "
                         + "because of arrangements you made before they could walk. "
                         + "People who would not receive you now write to you carefully. "

@@ -7,6 +7,7 @@ import com.example.al_mirath.model.FactionRelations;
 import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.GameSnapshot;
 import com.example.al_mirath.model.PlayerCharacter;
+import com.example.al_mirath.model.Renown;
 import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.DeathCause;
@@ -36,6 +37,7 @@ public class GameEngine {
     private final String birthIntroMessage;
     private final RecurringCharacterRegistry recurringCharacters;
     private final FamilyRegistry family;
+    private final RenownRegistry renown;
 
     private final Map<String, Integer> maxEventsByStage = Map.of(
             "Childhood", 5,
@@ -109,6 +111,7 @@ public class GameEngine {
                 RecurringCharacterRegistry.createFor(player);
 
         this.family = FamilyRegistry.createFor(player);
+        this.renown = new RenownRegistry();
 
         this.eventPool = EventLibrary.createEventPool();
     }
@@ -124,6 +127,7 @@ public class GameEngine {
             WorldState worldState,
             RecurringCharacterRegistry recurringCharacters,
             FamilyRegistry family,
+            RenownRegistry renown,
             int currentStageIndex,
             Map<String, Integer> stageEventsPlayed,
             Set<String> playedEventTitles,
@@ -145,6 +149,8 @@ public class GameEngine {
                         ? FamilyRegistry.createFor(player)
                         : family;
 
+        this.renown = renown == null ? new RenownRegistry() : renown;
+
         this.eventPool = EventLibrary.createEventPool();
 
         this.currentStageIndex = currentStageIndex;
@@ -156,14 +162,14 @@ public class GameEngine {
 
             if (this.currentEvent == null) {
                 this.currentEvent = findByTitle(
-                        RecurringCharacterEvents.create(this.recurringCharacters),
+                        RecurringCharacterEvents.create(this.recurringCharacters, this.renown),
                         currentEventTitle
                 );
             }
 
             if (this.currentEvent == null) {
                 this.currentEvent = findByTitle(
-                        FamilyEvents.create(this.family),
+                        FamilyEvents.create(this.family, this.renown),
                         currentEventTitle
                 );
             }
@@ -247,6 +253,7 @@ public class GameEngine {
         );
 
         root.put("family", family.toJson());
+        root.put("renown", renown.toJson());
 
         return root.toString();
     }
@@ -302,6 +309,11 @@ public class GameEngine {
             family = FamilyRegistry.createFor(player);
         }
 
+        RenownRegistry renown =
+                root.has("renown")
+                        ? RenownRegistry.fromJson(root.getJSONObject("renown"))
+                        : new RenownRegistry();
+
         JSONArray legacyTitlesJson = playerJson.getJSONArray("legacyTitles");
         for (int i = 0; i < legacyTitlesJson.length(); i++) {
             player.addLegacyTitle(legacyTitlesJson.getString(i));
@@ -349,6 +361,7 @@ public class GameEngine {
                 worldState,
                 recurringCharacters,
                 family,
+                renown,
                 root.getInt("currentStageIndex"),
                 stageEventsPlayed,
                 playedEventTitles,
@@ -414,6 +427,25 @@ public class GameEngine {
 
     public FamilyRegistry getFamily() {
         return family;
+    }
+
+    public RenownRegistry getRenown() {
+        return renown;
+    }
+
+    /** The Renown panel's text. */
+    public String getRenownSummary() {
+        return renown.renownSummary();
+    }
+
+    /**
+     * The name the player carries in the wider world, or an empty string
+     * while nothing they have done has travelled beyond the room.
+     */
+    public String getPublicName() {
+        Renown known = renown.publicName();
+
+        return known == null ? "" : known.epithet();
     }
 
     /** The Household panel's text. */
@@ -785,14 +817,14 @@ public class GameEngine {
         // The household draws at the same weight as the cast: both are people
         // the player is supposed to stay attached to across a whole run.
         List<GameEvent> cast = eligibleIn(
-                RecurringCharacterEvents.create(recurringCharacters),
+                RecurringCharacterEvents.create(recurringCharacters, renown),
                 stage,
                 consequenceOnly
         );
 
         cast.addAll(
                 eligibleIn(
-                        FamilyEvents.create(family),
+                        FamilyEvents.create(family, renown),
                         stage,
                         consequenceOnly
                 )
@@ -923,6 +955,7 @@ public class GameEngine {
             );
 
             family.applyStoryFlag(flag);
+            renown.record(flag);
         }
 
         int yearsPassed = advanceAgeAfterEvent();
@@ -934,6 +967,8 @@ public class GameEngine {
         pendingCastAnnouncements.addAll(
                 family.advanceYears(yearsPassed, player)
         );
+
+        renown.spread(yearsPassed, player);
         recoverStressOverTime(yearsPassed);
         updateCurrentStatus();
         checkMortalityAfterChoice(choice, success);
@@ -1043,7 +1078,8 @@ public class GameEngine {
                 currentEvent == null ? "" : currentEvent.getLifeStage(),
                 choice == null ? "" : choice.getText(),
                 recurringCharacters.toJson().toString(),
-                family.toJson().toString()
+                family.toJson().toString(),
+                renown.toJson().toString()
         );
     }
 
@@ -1152,6 +1188,14 @@ public class GameEngine {
             );
         }
 
+        String renownJson = snapshot.getRenownJson();
+
+        if (renownJson != null && !renownJson.isBlank()) {
+            renown.replaceWith(
+                    RenownRegistry.fromJson(new JSONObject(renownJson))
+            );
+        }
+
         currentStageIndex = snapshot.getCurrentStageIndex();
 
         stageEventsPlayed.clear();
@@ -1174,14 +1218,14 @@ public class GameEngine {
 
             if (currentEvent == null) {
                 currentEvent = findByTitle(
-                        RecurringCharacterEvents.create(recurringCharacters),
+                        RecurringCharacterEvents.create(recurringCharacters, renown),
                         title
                 );
             }
 
             if (currentEvent == null) {
                 currentEvent = findByTitle(
-                        FamilyEvents.create(family),
+                        FamilyEvents.create(family, renown),
                         title
                 );
             }

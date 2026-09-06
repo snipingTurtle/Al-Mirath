@@ -379,7 +379,7 @@
 
         <Region VBox.vgrow="ALWAYS"/>
 
-        <Label text="This scroll records your bloodline, age, family condition, traits, and earned titles."
+        <Label minHeight="-Infinity" text="This scroll records your bloodline, age, family condition, traits, and earned titles."
                wrapText="true"
                maxWidth="235"
                textAlignment="CENTER"
@@ -484,6 +484,149 @@
             </styleClass>
         </Label>
         <ProgressBar fx:id="shadowNetworkBar" prefWidth="220"/>
+    </VBox>
+
+
+    <!-- RIGHT CITY DRAWER -->
+    <VBox fx:id="cityPanel"
+          alignment="TOP_LEFT"
+          spacing="6"
+          prefWidth="275"
+          maxWidth="275"
+          prefHeight="555"
+          maxHeight="555"
+          translateX="305"
+          StackPane.alignment="CENTER_RIGHT">
+
+        <StackPane.margin>
+            <Insets top="88" bottom="32" left="0" right="14"/>
+        </StackPane.margin>
+
+        <styleClass>
+            <String fx:value="drawer-panel"/>
+            <String fx:value="medieval-drawer"/>
+            <String fx:value="right-drawer"/>
+        </styleClass>
+
+        <Label fx:id="cityNameLabel"
+               text="The City"
+               maxWidth="235"
+               alignment="CENTER">
+            <styleClass>
+                <String fx:value="drawer-title"/>
+            </styleClass>
+        </Label>
+
+        <Label fx:id="cityConditionLabel"
+               wrapText="true"
+               maxWidth="235"
+               alignment="CENTER">
+            <styleClass>
+                <String fx:value="drawer-separator-text"/>
+            </styleClass>
+        </Label>
+
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    pannable="true"
+                    prefViewportHeight="340"
+                    maxWidth="245"
+                    VBox.vgrow="ALWAYS">
+
+            <styleClass>
+                <String fx:value="popup-scroll"/>
+            </styleClass>
+
+            <content>
+                <VBox spacing="4">
+                    <Label fx:id="cityProsperityLabel">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="cityProsperityBar" prefWidth="205" maxWidth="Infinity"/>
+
+                    <Label fx:id="cityTradeLabel">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="cityTradeBar" prefWidth="205" maxWidth="Infinity"/>
+
+                    <Label fx:id="cityScholarshipLabel">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="cityScholarshipBar" prefWidth="205" maxWidth="Infinity"/>
+
+                    <Label fx:id="cityPopulationLabel">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="cityPopulationBar" prefWidth="205" maxWidth="Infinity"/>
+
+                    <Label fx:id="cityCrimeLabel">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="cityCrimeBar" prefWidth="205" maxWidth="Infinity">
+                        <styleClass>
+                            <String fx:value="stress-bar"/>
+                        </styleClass>
+                    </ProgressBar>
+
+                    <Label fx:id="cityWarLabel">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="cityWarBar" prefWidth="205" maxWidth="Infinity">
+                        <styleClass>
+                            <String fx:value="stress-bar"/>
+                        </styleClass>
+                    </ProgressBar>
+
+                    <Label fx:id="cityDiseaseLabel">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                    <ProgressBar fx:id="cityDiseaseBar" prefWidth="205" maxWidth="Infinity">
+                        <styleClass>
+                            <String fx:value="stress-bar"/>
+                        </styleClass>
+                    </ProgressBar>
+                    <Label text="Elsewhere"
+                           maxWidth="205"
+                           alignment="CENTER">
+                        <styleClass>
+                            <String fx:value="drawer-separator-text"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label fx:id="otherCitiesLabel"
+                           wrapText="true"
+                           maxWidth="205">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+                </VBox>
+            </content>
+        </ScrollPane>
+
+        <Label minHeight="-Infinity" text="Cities change while you are elsewhere."
+               wrapText="true"
+               maxWidth="235"
+               alignment="CENTER">
+            <styleClass>
+                <String fx:value="drawer-note"/>
+            </styleClass>
+        </Label>
     </VBox>
 
     <!-- RIGHT BONDS DRAWER -->
@@ -591,7 +734,7 @@
             </content>
         </ScrollPane>
 
-        <Label text="Your blood, the people who keep returning, and what the world says about you."
+        <Label minHeight="-Infinity" text="Your blood, the people who keep returning, and what the world says about you."
                wrapText="true"
                maxWidth="235"
                textAlignment="CENTER"
@@ -624,7 +767,23 @@
             prefWidth="110"
             prefHeight="38"
             translateX="25"
-            translateY="-72"
+            translateY="-150"
+            StackPane.alignment="CENTER_RIGHT">
+        <styleClass>
+            <String fx:value="drawer-tab"/>
+            <String fx:value="drawer-handle"/>
+            <String fx:value="right-drawer-handle"/>
+        </styleClass>
+    </Button>
+
+    <Button minWidth="-Infinity" fx:id="cityDrawerButton"
+            text="CITY"
+            onAction="#toggleCityDrawer"
+            rotate="-90"
+            prefWidth="110"
+            prefHeight="38"
+            translateX="25"
+            translateY="0"
             StackPane.alignment="CENTER_RIGHT">
         <styleClass>
             <String fx:value="drawer-tab"/>
@@ -640,7 +799,7 @@
             prefWidth="110"
             prefHeight="38"
             translateX="25"
-            translateY="72"
+            translateY="150"
             StackPane.alignment="CENTER_RIGHT">
         <styleClass>
             <String fx:value="drawer-tab"/>

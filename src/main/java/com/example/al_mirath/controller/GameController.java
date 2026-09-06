@@ -2,7 +2,9 @@ package com.example.al_mirath.controller;
 
 import com.example.al_mirath.Main;
 import com.example.al_mirath.model.Choice;
+import com.example.al_mirath.model.City;
 import com.example.al_mirath.model.EndingResult;
+import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.model.FactionRelations;
 import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.LegacyRecord;
@@ -82,15 +84,20 @@ public class GameController implements ScreenLifecycle {
     private Timeline backgroundMotion;
     private boolean finalChronicleShown = false;
 
+    /** Heirs on offer once a life has ended; empty while one is running. */
+    private java.util.List<Succession> pendingSuccessors = java.util.List.of();
+
     private boolean characterDrawerOpen = false;
     private boolean factionDrawerOpen = false;
     private boolean relationsDrawerOpen = false;
+    private boolean cityDrawerOpen = false;
 
     private static final double CHARACTER_DRAWER_CLOSED_X = -305;
     private static final double FACTION_DRAWER_CLOSED_X = 305;
 
     /** Shares the right-hand space with the faction drawer, so only one opens. */
     private static final double RELATIONS_DRAWER_CLOSED_X = 305;
+    private static final double CITY_DRAWER_CLOSED_X = 305;
 
     private static final double CHARACTER_HANDLE_CLOSED_X = -34;
     private static final double CHARACTER_HANDLE_OPEN_X = 241;
@@ -100,6 +107,9 @@ public class GameController implements ScreenLifecycle {
 
     private static final double RELATIONS_HANDLE_CLOSED_X = 25;
     private static final double RELATIONS_HANDLE_OPEN_X = -250;
+
+    private static final double CITY_HANDLE_CLOSED_X = 25;
+    private static final double CITY_HANDLE_OPEN_X = -250;
 
     private String activePopupTitle = "";
     private PopupCategory activePopupCategory;
@@ -166,14 +176,35 @@ public class GameController implements ScreenLifecycle {
     @FXML private VBox eventPanel;
     @FXML private VBox factionPanel;
     @FXML private VBox relationsPanel;
+    @FXML private VBox cityPanel;
 
     @FXML private Button characterDrawerButton;
     @FXML private Button factionDrawerButton;
     @FXML private Button relationsDrawerButton;
+    @FXML private Button cityDrawerButton;
 
     @FXML private Label relationsLabel;
     @FXML private Label householdLabel;
     @FXML private Label renownLabel;
+
+    @FXML private Label cityNameLabel;
+    @FXML private Label cityConditionLabel;
+    @FXML private Label otherCitiesLabel;
+
+    @FXML private Label cityProsperityLabel;
+    @FXML private ProgressBar cityProsperityBar;
+    @FXML private Label cityTradeLabel;
+    @FXML private ProgressBar cityTradeBar;
+    @FXML private Label cityScholarshipLabel;
+    @FXML private ProgressBar cityScholarshipBar;
+    @FXML private Label cityPopulationLabel;
+    @FXML private ProgressBar cityPopulationBar;
+    @FXML private Label cityCrimeLabel;
+    @FXML private ProgressBar cityCrimeBar;
+    @FXML private Label cityWarLabel;
+    @FXML private ProgressBar cityWarBar;
+    @FXML private Label cityDiseaseLabel;
+    @FXML private ProgressBar cityDiseaseBar;
 
     @FXML private Label nameLabel;
     @FXML private Label eraLabel;
@@ -252,6 +283,7 @@ public class GameController implements ScreenLifecycle {
         legacyRecorded = false;
         birthIntroShown = continuingGame;
         finalChronicleShown = false;
+        pendingSuccessors = java.util.List.of();
 
         pendingFateTokenMessage = "";
         pendingWorldEventTitle = "";
@@ -907,23 +939,32 @@ public class GameController implements ScreenLifecycle {
             hudFade.play();
         }
 
-        if (characterDrawerButton != null) {
-            characterDrawerButton.setVisible(visible);
-            characterDrawerButton.setManaged(visible);
-            characterDrawerButton.setMouseTransparent(!visible);
+        // Every handle, together. This was three copy-pasted blocks, so
+        // adding a fourth drawer left its tab showing over the birth intro
+        // while the other three were correctly hidden.
+        for (Button handle : drawerHandles()) {
+            handle.setVisible(visible);
+            handle.setManaged(visible);
+            handle.setMouseTransparent(!visible);
+        }
+    }
+
+    /** Every drawer tab on the edge of the screen, skipping any not loaded. */
+    private java.util.List<Button> drawerHandles() {
+        java.util.List<Button> handles = new java.util.ArrayList<>();
+
+        for (Button handle : new Button[]{
+                characterDrawerButton,
+                factionDrawerButton,
+                relationsDrawerButton,
+                cityDrawerButton
+        }) {
+            if (handle != null) {
+                handles.add(handle);
+            }
         }
 
-        if (factionDrawerButton != null) {
-            factionDrawerButton.setVisible(visible);
-            factionDrawerButton.setManaged(visible);
-            factionDrawerButton.setMouseTransparent(!visible);
-        }
-
-        if (relationsDrawerButton != null) {
-            relationsDrawerButton.setVisible(visible);
-            relationsDrawerButton.setManaged(visible);
-            relationsDrawerButton.setMouseTransparent(!visible);
-        }
+        return handles;
     }
 
     private void fadeNode(Node node, double targetOpacity) {
@@ -939,9 +980,22 @@ public class GameController implements ScreenLifecycle {
     private void updateCharacterInfo() {
         PlayerCharacter player = engine.getPlayer();
 
-        if (nameLabel != null) nameLabel.setText("Name: " + player.getName());
+        if (nameLabel != null) {
+            String styled = engine.getEarnedTitle();
+            nameLabel.setText(
+                    "Name: " + player.getName()
+                            + (styled.isBlank() ? "" : "  —  " + styled)
+            );
+        }
         if (eraLabel != null) eraLabel.setText("Era: " + player.getEra());
-        if (originLabel != null) originLabel.setText("Origin: " + player.getOrigin());
+        if (originLabel != null) {
+            String city = engine.getCurrentCityName();
+
+            originLabel.setText(
+                    "Origin: " + player.getOrigin()
+                            + (city.isBlank() ? "" : "\nIn: " + city)
+            );
+        }
 
         if (traitLabel != null) {
             traitLabel.setText(
@@ -971,6 +1025,7 @@ public class GameController implements ScreenLifecycle {
     }
 
     private void updateRelations() {
+        updateCity();
         updateHousehold();
         updateRenown();
 
@@ -985,6 +1040,50 @@ public class GameController implements ScreenLifecycle {
                         ? "No one has yet left a mark on your life."
                         : summary
         );
+    }
+
+    private void updateCity() {
+        City here = engine.getCurrentCity();
+
+        if (here == null) {
+            return;
+        }
+
+        if (cityNameLabel != null) {
+            cityNameLabel.setText(here.getName());
+        }
+
+        if (cityConditionLabel != null) {
+            cityConditionLabel.setText(here.condition().displayName());
+        }
+
+        setCityMeasure(cityProsperityLabel, cityProsperityBar, "Prosperity", here.getProsperity());
+        setCityMeasure(cityTradeLabel, cityTradeBar, "Trade", here.getTrade());
+        setCityMeasure(cityScholarshipLabel, cityScholarshipBar, "Scholarship", here.getScholarship());
+        setCityMeasure(cityPopulationLabel, cityPopulationBar, "People", here.getPopulation());
+        setCityMeasure(cityCrimeLabel, cityCrimeBar, "Crime", here.getCrime());
+        setCityMeasure(cityWarLabel, cityWarBar, "War", here.getWar());
+        setCityMeasure(cityDiseaseLabel, cityDiseaseBar, "Disease", here.getDisease());
+
+        if (otherCitiesLabel != null) {
+            String elsewhere = engine.getCities().elsewhereSummary();
+
+            otherCitiesLabel.setText(
+                    elsewhere.isBlank()
+                            ? "There is nowhere else in this age."
+                            : elsewhere
+            );
+        }
+    }
+
+    private void setCityMeasure(Label label, ProgressBar bar, String name, int value) {
+        if (label != null) {
+            label.setText(name + ": " + value);
+        }
+
+        if (bar != null) {
+            bar.setProgress(value / 100.0);
+        }
     }
 
     private void updateRenown() {
@@ -1144,16 +1243,22 @@ public class GameController implements ScreenLifecycle {
                 legacyRecorded = true;
             }
 
-            choiceButton1.setVisible(false);
-            choiceButton1.setManaged(false);
+            pendingSuccessors = engine.getSuccessors();
 
-            choiceButton2.setVisible(false);
-            choiceButton2.setManaged(false);
+            if (pendingSuccessors.isEmpty()) {
+                choiceButton1.setVisible(false);
+                choiceButton1.setManaged(false);
 
-            choiceButton3.setVisible(false);
-            choiceButton3.setManaged(false);
+                choiceButton2.setVisible(false);
+                choiceButton2.setManaged(false);
 
-            setGameplayPanelsVisible(false);
+                choiceButton3.setVisible(false);
+                choiceButton3.setManaged(false);
+
+                setGameplayPanelsVisible(false);
+            } else {
+                showSuccessionOffer();
+            }
 
             if (!finalChronicleShown) {
                 finalChronicleShown = true;
@@ -1225,6 +1330,86 @@ public class GameController implements ScreenLifecycle {
         descriptionFade.play();
     }
 
+    /**
+     * Offers the house to whoever can carry it.
+     *
+     * <p>Reuses the ordinary event panel rather than inventing a screen: the
+     * heirs are read and chosen between exactly the way every other decision
+     * in the game is.
+     */
+    private void showSuccessionOffer() {
+        eventTitleLabel.setText("The House Passes On");
+
+        typewriteDescription(
+                engine.getPlayer().getName() + " is gone, and "
+                        + engine.getHouseStyling()
+                        + " has to be carried by somebody.\n\n"
+                        + "What they built stands where they left it. The city is "
+                        + "the city they made or failed to mend, the people who "
+                        + "owed them still owe, and the ones who hated them have "
+                        + "children of their own now.\n\n"
+                        + "Whose life do you take up?"
+        );
+
+        Button[] buttons = {choiceButton1, choiceButton2, choiceButton3};
+
+        for (int i = 0; i < buttons.length; i++) {
+            Button button = buttons[i];
+
+            if (button == null) {
+                continue;
+            }
+
+            boolean offered = i < pendingSuccessors.size();
+
+            button.setVisible(offered);
+            button.setManaged(offered);
+
+            if (offered) {
+                Succession heir = pendingSuccessors.get(i);
+
+                button.setWrapText(true);
+                button.setTooltip(null);
+                button.setDisable(false);
+                button.setText(heir.offer() + "\n" + heir.describe());
+            }
+        }
+
+        fadeEventText();
+    }
+
+    /** Takes up the heir's life, keeping the world the last one left behind. */
+    private void takeUpTheLineAs(int index) {
+        if (index >= pendingSuccessors.size()) {
+            return;
+        }
+
+        GameEngine continued = engine.succeedTo(pendingSuccessors.get(index));
+
+        if (continued == null) {
+            return;
+        }
+
+        engine = continued;
+
+        pendingSuccessors = java.util.List.of();
+        legacyRecorded = false;
+        finalChronicleShown = false;
+        birthIntroShown = true;
+        rewindOfferAvailable = false;
+
+        pendingLegacyTitleMessage = "";
+        pendingStatusChangeMessage = "";
+        pendingFateTokenMessage = "";
+        pendingWorldEventTitle = "";
+        pendingWorldEventMessage = "";
+        pendingEchoTitle = "";
+        pendingEchoMessage = "";
+
+        setGameplayPanelsVisible(true);
+        loadCurrentEvent();
+    }
+
     private void configureChoiceButton(Button button, Choice choice) {
         String lockedReason = engine.getLockedReason(choice);
 
@@ -1261,6 +1446,12 @@ public class GameController implements ScreenLifecycle {
 
     @FXML
     private void choose(int index) {
+        // Once a life has ended, the same three buttons choose an heir.
+        if (!pendingSuccessors.isEmpty()) {
+            takeUpTheLineAs(index);
+            return;
+        }
+
         GameEvent event = engine.getCurrentEvent();
 
         if (event == null || index >= event.getChoices().size()) {
@@ -1960,10 +2151,20 @@ public class GameController implements ScreenLifecycle {
             }
 
             /*
-             * Closing the final chronicle returns to the menu.
+             * Closing the final chronicle ends the run — unless the house has
+             * somebody left to carry it, in which case the chronicle closes
+             * onto the succession rather than onto the main menu. Without
+             * this, a life with three living heirs still went straight back
+             * to the welcome screen and the dynasty was never offered.
              */
             if (closingCategory == PopupCategory.ENDING) {
                 activePopupTitle = "";
+
+                if (!pendingSuccessors.isEmpty()) {
+                    setGameplayPanelsVisible(true);
+                    showSuccessionOffer();
+                    return;
+                }
 
                 SaveManager.clearSave();
 
@@ -2015,6 +2216,7 @@ public class GameController implements ScreenLifecycle {
         legacyRecorded = false;
         birthIntroShown = true;
         finalChronicleShown = false;
+        pendingSuccessors = java.util.List.of();
 
         if (resultPopup != null) {
             resultPopup.setVisible(false);
@@ -2095,6 +2297,15 @@ public class GameController implements ScreenLifecycle {
     }
 
     @FXML
+    private void toggleCityDrawer() {
+        if (cityDrawerOpen) {
+            closeCityDrawer();
+        } else {
+            openCityDrawer();
+        }
+    }
+
+    @FXML
     private void toggleRelationsDrawer() {
         if (relationsDrawerOpen) {
             closeRelationsDrawer();
@@ -2118,8 +2329,9 @@ public class GameController implements ScreenLifecycle {
     }
 
     private void openFactionDrawer() {
-        // Both right-hand drawers occupy the same strip of screen.
+        // The right-hand drawers all occupy the same strip of screen.
         closeRelationsDrawer();
+        closeCityDrawer();
 
         factionDrawerOpen = true;
 
@@ -2136,6 +2348,7 @@ public class GameController implements ScreenLifecycle {
 
     private void openRelationsDrawer() {
         closeFactionDrawer();
+        closeCityDrawer();
 
         relationsDrawerOpen = true;
 
@@ -2152,10 +2365,30 @@ public class GameController implements ScreenLifecycle {
         slideNode(relationsDrawerButton, RELATIONS_HANDLE_CLOSED_X);
     }
 
+    private void openCityDrawer() {
+        closeFactionDrawer();
+        closeRelationsDrawer();
+
+        cityDrawerOpen = true;
+
+        updateCity();
+
+        slideNode(cityPanel, 0);
+        slideNode(cityDrawerButton, CITY_HANDLE_OPEN_X);
+    }
+
+    private void closeCityDrawer() {
+        cityDrawerOpen = false;
+
+        slideNode(cityPanel, CITY_DRAWER_CLOSED_X);
+        slideNode(cityDrawerButton, CITY_HANDLE_CLOSED_X);
+    }
+
     private void closeDrawersInstantly() {
         characterDrawerOpen = false;
         factionDrawerOpen = false;
         relationsDrawerOpen = false;
+        cityDrawerOpen = false;
 
         if (characterPanel != null) {
             characterPanel.setTranslateX(CHARACTER_DRAWER_CLOSED_X);
@@ -2169,6 +2402,10 @@ public class GameController implements ScreenLifecycle {
             relationsPanel.setTranslateX(RELATIONS_DRAWER_CLOSED_X);
         }
 
+        if (cityPanel != null) {
+            cityPanel.setTranslateX(CITY_DRAWER_CLOSED_X);
+        }
+
         if (characterDrawerButton != null) {
             characterDrawerButton.setTranslateX(CHARACTER_HANDLE_CLOSED_X);
         }
@@ -2179,6 +2416,10 @@ public class GameController implements ScreenLifecycle {
 
         if (relationsDrawerButton != null) {
             relationsDrawerButton.setTranslateX(RELATIONS_HANDLE_CLOSED_X);
+        }
+
+        if (cityDrawerButton != null) {
+            cityDrawerButton.setTranslateX(CITY_HANDLE_CLOSED_X);
         }
     }
 

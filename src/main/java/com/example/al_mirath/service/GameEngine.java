@@ -1,6 +1,7 @@
 package com.example.al_mirath.service;
 
 import com.example.al_mirath.model.Choice;
+import com.example.al_mirath.model.City;
 import com.example.al_mirath.model.ChoiceRequirement;
 import com.example.al_mirath.model.DelayedConsequence;
 import com.example.al_mirath.model.FactionRelations;
@@ -8,9 +9,12 @@ import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.GameSnapshot;
 import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.model.Renown;
+import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.DeathCause;
+import com.example.al_mirath.model.Dynasty;
+import com.example.al_mirath.model.EarnedTitle;
 import com.example.al_mirath.model.EndingResult;
 import com.example.al_mirath.model.FamilyMember;
 
@@ -38,6 +42,10 @@ public class GameEngine {
     private final RecurringCharacterRegistry recurringCharacters;
     private final FamilyRegistry family;
     private final RenownRegistry renown;
+    private final CityRegistry cities;
+    private final Dynasty dynasty;
+
+    private final TitleForge titleForge = new TitleForge();
 
     private final Map<String, Integer> maxEventsByStage = Map.of(
             "Childhood", 5,
@@ -112,6 +120,8 @@ public class GameEngine {
 
         this.family = FamilyRegistry.createFor(player);
         this.renown = new RenownRegistry();
+        this.cities = CityRegistry.createFor(player);
+        this.dynasty = Dynasty.foundedBy(player);
 
         this.eventPool = EventLibrary.createEventPool();
     }
@@ -128,6 +138,8 @@ public class GameEngine {
             RecurringCharacterRegistry recurringCharacters,
             FamilyRegistry family,
             RenownRegistry renown,
+            CityRegistry cities,
+            Dynasty dynasty,
             int currentStageIndex,
             Map<String, Integer> stageEventsPlayed,
             Set<String> playedEventTitles,
@@ -151,6 +163,13 @@ public class GameEngine {
 
         this.renown = renown == null ? new RenownRegistry() : renown;
 
+        this.cities =
+                cities == null
+                        ? CityRegistry.createFor(player)
+                        : cities;
+
+        this.dynasty = dynasty == null ? Dynasty.foundedBy(player) : dynasty;
+
         this.eventPool = EventLibrary.createEventPool();
 
         this.currentStageIndex = currentStageIndex;
@@ -158,7 +177,7 @@ public class GameEngine {
         this.playedEventTitles.addAll(playedEventTitles);
 
         if (currentEventTitle != null) {
-            this.currentEvent = findByTitle(eventPool, currentEventTitle);
+            this.currentEvent = situate(findByTitle(eventPool, currentEventTitle));
 
             if (this.currentEvent == null) {
                 this.currentEvent = findByTitle(
@@ -173,7 +192,100 @@ public class GameEngine {
                         currentEventTitle
                 );
             }
+
+            if (this.currentEvent == null) {
+                this.currentEvent = findByTitle(
+                        CityEvents.create(this.cities),
+                        currentEventTitle
+                );
+            }
         }
+    }
+
+    /**
+     * Everyone who could carry the house on, best claim first.
+     *
+     * @return empty when the line ends here, which is a real outcome
+     */
+    public List<Succession> getSuccessors() {
+        return SuccessionService.candidates(family, recurringCharacters);
+    }
+
+    public boolean hasSuccessor() {
+        return !getSuccessors().isEmpty();
+    }
+
+    /**
+     * Hands the house to an heir and returns the life they will live in it.
+     *
+     * <p>The world is not rebuilt. The cities keep their sieges and their good
+     * decades, the cast keep their grudges — a rival's son is already waiting
+     * for a rival's son — and what the last generation was famous enough for
+     * to have travelled is still being said, at half its force, about the
+     * house rather than the person. What resets is the body and the record:
+     * the heir's health, learning and nerve are their own, and the titles and
+     * story flags belonged to whoever earned them.
+     *
+     * @return the heir's engine, or null when this succession is not on offer
+     */
+    public GameEngine succeedTo(Succession heir) {
+        if (heir == null || !getSuccessors().contains(heir)) {
+            return null;
+        }
+
+        // Work out how this life ended before writing it into the chronicle.
+        EndingResult ending = getEndingResult();
+
+        PlayerCharacter successor = SuccessionService.heirOf(heir, player, family, random);
+
+        // The house remembers who it has already been.
+        Dynasty continued = Dynasty.fromJson(dynasty.toJson());
+        continued.succeed(
+                player,
+                getEarnedTitle(),
+                ending == null ? "" : ending.getTitle()
+        );
+
+        FamilyRegistry household = FamilyRegistry.fromJson(family.toJson());
+
+        if (!household.succeedTo(heir.id())) {
+            // A student rather than a descendant: they bring no household of
+            // the forebear's with them, only the house's name.
+            household = FamilyRegistry.createFor(successor);
+        }
+
+        GameEngine next = new GameEngine(
+                successor,
+                SuccessionService.regardInheritedFrom(factions),
+                new WorldState(),
+                RecurringCharacterRegistry.fromJson(recurringCharacters.toJson()),
+                household,
+                renown.inheritedByTheHouse(),
+                CityRegistry.fromJson(cities.toJson()),
+                continued,
+                SuccessionService.stageIndexForAge(successor.getAge()),
+                Map.of(),
+                Set.of(),
+                null
+        );
+
+        // The heir's first scene is chosen the same way every other scene is,
+        // on the first look at it.
+        return next;
+    }
+
+    public Dynasty getDynasty() {
+        return dynasty;
+    }
+
+    /** "the House of Yusuf, third generation". */
+    public String getHouseStyling() {
+        return dynasty.styling();
+    }
+
+    /** Everyone who has already carried the name. */
+    public String getDynastyChronicle() {
+        return dynasty.chronicle();
     }
 
     private static GameEvent findByTitle(List<GameEvent> source, String title) {
@@ -254,6 +366,8 @@ public class GameEngine {
 
         root.put("family", family.toJson());
         root.put("renown", renown.toJson());
+        root.put("cities", cities.toJson());
+        root.put("dynasty", dynasty.toJson());
 
         return root.toString();
     }
@@ -309,6 +423,16 @@ public class GameEngine {
             family = FamilyRegistry.createFor(player);
         }
 
+        CityRegistry cities =
+                root.has("cities")
+                        ? CityRegistry.fromJson(root.getJSONObject("cities"))
+                        : CityRegistry.createFor(player);
+
+        Dynasty dynasty =
+                root.has("dynasty")
+                        ? Dynasty.fromJson(root.getJSONObject("dynasty"))
+                        : Dynasty.foundedBy(player);
+
         RenownRegistry renown =
                 root.has("renown")
                         ? RenownRegistry.fromJson(root.getJSONObject("renown"))
@@ -362,6 +486,8 @@ public class GameEngine {
                 recurringCharacters,
                 family,
                 renown,
+                cities,
+                dynasty,
                 root.getInt("currentStageIndex"),
                 stageEventsPlayed,
                 playedEventTitles,
@@ -446,6 +572,40 @@ public class GameEngine {
         Renown known = renown.publicName();
 
         return known == null ? "" : known.epithet();
+    }
+
+    /**
+     * The forged title history leads with — the highest-standing name the life
+     * has grown into — or an empty string while it has grown into none.
+     *
+     * <p>Distinct from {@link #getPublicName()}: that is the deed a particular
+     * crowd watched you do, this is what the life as a whole is called.
+     */
+    public String getEarnedTitle() {
+        EarnedTitle crown = titleForge.crowningTitle(
+                titleForge.forge(player, factions, worldState)
+        );
+
+        return crown == null ? "" : crown.text();
+    }
+
+    public CityRegistry getCities() {
+        return cities;
+    }
+
+    /** Where the player is standing, for the header. */
+    public String getCurrentCityName() {
+        return cities.currentCityName();
+    }
+
+    /** The city panel's text, as one block. */
+    public String getCitySummary() {
+        return cities.whereYouAreSummary();
+    }
+
+    /** The city the player is standing in. */
+    public City getCurrentCity() {
+        return cities.currentCity();
     }
 
     /** The Household panel's text. */
@@ -830,6 +990,16 @@ public class GameEngine {
                 )
         );
 
+        // Where the player is standing draws at cast weight too: a siege is
+        // not background scenery to the person inside it.
+        cast.addAll(
+                eligibleIn(
+                        CityEvents.create(cities),
+                        stage,
+                        consequenceOnly
+                )
+        );
+
         List<GameEvent> general = eligibleIn(
                 eventPool,
                 stage,
@@ -857,9 +1027,46 @@ public class GameEngine {
 
         int roll = random.nextInt(total);
 
-        return roll < castShare
-                ? cast.get(roll / CAST_EVENT_WEIGHT)
-                : general.get(roll - castShare);
+        if (roll < castShare) {
+            return cast.get(roll / CAST_EVENT_WEIGHT);
+        }
+
+        // Cast, household and city events all say where they happen. Pool
+        // events were written to happen nowhere in particular, so putting one
+        // in front of the player means saying where they are standing.
+        return situate(general.get(roll - castShare));
+    }
+
+    /**
+     * Puts a placeless scene somewhere.
+     *
+     * <p>Returns a copy rather than editing the event: {@code eventPool} is
+     * built once and reused for the whole run, so amending an event in place
+     * would leave one decade's city welded to it for every later life stage.
+     */
+    private GameEvent situate(GameEvent event) {
+        if (event == null) {
+            return null;
+        }
+
+        String where = cities.situate();
+
+        if (where.isBlank()) {
+            return event;
+        }
+
+        return new GameEvent(
+                event.getTitle(),
+                where + "\n\n" + event.getDescription(),
+                event.getLifeStage(),
+                event.getChoices(),
+                event.getAllowedEras(),
+                event.getAllowedOrigins(),
+                event.getBlockedFamilyConditions(),
+                event.getAllowedCurrentStatuses(),
+                event.getRequiredFlags(),
+                event.getBlockedFlags()
+        );
     }
 
     private List<GameEvent> eligibleIn(
@@ -956,6 +1163,7 @@ public class GameEngine {
 
             family.applyStoryFlag(flag);
             renown.record(flag);
+            cities.applyStoryFlag(flag);
         }
 
         int yearsPassed = advanceAgeAfterEvent();
@@ -969,6 +1177,7 @@ public class GameEngine {
         );
 
         renown.spread(yearsPassed, player);
+        pendingCastAnnouncements.addAll(cities.advanceYears(yearsPassed));
         recoverStressOverTime(yearsPassed);
         updateCurrentStatus();
         checkMortalityAfterChoice(choice, success);
@@ -1079,7 +1288,8 @@ public class GameEngine {
                 choice == null ? "" : choice.getText(),
                 recurringCharacters.toJson().toString(),
                 family.toJson().toString(),
-                renown.toJson().toString()
+                renown.toJson().toString(),
+                cities.toJson().toString()
         );
     }
 
@@ -1196,6 +1406,14 @@ public class GameEngine {
             );
         }
 
+        String citiesJson = snapshot.getCitiesJson();
+
+        if (citiesJson != null && !citiesJson.isBlank()) {
+            cities.replaceWith(
+                    CityRegistry.fromJson(new JSONObject(citiesJson))
+            );
+        }
+
         currentStageIndex = snapshot.getCurrentStageIndex();
 
         stageEventsPlayed.clear();
@@ -1214,7 +1432,7 @@ public class GameEngine {
         String title = snapshot.getCurrentEventTitle();
 
         if (title != null) {
-            currentEvent = findByTitle(eventPool, title);
+            currentEvent = situate(findByTitle(eventPool, title));
 
             if (currentEvent == null) {
                 currentEvent = findByTitle(
@@ -1226,6 +1444,13 @@ public class GameEngine {
             if (currentEvent == null) {
                 currentEvent = findByTitle(
                         FamilyEvents.create(family, renown),
+                        title
+                );
+            }
+
+            if (currentEvent == null) {
+                currentEvent = findByTitle(
+                        CityEvents.create(cities),
                         title
                 );
             }
@@ -1509,145 +1734,21 @@ public class GameEngine {
         }
     }
 
+    /**
+     * Names the life has grown into since the last choice.
+     *
+     * <p>These used to be a fixed shelf of two dozen honorifics keyed off stat
+     * thresholds — clear the line, get the same three words. {@link TitleForge}
+     * builds them from the shape of the life instead, so the arena, the era,
+     * and a defining trait or secondary stat all change which words you carry.
+     * Everything downstream (the record, the score, the achievements) still
+     * sees a plain list of strings.
+     */
     private String checkForNewLegacyTitles() {
         StringBuilder message = new StringBuilder();
 
-        if (worldState.hasFlag("protected_commoners")
-                && player.getReputation() >= 55
-                && factions.getCommonPeople() >= 65) {
-            addTitleMessage(message, "Hero of the People");
-        }
-
-        if (worldState.hasFlag("protected_commoners")
-                && factions.getCommonPeople() >= 70
-                && player.getWealth() <= 20) {
-            addTitleMessage(message, "Voice of the Poor");
-        }
-
-        if (player.getEducation() >= 80
-                && factions.getScholars() >= 70
-                && player.getReputation() >= 45) {
-            addTitleMessage(message, "Light of the Madrasa");
-        }
-
-        if (player.getEducation() >= 75
-                && player.getMorality() >= 75
-                && factions.getScholars() >= 65) {
-            addTitleMessage(message, "The Wise Judge");
-        }
-
-        if (worldState.hasFlag("angered_scholars")
-                && player.getEducation() >= 65
-                && factions.getScholars() <= 20) {
-            addTitleMessage(message, "Heretic in the Court");
-        }
-
-        if (player.getPoliticalPower() >= 65
-                && factions.getMilitary() >= 70
-                && player.getReputation() >= 50) {
-            addTitleMessage(message, "Sword of the Realm");
-        }
-
-        if (player.getHealth() >= 75
-                && factions.getMilitary() >= 70
-                && player.getReputation() >= 55) {
-            addTitleMessage(message, "Frontier Hero");
-        }
-
-        if (player.getMorality() <= 20
-                && factions.getMilitary() >= 75
-                && player.getPoliticalPower() >= 55) {
-            addTitleMessage(message, "Blood General");
-        }
-
-        if (player.getWealth() >= 75
-                && factions.getMerchants() >= 70) {
-            addTitleMessage(message, "Golden Hand");
-        }
-
-        if (player.getWealth() >= 65
-                && factions.getMerchants() >= 80) {
-            addTitleMessage(message, "Master of Caravans");
-        }
-
-        if (player.getWealth() >= 80
-                && player.getMorality() <= 25) {
-            addTitleMessage(message, "Coin-Bound Soul");
-        }
-
-        if (worldState.hasFlag("declared_loyalty")
-                && player.getPoliticalPower() >= 60
-                && factions.getCourt() >= 70) {
-            addTitleMessage(message, "Dynasty Loyalist");
-        }
-
-        if (factions.getCourt() >= 70
-                && player.getStress() >= 80
-                && player.getPoliticalPower() >= 50) {
-            addTitleMessage(message, "Court Survivor");
-        }
-
-        if (player.getPoliticalPower() >= 80
-                && player.getReputation() >= 60) {
-            addTitleMessage(message, "Rising Power");
-        }
-
-        if (factions.getCourt() <= 15
-                && player.getPoliticalPower() >= 60) {
-            addTitleMessage(message, "Enemy of the Court");
-        }
-
-        if ((worldState.hasFlag("used_shadow_contacts")
-                || worldState.hasFlag("sold_palace_secret")
-                || worldState.hasFlag("learned_palace_secrets"))
-                && player.getPoliticalPower() >= 55
-                && factions.getShadowNetwork() >= 65) {
-            addTitleMessage(message, "Knife in the Dark");
-        }
-
-        if (factions.getShadowNetwork() >= 80
-                && player.getReputation() <= 35) {
-            addTitleMessage(message, "Whisper Lord");
-        }
-
-        if ((worldState.hasFlag("betrayed_comrade") || worldState.hasFlag("sold_palace_secret"))
-                && player.getMorality() <= 25
-                && player.getFamilyLoyalty() <= 40) {
-            addTitleMessage(message, "The Betrayer");
-        }
-
-        if (player.getFamilyLoyalty() >= 85
-                && player.getMorality() >= 60) {
-            addTitleMessage(message, "Bloodline Protector");
-        }
-
-        if (player.getFamilyCondition().equals("Recently Orphaned")
-                && player.getReputation() >= 60
-                && player.getStress() >= 70) {
-            addTitleMessage(message, "Orphan of Iron");
-        }
-
-        if (player.getFamilyCondition().equals("Disgraced Bloodline")
-                && player.getReputation() >= 65
-                && player.getPoliticalPower() >= 45) {
-            addTitleMessage(message, "Restorer of Honor");
-        }
-
-        if (player.getFamilyCondition().equals("Exiled Branch")
-                && player.getPoliticalPower() >= 65
-                && factions.getCourt() >= 50) {
-            addTitleMessage(message, "Returned from Exile");
-        }
-
-        if (player.getStress() >= 90
-                && player.getHealth() >= 45
-                && player.getReputation() >= 45) {
-            addTitleMessage(message, "Burdened Survivor");
-        }
-
-        if (player.getHealth() <= 20
-                && player.getReputation() >= 60) {
-            addTitleMessage(message, "Fading Legend");
+        for (EarnedTitle title : titleForge.forge(player, factions, worldState)) {
+            addTitleMessage(message, title.text());
         }
 
         return message.toString();
@@ -1780,12 +1881,15 @@ public class GameEngine {
     }
 
     public String getLifeSummary() {
+        String crown = getEarnedTitle();
+
         return "\n\n----- Life Summary -----\n"
                 + "Age: " + player.getAge() + "\n"
                 + "Origin: " + player.getOrigin() + "\n"
                 + "Final Status: " + player.getCurrentStatus() + "\n"
                 + "Family Condition: " + player.getFamilyCondition() + "\n"
                 + "Trait: " + player.getTrait() + "\n"
+                + (crown.isBlank() ? "" : "Known to history as: " + crown + "\n")
                 + "Legacy Titles: " + player.getLegacyTitlesText() + "\n\n"
                 + "Major Memories:\n"
                 + getMajorMemoriesText();

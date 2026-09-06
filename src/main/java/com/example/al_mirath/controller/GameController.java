@@ -4,6 +4,7 @@ import com.example.al_mirath.Main;
 import com.example.al_mirath.model.Choice;
 import com.example.al_mirath.model.City;
 import com.example.al_mirath.model.EndingResult;
+import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.model.FactionRelations;
 import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.LegacyRecord;
@@ -82,6 +83,9 @@ public class GameController implements ScreenLifecycle {
     /** Held so dispose() can end it; it runs indefinitely otherwise. */
     private Timeline backgroundMotion;
     private boolean finalChronicleShown = false;
+
+    /** Heirs on offer once a life has ended; empty while one is running. */
+    private java.util.List<Succession> pendingSuccessors = java.util.List.of();
 
     private boolean characterDrawerOpen = false;
     private boolean factionDrawerOpen = false;
@@ -279,6 +283,7 @@ public class GameController implements ScreenLifecycle {
         legacyRecorded = false;
         birthIntroShown = continuingGame;
         finalChronicleShown = false;
+        pendingSuccessors = java.util.List.of();
 
         pendingFateTokenMessage = "";
         pendingWorldEventTitle = "";
@@ -1238,16 +1243,22 @@ public class GameController implements ScreenLifecycle {
                 legacyRecorded = true;
             }
 
-            choiceButton1.setVisible(false);
-            choiceButton1.setManaged(false);
+            pendingSuccessors = engine.getSuccessors();
 
-            choiceButton2.setVisible(false);
-            choiceButton2.setManaged(false);
+            if (pendingSuccessors.isEmpty()) {
+                choiceButton1.setVisible(false);
+                choiceButton1.setManaged(false);
 
-            choiceButton3.setVisible(false);
-            choiceButton3.setManaged(false);
+                choiceButton2.setVisible(false);
+                choiceButton2.setManaged(false);
 
-            setGameplayPanelsVisible(false);
+                choiceButton3.setVisible(false);
+                choiceButton3.setManaged(false);
+
+                setGameplayPanelsVisible(false);
+            } else {
+                showSuccessionOffer();
+            }
 
             if (!finalChronicleShown) {
                 finalChronicleShown = true;
@@ -1319,6 +1330,86 @@ public class GameController implements ScreenLifecycle {
         descriptionFade.play();
     }
 
+    /**
+     * Offers the house to whoever can carry it.
+     *
+     * <p>Reuses the ordinary event panel rather than inventing a screen: the
+     * heirs are read and chosen between exactly the way every other decision
+     * in the game is.
+     */
+    private void showSuccessionOffer() {
+        eventTitleLabel.setText("The House Passes On");
+
+        typewriteDescription(
+                engine.getPlayer().getName() + " is gone, and "
+                        + engine.getHouseStyling()
+                        + " has to be carried by somebody.\n\n"
+                        + "What they built stands where they left it. The city is "
+                        + "the city they made or failed to mend, the people who "
+                        + "owed them still owe, and the ones who hated them have "
+                        + "children of their own now.\n\n"
+                        + "Whose life do you take up?"
+        );
+
+        Button[] buttons = {choiceButton1, choiceButton2, choiceButton3};
+
+        for (int i = 0; i < buttons.length; i++) {
+            Button button = buttons[i];
+
+            if (button == null) {
+                continue;
+            }
+
+            boolean offered = i < pendingSuccessors.size();
+
+            button.setVisible(offered);
+            button.setManaged(offered);
+
+            if (offered) {
+                Succession heir = pendingSuccessors.get(i);
+
+                button.setWrapText(true);
+                button.setTooltip(null);
+                button.setDisable(false);
+                button.setText(heir.offer() + "\n" + heir.describe());
+            }
+        }
+
+        fadeEventText();
+    }
+
+    /** Takes up the heir's life, keeping the world the last one left behind. */
+    private void takeUpTheLineAs(int index) {
+        if (index >= pendingSuccessors.size()) {
+            return;
+        }
+
+        GameEngine continued = engine.succeedTo(pendingSuccessors.get(index));
+
+        if (continued == null) {
+            return;
+        }
+
+        engine = continued;
+
+        pendingSuccessors = java.util.List.of();
+        legacyRecorded = false;
+        finalChronicleShown = false;
+        birthIntroShown = true;
+        rewindOfferAvailable = false;
+
+        pendingLegacyTitleMessage = "";
+        pendingStatusChangeMessage = "";
+        pendingFateTokenMessage = "";
+        pendingWorldEventTitle = "";
+        pendingWorldEventMessage = "";
+        pendingEchoTitle = "";
+        pendingEchoMessage = "";
+
+        setGameplayPanelsVisible(true);
+        loadCurrentEvent();
+    }
+
     private void configureChoiceButton(Button button, Choice choice) {
         String lockedReason = engine.getLockedReason(choice);
 
@@ -1355,6 +1446,12 @@ public class GameController implements ScreenLifecycle {
 
     @FXML
     private void choose(int index) {
+        // Once a life has ended, the same three buttons choose an heir.
+        if (!pendingSuccessors.isEmpty()) {
+            takeUpTheLineAs(index);
+            return;
+        }
+
         GameEvent event = engine.getCurrentEvent();
 
         if (event == null || index >= event.getChoices().size()) {
@@ -2109,6 +2206,7 @@ public class GameController implements ScreenLifecycle {
         legacyRecorded = false;
         birthIntroShown = true;
         finalChronicleShown = false;
+        pendingSuccessors = java.util.List.of();
 
         if (resultPopup != null) {
             resultPopup.setVisible(false);

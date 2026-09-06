@@ -9,9 +9,11 @@ import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.GameSnapshot;
 import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.model.Renown;
+import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.DeathCause;
+import com.example.al_mirath.model.Dynasty;
 import com.example.al_mirath.model.EarnedTitle;
 import com.example.al_mirath.model.EndingResult;
 import com.example.al_mirath.model.FamilyMember;
@@ -41,6 +43,7 @@ public class GameEngine {
     private final FamilyRegistry family;
     private final RenownRegistry renown;
     private final CityRegistry cities;
+    private final Dynasty dynasty;
 
     private final TitleForge titleForge = new TitleForge();
 
@@ -118,6 +121,7 @@ public class GameEngine {
         this.family = FamilyRegistry.createFor(player);
         this.renown = new RenownRegistry();
         this.cities = CityRegistry.createFor(player);
+        this.dynasty = Dynasty.foundedBy(player);
 
         this.eventPool = EventLibrary.createEventPool();
     }
@@ -135,6 +139,7 @@ public class GameEngine {
             FamilyRegistry family,
             RenownRegistry renown,
             CityRegistry cities,
+            Dynasty dynasty,
             int currentStageIndex,
             Map<String, Integer> stageEventsPlayed,
             Set<String> playedEventTitles,
@@ -162,6 +167,8 @@ public class GameEngine {
                 cities == null
                         ? CityRegistry.createFor(player)
                         : cities;
+
+        this.dynasty = dynasty == null ? Dynasty.foundedBy(player) : dynasty;
 
         this.eventPool = EventLibrary.createEventPool();
 
@@ -193,6 +200,92 @@ public class GameEngine {
                 );
             }
         }
+    }
+
+    /**
+     * Everyone who could carry the house on, best claim first.
+     *
+     * @return empty when the line ends here, which is a real outcome
+     */
+    public List<Succession> getSuccessors() {
+        return SuccessionService.candidates(family, recurringCharacters);
+    }
+
+    public boolean hasSuccessor() {
+        return !getSuccessors().isEmpty();
+    }
+
+    /**
+     * Hands the house to an heir and returns the life they will live in it.
+     *
+     * <p>The world is not rebuilt. The cities keep their sieges and their good
+     * decades, the cast keep their grudges — a rival's son is already waiting
+     * for a rival's son — and what the last generation was famous enough for
+     * to have travelled is still being said, at half its force, about the
+     * house rather than the person. What resets is the body and the record:
+     * the heir's health, learning and nerve are their own, and the titles and
+     * story flags belonged to whoever earned them.
+     *
+     * @return the heir's engine, or null when this succession is not on offer
+     */
+    public GameEngine succeedTo(Succession heir) {
+        if (heir == null || !getSuccessors().contains(heir)) {
+            return null;
+        }
+
+        // Work out how this life ended before writing it into the chronicle.
+        EndingResult ending = getEndingResult();
+
+        PlayerCharacter successor = SuccessionService.heirOf(heir, player, family, random);
+
+        // The house remembers who it has already been.
+        Dynasty continued = Dynasty.fromJson(dynasty.toJson());
+        continued.succeed(
+                player,
+                getEarnedTitle(),
+                ending == null ? "" : ending.getTitle()
+        );
+
+        FamilyRegistry household = FamilyRegistry.fromJson(family.toJson());
+
+        if (!household.succeedTo(heir.id())) {
+            // A student rather than a descendant: they bring no household of
+            // the forebear's with them, only the house's name.
+            household = FamilyRegistry.createFor(successor);
+        }
+
+        GameEngine next = new GameEngine(
+                successor,
+                SuccessionService.regardInheritedFrom(factions),
+                new WorldState(),
+                RecurringCharacterRegistry.fromJson(recurringCharacters.toJson()),
+                household,
+                renown.inheritedByTheHouse(),
+                CityRegistry.fromJson(cities.toJson()),
+                continued,
+                SuccessionService.stageIndexForAge(successor.getAge()),
+                Map.of(),
+                Set.of(),
+                null
+        );
+
+        // The heir's first scene is chosen the same way every other scene is,
+        // on the first look at it.
+        return next;
+    }
+
+    public Dynasty getDynasty() {
+        return dynasty;
+    }
+
+    /** "the House of Yusuf, third generation". */
+    public String getHouseStyling() {
+        return dynasty.styling();
+    }
+
+    /** Everyone who has already carried the name. */
+    public String getDynastyChronicle() {
+        return dynasty.chronicle();
     }
 
     private static GameEvent findByTitle(List<GameEvent> source, String title) {
@@ -274,6 +367,7 @@ public class GameEngine {
         root.put("family", family.toJson());
         root.put("renown", renown.toJson());
         root.put("cities", cities.toJson());
+        root.put("dynasty", dynasty.toJson());
 
         return root.toString();
     }
@@ -334,6 +428,11 @@ public class GameEngine {
                         ? CityRegistry.fromJson(root.getJSONObject("cities"))
                         : CityRegistry.createFor(player);
 
+        Dynasty dynasty =
+                root.has("dynasty")
+                        ? Dynasty.fromJson(root.getJSONObject("dynasty"))
+                        : Dynasty.foundedBy(player);
+
         RenownRegistry renown =
                 root.has("renown")
                         ? RenownRegistry.fromJson(root.getJSONObject("renown"))
@@ -388,6 +487,7 @@ public class GameEngine {
                 family,
                 renown,
                 cities,
+                dynasty,
                 root.getInt("currentStageIndex"),
                 stageEventsPlayed,
                 playedEventTitles,

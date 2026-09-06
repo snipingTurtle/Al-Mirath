@@ -220,6 +220,29 @@ public final class RenownRegistry {
         return "Known only to those who were there";
     }
 
+    /**
+     * What the next generation inherits of the name.
+     *
+     * <p>A house is remembered for what actually got out of the room. Stories
+     * that never travelled past the people who watched them die with the
+     * person who did them; the ones that spread outlive them, at half their
+     * force, because the heir is not the one who did it — they are only the
+     * one who is from that house.
+     */
+    public RenownRegistry inheritedByTheHouse() {
+        RenownRegistry inherited = new RenownRegistry();
+
+        for (Map.Entry<Renown, Integer> story : reach.entrySet()) {
+            if (story.getValue() < REACH_BEYOND_WITNESSES) {
+                continue;
+            }
+
+            inherited.reach.put(story.getKey(), clamp(story.getValue() / 2));
+        }
+
+        return inherited;
+    }
+
     // ---- persistence -----------------------------------------------------
 
     public JSONObject toJson() {

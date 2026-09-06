@@ -449,6 +449,82 @@ public final class FamilyRegistry {
         }
     }
 
+    /**
+     * Rebuilds the household around whichever descendant is taking the name.
+     *
+     * <p>The heir stops being a member and becomes the player. Everyone whose
+     * place in the house was defined by the person who just died leaves with
+     * them: the forebear's parents, their spouse, and the dead. What remains
+     * is the heir's own generation — their brothers and sisters — and any
+     * children already theirs.
+     *
+     * @return true when the heir was found and the household was reshaped
+     */
+    public boolean succeedTo(String heirId) {
+        FamilyMember heir = members.get(heirId);
+
+        if (heir == null || !heir.getKinship().isDescendant()) {
+            return false;
+        }
+
+        Map<String, FamilyMember> household = new LinkedHashMap<>();
+
+        for (FamilyMember member : members.values()) {
+            if (member.getId().equals(heirId) || !member.isAlive()) {
+                continue;
+            }
+
+            Kinship becomes = kinshipUnder(heir, member);
+
+            if (becomes == null) {
+                continue;
+            }
+
+            household.put(
+                    member.getId(),
+                    new FamilyMember(
+                            member.getId(),
+                            member.getName(),
+                            becomes,
+                            member.getTrait(),
+                            member.getAge(),
+                            member.getAffection(),
+                            true,
+                            member.getLifePath(),
+                            becomes == Kinship.CHILD ? "" : member.getParentId()
+                    )
+            );
+        }
+
+        members.clear();
+        members.putAll(household);
+
+        // The heir has had no children of their own on this clock yet.
+        lastBirthAge = -1;
+
+        return true;
+    }
+
+    /**
+     * What a surviving member becomes once the heir is the one holding the
+     * house, or null for anyone whose place in it has gone.
+     */
+    private Kinship kinshipUnder(FamilyMember heir, FamilyMember member) {
+        // The heir's own children come with them; everyone else's do not.
+        if (member.getKinship() == Kinship.GRANDCHILD) {
+            return heir.getId().equals(member.getParentId()) ? Kinship.CHILD : null;
+        }
+
+        // The forebear's other children are the heir's brothers and sisters.
+        if (member.getKinship() == Kinship.CHILD) {
+            return Kinship.SIBLING;
+        }
+
+        // Parents, spouse and the heir's aunts and uncles belonged to the life
+        // that has just ended.
+        return null;
+    }
+
     // ---- reading the household ------------------------------------------
 
     public List<FamilyMember> all() {

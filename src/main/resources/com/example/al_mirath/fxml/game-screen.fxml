@@ -379,7 +379,7 @@
 
         <Region VBox.vgrow="ALWAYS"/>
 
-        <Label text="This scroll records your bloodline, age, family condition, traits, and earned titles."
+        <Label minHeight="-Infinity" text="This scroll records your bloodline, age, family condition, traits, and earned titles."
                wrapText="true"
                maxWidth="235"
                textAlignment="CENTER"
@@ -530,7 +530,7 @@
                     hbarPolicy="NEVER"
                     vbarPolicy="AS_NEEDED"
                     pannable="true"
-                    prefViewportHeight="380"
+                    prefViewportHeight="340"
                     maxWidth="245"
                     VBox.vgrow="ALWAYS">
 
@@ -619,7 +619,7 @@
             </content>
         </ScrollPane>
 
-        <Label text="Cities go on without you. These are the others of your age, and how they are faring."
+        <Label minHeight="-Infinity" text="Cities change while you are elsewhere."
                wrapText="true"
                maxWidth="235"
                alignment="CENTER">
@@ -734,7 +734,7 @@
             </content>
         </ScrollPane>
 
-        <Label text="Your blood, the people who keep returning, and what the world says about you."
+        <Label minHeight="-Infinity" text="Your blood, the people who keep returning, and what the world says about you."
                wrapText="true"
                maxWidth="235"
                textAlignment="CENTER"

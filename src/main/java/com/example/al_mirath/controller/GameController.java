@@ -934,23 +934,32 @@ public class GameController implements ScreenLifecycle {
             hudFade.play();
         }
 
-        if (characterDrawerButton != null) {
-            characterDrawerButton.setVisible(visible);
-            characterDrawerButton.setManaged(visible);
-            characterDrawerButton.setMouseTransparent(!visible);
+        // Every handle, together. This was three copy-pasted blocks, so
+        // adding a fourth drawer left its tab showing over the birth intro
+        // while the other three were correctly hidden.
+        for (Button handle : drawerHandles()) {
+            handle.setVisible(visible);
+            handle.setManaged(visible);
+            handle.setMouseTransparent(!visible);
+        }
+    }
+
+    /** Every drawer tab on the edge of the screen, skipping any not loaded. */
+    private java.util.List<Button> drawerHandles() {
+        java.util.List<Button> handles = new java.util.ArrayList<>();
+
+        for (Button handle : new Button[]{
+                characterDrawerButton,
+                factionDrawerButton,
+                relationsDrawerButton,
+                cityDrawerButton
+        }) {
+            if (handle != null) {
+                handles.add(handle);
+            }
         }
 
-        if (factionDrawerButton != null) {
-            factionDrawerButton.setVisible(visible);
-            factionDrawerButton.setManaged(visible);
-            factionDrawerButton.setMouseTransparent(!visible);
-        }
-
-        if (relationsDrawerButton != null) {
-            relationsDrawerButton.setVisible(visible);
-            relationsDrawerButton.setManaged(visible);
-            relationsDrawerButton.setMouseTransparent(!visible);
-        }
+        return handles;
     }
 
     private void fadeNode(Node node, double targetOpacity) {

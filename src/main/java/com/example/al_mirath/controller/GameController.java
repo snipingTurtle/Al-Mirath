@@ -939,7 +939,13 @@ public class GameController implements ScreenLifecycle {
     private void updateCharacterInfo() {
         PlayerCharacter player = engine.getPlayer();
 
-        if (nameLabel != null) nameLabel.setText("Name: " + player.getName());
+        if (nameLabel != null) {
+            String styled = engine.getEarnedTitle();
+            nameLabel.setText(
+                    "Name: " + player.getName()
+                            + (styled.isBlank() ? "" : "  —  " + styled)
+            );
+        }
         if (eraLabel != null) eraLabel.setText("Era: " + player.getEra());
         if (originLabel != null) originLabel.setText("Origin: " + player.getOrigin());
 

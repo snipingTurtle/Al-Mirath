@@ -11,6 +11,7 @@ import com.example.al_mirath.model.Renown;
 import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.DeathCause;
+import com.example.al_mirath.model.EarnedTitle;
 import com.example.al_mirath.model.EndingResult;
 import com.example.al_mirath.model.FamilyMember;
 
@@ -38,6 +39,8 @@ public class GameEngine {
     private final RecurringCharacterRegistry recurringCharacters;
     private final FamilyRegistry family;
     private final RenownRegistry renown;
+
+    private final TitleForge titleForge = new TitleForge();
 
     private final Map<String, Integer> maxEventsByStage = Map.of(
             "Childhood", 5,
@@ -446,6 +449,21 @@ public class GameEngine {
         Renown known = renown.publicName();
 
         return known == null ? "" : known.epithet();
+    }
+
+    /**
+     * The forged title history leads with — the highest-standing name the life
+     * has grown into — or an empty string while it has grown into none.
+     *
+     * <p>Distinct from {@link #getPublicName()}: that is the deed a particular
+     * crowd watched you do, this is what the life as a whole is called.
+     */
+    public String getEarnedTitle() {
+        EarnedTitle crown = titleForge.crowningTitle(
+                titleForge.forge(player, factions, worldState)
+        );
+
+        return crown == null ? "" : crown.text();
     }
 
     /** The Household panel's text. */
@@ -1509,145 +1527,21 @@ public class GameEngine {
         }
     }
 
+    /**
+     * Names the life has grown into since the last choice.
+     *
+     * <p>These used to be a fixed shelf of two dozen honorifics keyed off stat
+     * thresholds — clear the line, get the same three words. {@link TitleForge}
+     * builds them from the shape of the life instead, so the arena, the era,
+     * and a defining trait or secondary stat all change which words you carry.
+     * Everything downstream (the record, the score, the achievements) still
+     * sees a plain list of strings.
+     */
     private String checkForNewLegacyTitles() {
         StringBuilder message = new StringBuilder();
 
-        if (worldState.hasFlag("protected_commoners")
-                && player.getReputation() >= 55
-                && factions.getCommonPeople() >= 65) {
-            addTitleMessage(message, "Hero of the People");
-        }
-
-        if (worldState.hasFlag("protected_commoners")
-                && factions.getCommonPeople() >= 70
-                && player.getWealth() <= 20) {
-            addTitleMessage(message, "Voice of the Poor");
-        }
-
-        if (player.getEducation() >= 80
-                && factions.getScholars() >= 70
-                && player.getReputation() >= 45) {
-            addTitleMessage(message, "Light of the Madrasa");
-        }
-
-        if (player.getEducation() >= 75
-                && player.getMorality() >= 75
-                && factions.getScholars() >= 65) {
-            addTitleMessage(message, "The Wise Judge");
-        }
-
-        if (worldState.hasFlag("angered_scholars")
-                && player.getEducation() >= 65
-                && factions.getScholars() <= 20) {
-            addTitleMessage(message, "Heretic in the Court");
-        }
-
-        if (player.getPoliticalPower() >= 65
-                && factions.getMilitary() >= 70
-                && player.getReputation() >= 50) {
-            addTitleMessage(message, "Sword of the Realm");
-        }
-
-        if (player.getHealth() >= 75
-                && factions.getMilitary() >= 70
-                && player.getReputation() >= 55) {
-            addTitleMessage(message, "Frontier Hero");
-        }
-
-        if (player.getMorality() <= 20
-                && factions.getMilitary() >= 75
-                && player.getPoliticalPower() >= 55) {
-            addTitleMessage(message, "Blood General");
-        }
-
-        if (player.getWealth() >= 75
-                && factions.getMerchants() >= 70) {
-            addTitleMessage(message, "Golden Hand");
-        }
-
-        if (player.getWealth() >= 65
-                && factions.getMerchants() >= 80) {
-            addTitleMessage(message, "Master of Caravans");
-        }
-
-        if (player.getWealth() >= 80
-                && player.getMorality() <= 25) {
-            addTitleMessage(message, "Coin-Bound Soul");
-        }
-
-        if (worldState.hasFlag("declared_loyalty")
-                && player.getPoliticalPower() >= 60
-                && factions.getCourt() >= 70) {
-            addTitleMessage(message, "Dynasty Loyalist");
-        }
-
-        if (factions.getCourt() >= 70
-                && player.getStress() >= 80
-                && player.getPoliticalPower() >= 50) {
-            addTitleMessage(message, "Court Survivor");
-        }
-
-        if (player.getPoliticalPower() >= 80
-                && player.getReputation() >= 60) {
-            addTitleMessage(message, "Rising Power");
-        }
-
-        if (factions.getCourt() <= 15
-                && player.getPoliticalPower() >= 60) {
-            addTitleMessage(message, "Enemy of the Court");
-        }
-
-        if ((worldState.hasFlag("used_shadow_contacts")
-                || worldState.hasFlag("sold_palace_secret")
-                || worldState.hasFlag("learned_palace_secrets"))
-                && player.getPoliticalPower() >= 55
-                && factions.getShadowNetwork() >= 65) {
-            addTitleMessage(message, "Knife in the Dark");
-        }
-
-        if (factions.getShadowNetwork() >= 80
-                && player.getReputation() <= 35) {
-            addTitleMessage(message, "Whisper Lord");
-        }
-
-        if ((worldState.hasFlag("betrayed_comrade") || worldState.hasFlag("sold_palace_secret"))
-                && player.getMorality() <= 25
-                && player.getFamilyLoyalty() <= 40) {
-            addTitleMessage(message, "The Betrayer");
-        }
-
-        if (player.getFamilyLoyalty() >= 85
-                && player.getMorality() >= 60) {
-            addTitleMessage(message, "Bloodline Protector");
-        }
-
-        if (player.getFamilyCondition().equals("Recently Orphaned")
-                && player.getReputation() >= 60
-                && player.getStress() >= 70) {
-            addTitleMessage(message, "Orphan of Iron");
-        }
-
-        if (player.getFamilyCondition().equals("Disgraced Bloodline")
-                && player.getReputation() >= 65
-                && player.getPoliticalPower() >= 45) {
-            addTitleMessage(message, "Restorer of Honor");
-        }
-
-        if (player.getFamilyCondition().equals("Exiled Branch")
-                && player.getPoliticalPower() >= 65
-                && factions.getCourt() >= 50) {
-            addTitleMessage(message, "Returned from Exile");
-        }
-
-        if (player.getStress() >= 90
-                && player.getHealth() >= 45
-                && player.getReputation() >= 45) {
-            addTitleMessage(message, "Burdened Survivor");
-        }
-
-        if (player.getHealth() <= 20
-                && player.getReputation() >= 60) {
-            addTitleMessage(message, "Fading Legend");
+        for (EarnedTitle title : titleForge.forge(player, factions, worldState)) {
+            addTitleMessage(message, title.text());
         }
 
         return message.toString();
@@ -1780,12 +1674,15 @@ public class GameEngine {
     }
 
     public String getLifeSummary() {
+        String crown = getEarnedTitle();
+
         return "\n\n----- Life Summary -----\n"
                 + "Age: " + player.getAge() + "\n"
                 + "Origin: " + player.getOrigin() + "\n"
                 + "Final Status: " + player.getCurrentStatus() + "\n"
                 + "Family Condition: " + player.getFamilyCondition() + "\n"
                 + "Trait: " + player.getTrait() + "\n"
+                + (crown.isBlank() ? "" : "Known to history as: " + crown + "\n")
                 + "Legacy Titles: " + player.getLegacyTitlesText() + "\n\n"
                 + "Major Memories:\n"
                 + getMajorMemoriesText();

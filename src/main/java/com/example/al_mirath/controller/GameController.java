@@ -2151,10 +2151,20 @@ public class GameController implements ScreenLifecycle {
             }
 
             /*
-             * Closing the final chronicle returns to the menu.
+             * Closing the final chronicle ends the run — unless the house has
+             * somebody left to carry it, in which case the chronicle closes
+             * onto the succession rather than onto the main menu. Without
+             * this, a life with three living heirs still went straight back
+             * to the welcome screen and the dynasty was never offered.
              */
             if (closingCategory == PopupCategory.ENDING) {
                 activePopupTitle = "";
+
+                if (!pendingSuccessors.isEmpty()) {
+                    setGameplayPanelsVisible(true);
+                    showSuccessionOffer();
+                    return;
+                }
 
                 SaveManager.clearSave();
 

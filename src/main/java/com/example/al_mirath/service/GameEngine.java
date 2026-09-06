@@ -498,9 +498,14 @@ public class GameEngine {
         return cities.currentCityName();
     }
 
-    /** The "Where You Are" panel's text. */
+    /** The city panel's text, as one block. */
     public String getCitySummary() {
         return cities.whereYouAreSummary();
+    }
+
+    /** The city the player is standing in. */
+    public City getCurrentCity() {
+        return cities.currentCity();
     }
 
     /** The Household panel's text. */

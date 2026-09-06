@@ -261,7 +261,38 @@ public final class CityRegistry {
         return here == null ? "" : here.condition().situate(here.getName());
     }
 
-    /** The "Where You Are" panel's text. */
+    /**
+     * The rest of the era's map, every city of it, always in the same order.
+     *
+     * <p>This panel used to show a single "somewhere else" — whichever city
+     * was currently doing best. Since that is recomputed as the world drifts,
+     * the name under the player's own city changed almost every year: 93% of
+     * lives displayed two or more cities there, some of them seven. With no
+     * label saying what that second entry was, it read as though the player's
+     * own city kept changing. Listing all of them in roster order says plainly
+     * that these are other places.
+     */
+    public String elsewhereSummary() {
+        StringBuilder summary = new StringBuilder();
+
+        for (City city : cities.values()) {
+            if (city.getName().equals(currentCityName)) {
+                continue;
+            }
+
+            if (!summary.isEmpty()) {
+                summary.append("\n\n");
+            }
+
+            summary.append(city.getName())
+                    .append("\n")
+                    .append(city.condition().displayName());
+        }
+
+        return summary.toString();
+    }
+
+    /** The city panel's text, for callers that want it as one block. */
     public String whereYouAreSummary() {
         City here = currentCity();
 
@@ -269,24 +300,10 @@ public final class CityRegistry {
             return "";
         }
 
-        StringBuilder summary = new StringBuilder();
-
-        summary.append(here.getName())
-                .append("\n")
-                .append(here.condition().displayName())
-                .append("\n")
-                .append(measureLine(here));
-
-        City elsewhere = somewhereElse();
-
-        if (elsewhere != null) {
-            summary.append("\n\n")
-                    .append(elsewhere.getName())
-                    .append("\n")
-                    .append(elsewhere.condition().displayName());
-        }
-
-        return summary.toString();
+        return here.getName()
+                + "\n" + here.condition().displayName()
+                + "\n" + measureLine(here)
+                + "\n\nElsewhere\n" + elsewhereSummary();
     }
 
     private String measureLine(City city) {

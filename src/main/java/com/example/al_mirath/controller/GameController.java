@@ -2,6 +2,7 @@ package com.example.al_mirath.controller;
 
 import com.example.al_mirath.Main;
 import com.example.al_mirath.model.Choice;
+import com.example.al_mirath.model.City;
 import com.example.al_mirath.model.EndingResult;
 import com.example.al_mirath.model.FactionRelations;
 import com.example.al_mirath.model.GameEvent;
@@ -85,12 +86,14 @@ public class GameController implements ScreenLifecycle {
     private boolean characterDrawerOpen = false;
     private boolean factionDrawerOpen = false;
     private boolean relationsDrawerOpen = false;
+    private boolean cityDrawerOpen = false;
 
     private static final double CHARACTER_DRAWER_CLOSED_X = -305;
     private static final double FACTION_DRAWER_CLOSED_X = 305;
 
     /** Shares the right-hand space with the faction drawer, so only one opens. */
     private static final double RELATIONS_DRAWER_CLOSED_X = 305;
+    private static final double CITY_DRAWER_CLOSED_X = 305;
 
     private static final double CHARACTER_HANDLE_CLOSED_X = -34;
     private static final double CHARACTER_HANDLE_OPEN_X = 241;
@@ -100,6 +103,9 @@ public class GameController implements ScreenLifecycle {
 
     private static final double RELATIONS_HANDLE_CLOSED_X = 25;
     private static final double RELATIONS_HANDLE_OPEN_X = -250;
+
+    private static final double CITY_HANDLE_CLOSED_X = 25;
+    private static final double CITY_HANDLE_OPEN_X = -250;
 
     private String activePopupTitle = "";
     private PopupCategory activePopupCategory;
@@ -166,15 +172,35 @@ public class GameController implements ScreenLifecycle {
     @FXML private VBox eventPanel;
     @FXML private VBox factionPanel;
     @FXML private VBox relationsPanel;
+    @FXML private VBox cityPanel;
 
     @FXML private Button characterDrawerButton;
     @FXML private Button factionDrawerButton;
     @FXML private Button relationsDrawerButton;
+    @FXML private Button cityDrawerButton;
 
     @FXML private Label relationsLabel;
     @FXML private Label householdLabel;
     @FXML private Label renownLabel;
-    @FXML private Label cityLabel;
+
+    @FXML private Label cityNameLabel;
+    @FXML private Label cityConditionLabel;
+    @FXML private Label otherCitiesLabel;
+
+    @FXML private Label cityProsperityLabel;
+    @FXML private ProgressBar cityProsperityBar;
+    @FXML private Label cityTradeLabel;
+    @FXML private ProgressBar cityTradeBar;
+    @FXML private Label cityScholarshipLabel;
+    @FXML private ProgressBar cityScholarshipBar;
+    @FXML private Label cityPopulationLabel;
+    @FXML private ProgressBar cityPopulationBar;
+    @FXML private Label cityCrimeLabel;
+    @FXML private ProgressBar cityCrimeBar;
+    @FXML private Label cityWarLabel;
+    @FXML private ProgressBar cityWarBar;
+    @FXML private Label cityDiseaseLabel;
+    @FXML private ProgressBar cityDiseaseBar;
 
     @FXML private Label nameLabel;
     @FXML private Label eraLabel;
@@ -1003,17 +1029,47 @@ public class GameController implements ScreenLifecycle {
     }
 
     private void updateCity() {
-        if (cityLabel == null) {
+        City here = engine.getCurrentCity();
+
+        if (here == null) {
             return;
         }
 
-        String summary = engine.getCitySummary();
+        if (cityNameLabel != null) {
+            cityNameLabel.setText(here.getName());
+        }
 
-        cityLabel.setText(
-                summary.isBlank()
-                        ? "You are nowhere in particular."
-                        : summary
-        );
+        if (cityConditionLabel != null) {
+            cityConditionLabel.setText(here.condition().displayName());
+        }
+
+        setCityMeasure(cityProsperityLabel, cityProsperityBar, "Prosperity", here.getProsperity());
+        setCityMeasure(cityTradeLabel, cityTradeBar, "Trade", here.getTrade());
+        setCityMeasure(cityScholarshipLabel, cityScholarshipBar, "Scholarship", here.getScholarship());
+        setCityMeasure(cityPopulationLabel, cityPopulationBar, "People", here.getPopulation());
+        setCityMeasure(cityCrimeLabel, cityCrimeBar, "Crime", here.getCrime());
+        setCityMeasure(cityWarLabel, cityWarBar, "War", here.getWar());
+        setCityMeasure(cityDiseaseLabel, cityDiseaseBar, "Disease", here.getDisease());
+
+        if (otherCitiesLabel != null) {
+            String elsewhere = engine.getCities().elsewhereSummary();
+
+            otherCitiesLabel.setText(
+                    elsewhere.isBlank()
+                            ? "There is nowhere else in this age."
+                            : elsewhere
+            );
+        }
+    }
+
+    private void setCityMeasure(Label label, ProgressBar bar, String name, int value) {
+        if (label != null) {
+            label.setText(name + ": " + value);
+        }
+
+        if (bar != null) {
+            bar.setProgress(value / 100.0);
+        }
     }
 
     private void updateRenown() {
@@ -2124,6 +2180,15 @@ public class GameController implements ScreenLifecycle {
     }
 
     @FXML
+    private void toggleCityDrawer() {
+        if (cityDrawerOpen) {
+            closeCityDrawer();
+        } else {
+            openCityDrawer();
+        }
+    }
+
+    @FXML
     private void toggleRelationsDrawer() {
         if (relationsDrawerOpen) {
             closeRelationsDrawer();
@@ -2147,8 +2212,9 @@ public class GameController implements ScreenLifecycle {
     }
 
     private void openFactionDrawer() {
-        // Both right-hand drawers occupy the same strip of screen.
+        // The right-hand drawers all occupy the same strip of screen.
         closeRelationsDrawer();
+        closeCityDrawer();
 
         factionDrawerOpen = true;
 
@@ -2165,6 +2231,7 @@ public class GameController implements ScreenLifecycle {
 
     private void openRelationsDrawer() {
         closeFactionDrawer();
+        closeCityDrawer();
 
         relationsDrawerOpen = true;
 
@@ -2181,10 +2248,30 @@ public class GameController implements ScreenLifecycle {
         slideNode(relationsDrawerButton, RELATIONS_HANDLE_CLOSED_X);
     }
 
+    private void openCityDrawer() {
+        closeFactionDrawer();
+        closeRelationsDrawer();
+
+        cityDrawerOpen = true;
+
+        updateCity();
+
+        slideNode(cityPanel, 0);
+        slideNode(cityDrawerButton, CITY_HANDLE_OPEN_X);
+    }
+
+    private void closeCityDrawer() {
+        cityDrawerOpen = false;
+
+        slideNode(cityPanel, CITY_DRAWER_CLOSED_X);
+        slideNode(cityDrawerButton, CITY_HANDLE_CLOSED_X);
+    }
+
     private void closeDrawersInstantly() {
         characterDrawerOpen = false;
         factionDrawerOpen = false;
         relationsDrawerOpen = false;
+        cityDrawerOpen = false;
 
         if (characterPanel != null) {
             characterPanel.setTranslateX(CHARACTER_DRAWER_CLOSED_X);
@@ -2198,6 +2285,10 @@ public class GameController implements ScreenLifecycle {
             relationsPanel.setTranslateX(RELATIONS_DRAWER_CLOSED_X);
         }
 
+        if (cityPanel != null) {
+            cityPanel.setTranslateX(CITY_DRAWER_CLOSED_X);
+        }
+
         if (characterDrawerButton != null) {
             characterDrawerButton.setTranslateX(CHARACTER_HANDLE_CLOSED_X);
         }
@@ -2208,6 +2299,10 @@ public class GameController implements ScreenLifecycle {
 
         if (relationsDrawerButton != null) {
             relationsDrawerButton.setTranslateX(RELATIONS_HANDLE_CLOSED_X);
+        }
+
+        if (cityDrawerButton != null) {
+            cityDrawerButton.setTranslateX(CITY_HANDLE_CLOSED_X);
         }
     }
 

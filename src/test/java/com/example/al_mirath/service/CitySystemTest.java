@@ -589,6 +589,94 @@ class CitySystemTest {
         );
     }
 
+    /**
+     * The panel used to end with a single "somewhere else" — whichever city
+     * happened to be doing best that year. It was recomputed as the world
+     * drifted and carried no label, so the name under the player's own city
+     * changed almost every year and read as though they had been moved: 93% of
+     * lives showed two or more cities there.
+     */
+    @Test
+    @DisplayName("the panel never implies the player has moved when they have not")
+    void theCityPanelDoesNotChurn() {
+        Random random = new Random(2);
+        int churned = 0;
+        int lives = 40;
+
+        for (int run = 0; run < lives; run++) {
+            GameEngine engine = new GameEngine();
+
+            String home = engine.getCurrentCityName();
+            Set<String> elsewhereShown = new HashSet<>();
+
+            for (int i = 0; i < 30 && engine.getCurrentEvent() != null; i++) {
+                List<Choice> available = new ArrayList<>();
+
+                for (Choice choice : engine.getCurrentEvent().getChoices()) {
+                    if (engine.canChoose(choice)) {
+                        available.add(choice);
+                    }
+                }
+
+                if (available.isEmpty()) {
+                    break;
+                }
+
+                engine.applyChoice(available.get(random.nextInt(available.size())));
+
+                if (!engine.getCurrentCityName().equals(home)) {
+                    break;
+                }
+
+                elsewhereShown.add(engine.getCities().elsewhereSummary());
+
+                assertFalse(
+                        engine.getCities().elsewhereSummary().contains(home),
+                        "the city the player is standing in was also listed as "
+                                + "somewhere else"
+                    );
+            }
+
+            if (elsewhereShown.size() > 1) {
+                churned++;
+            }
+        }
+
+        // The listing may still change as cities change condition, but the set
+        // of cities in it must not: a player who has not moved must never see
+        // a different place named under their own.
+        for (int run = 0; run < 5; run++) {
+            CityRegistry map = CityRegistry.createFor(player("Abbasid Era", "Scholar's Child"));
+
+            List<String> first = namesIn(map.elsewhereSummary());
+
+            for (int year = 0; year < 12; year++) {
+                map.advanceYears(3);
+
+                assertEquals(
+                        first,
+                        namesIn(map.elsewhereSummary()),
+                        "the cities listed beside the player's own changed "
+                                + "while they stayed put"
+                );
+            }
+        }
+    }
+
+    private List<String> namesIn(String summary) {
+        List<String> names = new ArrayList<>();
+
+        for (String block : summary.split("\n\n")) {
+            String[] lines = block.split("\n");
+
+            if (lines.length > 0 && !lines[0].isBlank()) {
+                names.add(lines[0]);
+            }
+        }
+
+        return names;
+    }
+
     @Test
     @DisplayName("the engine runs the world, and keeps it across a save")
     void theEngineOwnsTheMap() {

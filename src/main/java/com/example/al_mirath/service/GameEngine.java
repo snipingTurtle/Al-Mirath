@@ -1,6 +1,7 @@
 package com.example.al_mirath.service;
 
 import com.example.al_mirath.model.Choice;
+import com.example.al_mirath.model.City;
 import com.example.al_mirath.model.ChoiceRequirement;
 import com.example.al_mirath.model.DelayedConsequence;
 import com.example.al_mirath.model.FactionRelations;
@@ -39,6 +40,7 @@ public class GameEngine {
     private final RecurringCharacterRegistry recurringCharacters;
     private final FamilyRegistry family;
     private final RenownRegistry renown;
+    private final CityRegistry cities;
 
     private final TitleForge titleForge = new TitleForge();
 
@@ -115,6 +117,7 @@ public class GameEngine {
 
         this.family = FamilyRegistry.createFor(player);
         this.renown = new RenownRegistry();
+        this.cities = CityRegistry.createFor(player);
 
         this.eventPool = EventLibrary.createEventPool();
     }
@@ -131,6 +134,7 @@ public class GameEngine {
             RecurringCharacterRegistry recurringCharacters,
             FamilyRegistry family,
             RenownRegistry renown,
+            CityRegistry cities,
             int currentStageIndex,
             Map<String, Integer> stageEventsPlayed,
             Set<String> playedEventTitles,
@@ -154,6 +158,11 @@ public class GameEngine {
 
         this.renown = renown == null ? new RenownRegistry() : renown;
 
+        this.cities =
+                cities == null
+                        ? CityRegistry.createFor(player)
+                        : cities;
+
         this.eventPool = EventLibrary.createEventPool();
 
         this.currentStageIndex = currentStageIndex;
@@ -161,7 +170,7 @@ public class GameEngine {
         this.playedEventTitles.addAll(playedEventTitles);
 
         if (currentEventTitle != null) {
-            this.currentEvent = findByTitle(eventPool, currentEventTitle);
+            this.currentEvent = situate(findByTitle(eventPool, currentEventTitle));
 
             if (this.currentEvent == null) {
                 this.currentEvent = findByTitle(
@@ -173,6 +182,13 @@ public class GameEngine {
             if (this.currentEvent == null) {
                 this.currentEvent = findByTitle(
                         FamilyEvents.create(this.family, this.renown),
+                        currentEventTitle
+                );
+            }
+
+            if (this.currentEvent == null) {
+                this.currentEvent = findByTitle(
+                        CityEvents.create(this.cities),
                         currentEventTitle
                 );
             }
@@ -257,6 +273,7 @@ public class GameEngine {
 
         root.put("family", family.toJson());
         root.put("renown", renown.toJson());
+        root.put("cities", cities.toJson());
 
         return root.toString();
     }
@@ -312,6 +329,11 @@ public class GameEngine {
             family = FamilyRegistry.createFor(player);
         }
 
+        CityRegistry cities =
+                root.has("cities")
+                        ? CityRegistry.fromJson(root.getJSONObject("cities"))
+                        : CityRegistry.createFor(player);
+
         RenownRegistry renown =
                 root.has("renown")
                         ? RenownRegistry.fromJson(root.getJSONObject("renown"))
@@ -365,6 +387,7 @@ public class GameEngine {
                 recurringCharacters,
                 family,
                 renown,
+                cities,
                 root.getInt("currentStageIndex"),
                 stageEventsPlayed,
                 playedEventTitles,
@@ -464,6 +487,20 @@ public class GameEngine {
         );
 
         return crown == null ? "" : crown.text();
+    }
+
+    public CityRegistry getCities() {
+        return cities;
+    }
+
+    /** Where the player is standing, for the header. */
+    public String getCurrentCityName() {
+        return cities.currentCityName();
+    }
+
+    /** The "Where You Are" panel's text. */
+    public String getCitySummary() {
+        return cities.whereYouAreSummary();
     }
 
     /** The Household panel's text. */
@@ -848,6 +885,16 @@ public class GameEngine {
                 )
         );
 
+        // Where the player is standing draws at cast weight too: a siege is
+        // not background scenery to the person inside it.
+        cast.addAll(
+                eligibleIn(
+                        CityEvents.create(cities),
+                        stage,
+                        consequenceOnly
+                )
+        );
+
         List<GameEvent> general = eligibleIn(
                 eventPool,
                 stage,
@@ -875,9 +922,46 @@ public class GameEngine {
 
         int roll = random.nextInt(total);
 
-        return roll < castShare
-                ? cast.get(roll / CAST_EVENT_WEIGHT)
-                : general.get(roll - castShare);
+        if (roll < castShare) {
+            return cast.get(roll / CAST_EVENT_WEIGHT);
+        }
+
+        // Cast, household and city events all say where they happen. Pool
+        // events were written to happen nowhere in particular, so putting one
+        // in front of the player means saying where they are standing.
+        return situate(general.get(roll - castShare));
+    }
+
+    /**
+     * Puts a placeless scene somewhere.
+     *
+     * <p>Returns a copy rather than editing the event: {@code eventPool} is
+     * built once and reused for the whole run, so amending an event in place
+     * would leave one decade's city welded to it for every later life stage.
+     */
+    private GameEvent situate(GameEvent event) {
+        if (event == null) {
+            return null;
+        }
+
+        String where = cities.situate();
+
+        if (where.isBlank()) {
+            return event;
+        }
+
+        return new GameEvent(
+                event.getTitle(),
+                where + "\n\n" + event.getDescription(),
+                event.getLifeStage(),
+                event.getChoices(),
+                event.getAllowedEras(),
+                event.getAllowedOrigins(),
+                event.getBlockedFamilyConditions(),
+                event.getAllowedCurrentStatuses(),
+                event.getRequiredFlags(),
+                event.getBlockedFlags()
+        );
     }
 
     private List<GameEvent> eligibleIn(
@@ -974,6 +1058,7 @@ public class GameEngine {
 
             family.applyStoryFlag(flag);
             renown.record(flag);
+            cities.applyStoryFlag(flag);
         }
 
         int yearsPassed = advanceAgeAfterEvent();
@@ -987,6 +1072,7 @@ public class GameEngine {
         );
 
         renown.spread(yearsPassed, player);
+        pendingCastAnnouncements.addAll(cities.advanceYears(yearsPassed));
         recoverStressOverTime(yearsPassed);
         updateCurrentStatus();
         checkMortalityAfterChoice(choice, success);
@@ -1097,7 +1183,8 @@ public class GameEngine {
                 choice == null ? "" : choice.getText(),
                 recurringCharacters.toJson().toString(),
                 family.toJson().toString(),
-                renown.toJson().toString()
+                renown.toJson().toString(),
+                cities.toJson().toString()
         );
     }
 
@@ -1214,6 +1301,14 @@ public class GameEngine {
             );
         }
 
+        String citiesJson = snapshot.getCitiesJson();
+
+        if (citiesJson != null && !citiesJson.isBlank()) {
+            cities.replaceWith(
+                    CityRegistry.fromJson(new JSONObject(citiesJson))
+            );
+        }
+
         currentStageIndex = snapshot.getCurrentStageIndex();
 
         stageEventsPlayed.clear();
@@ -1232,7 +1327,7 @@ public class GameEngine {
         String title = snapshot.getCurrentEventTitle();
 
         if (title != null) {
-            currentEvent = findByTitle(eventPool, title);
+            currentEvent = situate(findByTitle(eventPool, title));
 
             if (currentEvent == null) {
                 currentEvent = findByTitle(
@@ -1244,6 +1339,13 @@ public class GameEngine {
             if (currentEvent == null) {
                 currentEvent = findByTitle(
                         FamilyEvents.create(family, renown),
+                        title
+                );
+            }
+
+            if (currentEvent == null) {
+                currentEvent = findByTitle(
+                        CityEvents.create(cities),
                         title
                 );
             }

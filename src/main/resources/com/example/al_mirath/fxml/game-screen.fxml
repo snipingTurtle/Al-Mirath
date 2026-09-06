@@ -539,6 +539,22 @@
 
             <content>
                 <VBox spacing="10">
+                    <Label text="Where You Are"
+                           maxWidth="205"
+                           alignment="CENTER">
+                        <styleClass>
+                            <String fx:value="drawer-separator-text"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label fx:id="cityLabel"
+                           wrapText="true"
+                           maxWidth="205">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+
                     <Label text="Household"
                            maxWidth="205"
                            alignment="CENTER">
@@ -591,7 +607,7 @@
             </content>
         </ScrollPane>
 
-        <Label text="Your blood, the people who keep returning, and what the world says about you."
+        <Label text="The city you stand in, your blood, the people who keep returning, and what the world says about you."
                wrapText="true"
                maxWidth="235"
                textAlignment="CENTER"

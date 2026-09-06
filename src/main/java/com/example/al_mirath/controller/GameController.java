@@ -174,6 +174,7 @@ public class GameController implements ScreenLifecycle {
     @FXML private Label relationsLabel;
     @FXML private Label householdLabel;
     @FXML private Label renownLabel;
+    @FXML private Label cityLabel;
 
     @FXML private Label nameLabel;
     @FXML private Label eraLabel;
@@ -947,7 +948,14 @@ public class GameController implements ScreenLifecycle {
             );
         }
         if (eraLabel != null) eraLabel.setText("Era: " + player.getEra());
-        if (originLabel != null) originLabel.setText("Origin: " + player.getOrigin());
+        if (originLabel != null) {
+            String city = engine.getCurrentCityName();
+
+            originLabel.setText(
+                    "Origin: " + player.getOrigin()
+                            + (city.isBlank() ? "" : "\nIn: " + city)
+            );
+        }
 
         if (traitLabel != null) {
             traitLabel.setText(
@@ -977,6 +985,7 @@ public class GameController implements ScreenLifecycle {
     }
 
     private void updateRelations() {
+        updateCity();
         updateHousehold();
         updateRenown();
 
@@ -989,6 +998,20 @@ public class GameController implements ScreenLifecycle {
         relationsLabel.setText(
                 summary.isBlank()
                         ? "No one has yet left a mark on your life."
+                        : summary
+        );
+    }
+
+    private void updateCity() {
+        if (cityLabel == null) {
+            return;
+        }
+
+        String summary = engine.getCitySummary();
+
+        cityLabel.setText(
+                summary.isBlank()
+                        ? "You are nowhere in particular."
                         : summary
         );
     }

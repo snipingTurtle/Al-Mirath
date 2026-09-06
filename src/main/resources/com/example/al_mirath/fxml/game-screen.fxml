@@ -429,6 +429,45 @@
             </styleClass>
         </Label>
 
+        <ScrollPane fitToWidth="true"
+                    hbarPolicy="NEVER"
+                    vbarPolicy="AS_NEEDED"
+                    pannable="true"
+                    prefViewportHeight="400"
+                    maxWidth="245"
+                    VBox.vgrow="ALWAYS">
+
+            <styleClass>
+                <String fx:value="popup-scroll"/>
+            </styleClass>
+
+            <content>
+                <VBox spacing="6">
+
+        <Label text="The City"
+               maxWidth="205"
+               alignment="CENTER">
+            <styleClass>
+                <String fx:value="drawer-separator-text"/>
+            </styleClass>
+        </Label>
+
+        <Label fx:id="cityLabel"
+               wrapText="true"
+               maxWidth="205">
+            <styleClass>
+                <String fx:value="drawer-text"/>
+            </styleClass>
+        </Label>
+
+        <Label text="Factions"
+               maxWidth="205"
+               alignment="CENTER">
+            <styleClass>
+                <String fx:value="drawer-separator-text"/>
+            </styleClass>
+        </Label>
+
         <Label fx:id="courtLabel">
             <styleClass>
                 <String fx:value="drawer-text"/>
@@ -484,6 +523,10 @@
             </styleClass>
         </Label>
         <ProgressBar fx:id="shadowNetworkBar" prefWidth="220"/>
+
+                </VBox>
+            </content>
+        </ScrollPane>
     </VBox>
 
     <!-- RIGHT BONDS DRAWER -->
@@ -539,22 +582,6 @@
 
             <content>
                 <VBox spacing="10">
-                    <Label text="Where You Are"
-                           maxWidth="205"
-                           alignment="CENTER">
-                        <styleClass>
-                            <String fx:value="drawer-separator-text"/>
-                        </styleClass>
-                    </Label>
-
-                    <Label fx:id="cityLabel"
-                           wrapText="true"
-                           maxWidth="205">
-                        <styleClass>
-                            <String fx:value="drawer-text"/>
-                        </styleClass>
-                    </Label>
-
                     <Label text="Household"
                            maxWidth="205"
                            alignment="CENTER">
@@ -607,7 +634,7 @@
             </content>
         </ScrollPane>
 
-        <Label text="The city you stand in, your blood, the people who keep returning, and what the world says about you."
+        <Label text="Your blood, the people who keep returning, and what the world says about you."
                wrapText="true"
                maxWidth="235"
                textAlignment="CENTER"

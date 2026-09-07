@@ -96,6 +96,30 @@ public final class RecurringCharacterRegistry {
     /** How strong a bond must be, either way, to leave someone behind. */
     private static final int LEGACY_BOND = 40;
 
+    /**
+     * The flag a story event uses to hand the player a student, with the
+     * student's name after it. Keyed by name rather than by a fixed id
+     * because the person is chosen when the offer is written, not here.
+     */
+    public static final String TAKE_STUDENT_PREFIX = "take_student_";
+
+    /**
+     * What a student grows into. The first rung exists only so the age gates
+     * line up: somebody taken on at sixteen starts at "Your Student" and
+     * climbs from there, and the last rung is reserved for a bond that
+     * actually held, the way every other ladder in the cast works.
+     */
+    private static final List<String> STUDENT_LADDER = List.of(
+            "Child at Your Door",
+            "Your Student",
+            "Your Copyist",
+            "Master in Their Own Right",
+            "Keeper of Your Name"
+    );
+
+    /** How warmly a student begins: you chose them and they know it. */
+    private static final int STUDENT_STARTING_BOND = 45;
+
     private final Map<String, RecurringCharacter> characters =
             new LinkedHashMap<>();
 
@@ -420,6 +444,101 @@ public final class RecurringCharacterRegistry {
         return List.copyOf(characters.values());
     }
 
+    /** Whether somebody is currently being taught by the player. */
+    public boolean hasLivingStudent() {
+        for (RecurringCharacter character : characters.values()) {
+            if (character.isAlive()
+                    && character.getRelationshipType() == RelationshipType.STUDENT) {
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The name of whoever is currently asking to be taught.
+     *
+     * <p>Derived from the seed rather than rolled, so the offer keeps naming
+     * the same person for as long as it stands. Cast events are rebuilt from
+     * scratch every time the engine looks for one, and a rolled name would
+     * mean a different stranger at the door each year — the same churn that
+     * once had one life's city changing between decisions.
+     */
+    public String prospectiveStudentName(long seed) {
+        List<String> pool = new ArrayList<>(MALE_NAMES);
+        pool.addAll(FEMALE_NAMES);
+
+        int start = (int) Math.floorMod(seed, pool.size());
+
+        for (int step = 0; step < pool.size(); step++) {
+            String candidate = pool.get((start + step) % pool.size());
+
+            if (!containsName(candidate)) {
+                return candidate;
+            }
+        }
+
+        return pool.get(start);
+    }
+
+    /**
+     * Takes somebody on as a student.
+     *
+     * <p>They join the cast as a person rather than as a stat: they age,
+     * climb, can die, and can be turned against you like anyone else. What
+     * makes them different is that the player chose them, which is what
+     * makes them able to be handed the house later.
+     *
+     * @return false when there is already a student, or the name is unusable
+     */
+    public boolean takeStudent(String name, int playerAge) {
+        if (name == null || name.isBlank() || hasLivingStudent()) {
+            return false;
+        }
+
+        String id = "student_" + name.toLowerCase(java.util.Locale.ROOT);
+
+        if (characters.containsKey(id)) {
+            return false;
+        }
+
+        int age = 16 + random.nextInt(5);
+
+        RecurringCharacter student =
+                new RecurringCharacter(
+                        id,
+                        name,
+                        "Somebody who asked to be taught what you know, and was "
+                                + "not turned away.",
+                        PERSONALITIES.get(
+                                random.nextInt(PERSONALITIES.size())
+                        ),
+                        RelationshipType.STUDENT,
+                        STUDENT_LADDER.get(1),
+                        age,
+                        STUDENT_STARTING_BOND,
+                        true,
+                        STUDENT_LADDER,
+                        1,
+                        ""
+                );
+
+        student.addMemory(
+                new NpcMemory(
+                        "took_student",
+                        "You took them on when you did not have to.",
+                        playerAge,
+                        STUDENT_STARTING_BOND
+                )
+        );
+
+        characters.put(id, student);
+
+        return true;
+    }
+
     public void changeRelationship(
             String characterId,
             int amount,
@@ -454,6 +573,17 @@ public final class RecurringCharacterRegistry {
             String flag,
             int playerAge
     ) {
+        if (flag == null) {
+            return;
+        }
+
+        // Taking a student names a person the event content chose, so it
+        // cannot be a fixed case the way every other flag here is.
+        if (flag.startsWith(TAKE_STUDENT_PREFIX)) {
+            takeStudent(flag.substring(TAKE_STUDENT_PREFIX.length()), playerAge);
+            return;
+        }
+
         switch (flag) {
 
             case "npc_friend_secret_protected" ->

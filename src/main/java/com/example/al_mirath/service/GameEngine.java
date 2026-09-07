@@ -108,8 +108,17 @@ public class GameEngine {
     private final List<String> pendingCastAnnouncements = new ArrayList<>();
 
     public GameEngine() {
+        this(null);
+    }
+
+    /**
+     * Begins a life the player named themselves.
+     *
+     * @param chosenName what they typed, or null to be named by the roll
+     */
+    public GameEngine(String chosenName) {
         CharacterGenerator generator = new CharacterGenerator();
-        this.player = generator.generateCharacter();
+        this.player = generator.generateCharacter(chosenName);
         this.factions = new FactionRelations();
         this.worldState = new WorldState();
 
@@ -196,6 +205,17 @@ public class GameEngine {
             if (this.currentEvent == null) {
                 this.currentEvent = findByTitle(
                         CityEvents.create(this.cities),
+                        currentEventTitle
+                );
+            }
+
+            if (this.currentEvent == null) {
+                this.currentEvent = findByTitle(
+                        StudentEvents.create(
+                                this.recurringCharacters,
+                                this.player,
+                                this.worldState
+                        ),
                         currentEventTitle
                 );
             }
@@ -1000,6 +1020,16 @@ public class GameEngine {
                 )
         );
 
+        // Being asked to teach somebody is a cast event before it is anything
+        // else: it is how a person joins the cast.
+        cast.addAll(
+                eligibleIn(
+                        StudentEvents.create(recurringCharacters, player, worldState),
+                        stage,
+                        consequenceOnly
+                )
+        );
+
         List<GameEvent> general = eligibleIn(
                 eventPool,
                 stage,
@@ -1451,6 +1481,13 @@ public class GameEngine {
             if (currentEvent == null) {
                 currentEvent = findByTitle(
                         CityEvents.create(cities),
+                        title
+                );
+            }
+
+            if (currentEvent == null) {
+                currentEvent = findByTitle(
+                        StudentEvents.create(recurringCharacters, player, worldState),
                         title
                 );
             }

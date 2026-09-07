@@ -40,6 +40,14 @@ public final class SuccessionService {
     /** Factions remember the house, at half the strength of their old feeling. */
     private static final int NEUTRAL_REGARD = 40;
 
+    /**
+     * How cold a student can go and still be handed the house. Past this they
+     * have stopped being yours in any sense that matters — the cast reclassifies
+     * anybody this hostile as a rival, so the type check usually catches it
+     * first; this holds the line for warmth a save can hold on its own.
+     */
+    private static final int TURNED_AGAINST_YOU = -15;
+
     private static final int BASE_HEALTH = 60;
     private static final int BASE_MORALITY = 50;
     private static final int BASE_STRESS = 20;
@@ -90,11 +98,17 @@ public final class SuccessionService {
 
         // A house with no blood left can still be handed on, which is the
         // difference between a line ending and a line changing hands.
+        //
+        // It has to be somebody the player deliberately took on, though. Being
+        // fond of you is not the same as having been taught by you, and while
+        // any warm friend could inherit, the most consequential relationship
+        // in a run was a side effect of being liked rather than a decision.
+        // Taking a student is an event now, and this is what it is for.
         if (heirs.isEmpty() && cast != null) {
             for (RecurringCharacter character : cast.all()) {
                 if (!character.isAlive()
-                        || character.getRelationship() < 40
-                        || character.getRelationshipType() == RelationshipType.RIVAL) {
+                        || character.getRelationshipType() != RelationshipType.STUDENT
+                        || character.getRelationship() <= TURNED_AGAINST_YOU) {
 
                     continue;
                 }

@@ -87,6 +87,16 @@ public class GameController implements ScreenLifecycle {
     /** Heirs on offer once a life has ended; empty while one is running. */
     private java.util.List<Succession> pendingSuccessors = java.util.List.of();
 
+    /** What the player typed on the naming screen; null for a rolled name. */
+    private String chosenName;
+
+    /**
+     * How many heirs the succession screen offers at once. The third choice
+     * button is kept for ending the line, so continuing is never the only
+     * thing on the screen.
+     */
+    private static final int MAX_HEIRS_OFFERED = 2;
+
     private boolean characterDrawerOpen = false;
     private boolean factionDrawerOpen = false;
     private boolean relationsDrawerOpen = false;
@@ -274,7 +284,7 @@ public class GameController implements ScreenLifecycle {
     public void initialize() {
         boolean continuingGame = restoredEngine != null;
 
-        engine = continuingGame ? restoredEngine : new GameEngine();
+        engine = continuingGame ? restoredEngine : new GameEngine(chosenName);
 
         pendingLegacyTitleMessage = "";
         pendingStatusChangeMessage = "";
@@ -352,6 +362,14 @@ public class GameController implements ScreenLifecycle {
 
     public void setRestoredEngine(GameEngine restoredEngine) {
         this.restoredEngine = restoredEngine;
+    }
+
+    /**
+     * The name the player gave on the way in, or null to be named by the roll.
+     * Set before the FXML loads, since the engine is built in initialize().
+     */
+    public void setChosenName(String chosenName) {
+        this.chosenName = chosenName;
     }
 
     /**
@@ -1243,7 +1261,7 @@ public class GameController implements ScreenLifecycle {
                 legacyRecorded = true;
             }
 
-            pendingSuccessors = engine.getSuccessors();
+            pendingSuccessors = offerableHeirs(engine.getSuccessors());
 
             if (pendingSuccessors.isEmpty()) {
                 choiceButton1.setVisible(false);
@@ -1340,15 +1358,17 @@ public class GameController implements ScreenLifecycle {
     private void showSuccessionOffer() {
         eventTitleLabel.setText("The House Passes On");
 
+        // Kept short on purpose. The heirs' descriptions are long, and the
+        // panel gives space to the description before it gives space to the
+        // buttons, so a paragraph here costs a line off every choice below.
         typewriteDescription(
                 engine.getPlayer().getName() + " is gone, and "
                         + engine.getHouseStyling()
-                        + " has to be carried by somebody.\n\n"
-                        + "What they built stands where they left it. The city is "
-                        + "the city they made or failed to mend, the people who "
-                        + "owed them still owe, and the ones who hated them have "
-                        + "children of their own now.\n\n"
-                        + "Whose life do you take up?"
+                        + " has to be carried by somebody. What they built "
+                        + "stands where they left it.\n\n"
+                        + "Whose life do you take up — or do you let the line "
+                        + "end here, and let what was built pass to people who "
+                        + "never knew whose it was?"
         );
 
         Button[] buttons = {choiceButton1, choiceButton2, choiceButton3};
@@ -1360,22 +1380,78 @@ public class GameController implements ScreenLifecycle {
                 continue;
             }
 
-            boolean offered = i < pendingSuccessors.size();
+            boolean heirOffered = i < pendingSuccessors.size();
+            boolean endOffered = i == pendingSuccessors.size();
 
-            button.setVisible(offered);
-            button.setManaged(offered);
+            button.setVisible(heirOffered || endOffered);
+            button.setManaged(heirOffered || endOffered);
 
-            if (offered) {
+            if (heirOffered) {
                 Succession heir = pendingSuccessors.get(i);
 
                 button.setWrapText(true);
                 button.setTooltip(null);
                 button.setDisable(false);
                 button.setText(heir.offer() + "\n" + heir.describe());
+
+            } else if (endOffered) {
+                button.setWrapText(true);
+                button.setTooltip(null);
+                button.setDisable(false);
+                // One line, deliberately. The choice buttons are a fixed
+                // height, and a second line is ellipsized away in a window
+                // narrower than about 1280 — which is no way to present the
+                // one option that ends the run.
+                button.setText("Let the line end here");
             }
         }
 
         fadeEventText();
+    }
+
+    /**
+     * Trims the claim list down to what the offer screen can show alongside
+     * the way out.
+     *
+     * <p>There are three choice buttons and the last one always belongs to
+     * ending the line, so at most two heirs are put in front of the player.
+     * They are already sorted by strength of claim, so the ones dropped are
+     * the ones with the weakest claim.
+     */
+    public static java.util.List<Succession> offerableHeirs(java.util.List<Succession> claims) {
+        if (claims == null || claims.isEmpty()) {
+            return java.util.List.of();
+        }
+
+        return java.util.List.copyOf(
+                claims.subList(0, Math.min(MAX_HEIRS_OFFERED, claims.size()))
+        );
+    }
+
+    /**
+     * Closes the house rather than handing it on.
+     *
+     * <p>Continuing has to be a decision rather than the only door out of the
+     * chronicle, so a run with heirs waiting can still be ended deliberately.
+     * Clearing the successors first means the ending popup takes its ordinary
+     * route back to the menu, wiping the save on the way, exactly as a life
+     * with nobody left to carry it does.
+     */
+    private void letTheLineEnd() {
+        pendingSuccessors = java.util.List.of();
+
+        showPopup(
+                "The Line Ends Here",
+                "Nobody takes up what was left. "
+                        + engine.getHouseStyling()
+                        + " ends where it stands.\n\n"
+                        + "The house is emptied and let to somebody else. The "
+                        + "debts owed to it are quietly forgotten, the people "
+                        + "who feared it stop, and within a generation the "
+                        + "name is a thing said about a street rather than "
+                        + "about anyone alive.",
+                PopupCategory.ENDING
+        );
     }
 
     /** Takes up the heir's life, keeping the world the last one left behind. */
@@ -1446,9 +1522,15 @@ public class GameController implements ScreenLifecycle {
 
     @FXML
     private void choose(int index) {
-        // Once a life has ended, the same three buttons choose an heir.
+        // Once a life has ended, the same three buttons choose an heir — or,
+        // on the button just past the last of them, choose to stop.
         if (!pendingSuccessors.isEmpty()) {
-            takeUpTheLineAs(index);
+            if (index == pendingSuccessors.size()) {
+                letTheLineEnd();
+            } else {
+                takeUpTheLineAs(index);
+            }
+
             return;
         }
 

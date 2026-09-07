@@ -2,6 +2,8 @@ package com.example.al_mirath;
 
 import com.example.al_mirath.controller.GameController;
 import com.example.al_mirath.model.Choice;
+import com.example.al_mirath.model.LifePath;
+import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.service.GameEngine;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -22,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -211,5 +214,189 @@ class SuccessionScreenTest {
                 "the succession was laid out behind a HUD still faded to "
                         + hudOpacity + "; the player cannot see or click it"
         );
+    }
+
+    // ---- the way out -----------------------------------------------------
+
+    /**
+     * The label on the button that stops the chronicle rather than continuing
+     * it. Matched on rather than an index, because which of the three buttons
+     * it lands on depends on how many heirs there are.
+     */
+    private static final String THE_WAY_OUT = "Let the line end here";
+
+    /**
+     * Continuing has to be a decision.
+     *
+     * <p>Before this, a life that ended with an heir alive had exactly one
+     * door out of the chronicle: take up their life. A player who was done
+     * with the run had to close the window. The succession offers the end of
+     * the line alongside the heirs, and it has to be a button they can
+     * actually see and press.
+     */
+    @Test
+    @DisplayName("a succession with heirs still offers to end the line")
+    void theLineCanBeEndedDeliberately() throws Exception {
+        GameEngine finished = aFinishedLifeWithAnHeir();
+        String heir = finished.getSuccessors().get(0).name();
+
+        AtomicReference<Boolean> menu = new AtomicReference<>(false);
+
+        Main watchingForTheMenu = new Main() {
+            @Override
+            public void showWelcomeScreen() {
+                menu.set(true);
+            }
+        };
+
+        Parent screen = succession(finished, watchingForTheMenu);
+
+        List<String> onScreen = onFxThread(() -> visibleChoices(screen));
+
+        assertTrue(
+                onScreen.stream().anyMatch(text -> text.contains(heir)),
+                "the succession offered " + onScreen + " rather than " + heir
+        );
+
+        Button wayOut = onFxThread(() -> choiceSaying(screen, THE_WAY_OUT));
+
+        assertNotNull(
+                wayOut,
+                "the succession offered " + onScreen + " and no way to stop; a "
+                        + "player done with the run has to close the window"
+        );
+
+        // Pressing it closes the house rather than handing it on.
+        onFxThread(() -> {
+            wayOut.fire();
+            return null;
+        });
+
+        Thread.sleep(1200);
+
+        assertFalse(
+                menu.get(),
+                "ending the line skipped straight past its own closing scene"
+        );
+
+        assertTrue(
+                onFxThread(() -> screen.lookup("#resultPopup").isVisible()),
+                "ending the line said nothing at all about what happened"
+        );
+
+        onFxThread(() -> {
+            ((Button) screen.lookup("#popupContinueButton")).fire();
+            return null;
+        });
+
+        Thread.sleep(1200);
+
+        assertTrue(
+                menu.get(),
+                "the player chose to end the line and was left sitting on the "
+                        + "succession screen"
+        );
+    }
+
+    /**
+     * There are three choice buttons and the last of them belongs to the way
+     * out, so a household full of children cannot crowd it off the screen.
+     */
+    @Test
+    @DisplayName("a crowd of heirs never crowds out the way to stop")
+    void theWayOutAlwaysFits() {
+        List<Succession> five = new ArrayList<>();
+
+        for (int i = 0; i < 5; i++) {
+            five.add(new Succession(
+                    "c" + i, "Child " + i, "your child", 30 - i,
+                    "watchful", LifePath.SCHOLAR, true
+            ));
+        }
+
+        List<Succession> offered = GameController.offerableHeirs(five);
+
+        assertEquals(
+                2, offered.size(),
+                "five claimants filled all three buttons and left no way to stop"
+        );
+
+        // The strongest claims are the ones kept.
+        assertEquals("Child 0", offered.get(0).name());
+        assertEquals("Child 1", offered.get(1).name());
+
+        assertTrue(GameController.offerableHeirs(List.of()).isEmpty());
+        assertTrue(GameController.offerableHeirs(null).isEmpty());
+    }
+
+    // ---- shared machinery ------------------------------------------------
+
+    /** Loads a finished life and closes its chronicle, as a player would. */
+    private Parent succession(GameEngine finished, Main app) throws Exception {
+        AtomicReference<Parent> screen = new AtomicReference<>();
+
+        onFxThread(() -> {
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource(
+                        "/com/example/al_mirath/fxml/game-screen.fxml"));
+
+                GameController controller = new GameController();
+                controller.setRestoredEngine(finished);
+                controller.setMainApp(app);
+                loader.setController(controller);
+
+                Parent root = loader.load();
+                new Scene(root, 1440, 900);
+                root.applyCss();
+                root.layout();
+
+                screen.set(root);
+
+                return true;
+            } catch (Exception problem) {
+                throw new IllegalStateException(problem);
+            }
+        });
+
+        Thread.sleep(1200);
+
+        onFxThread(() -> {
+            ((Button) screen.get().lookup("#popupContinueButton")).fire();
+            return null;
+        });
+
+        Thread.sleep(1200);
+
+        return screen.get();
+    }
+
+    private List<String> visibleChoices(Parent screen) {
+        List<String> texts = new ArrayList<>();
+
+        for (String id : new String[]{"#choiceButton1", "#choiceButton2", "#choiceButton3"}) {
+            Button button = (Button) screen.lookup(id);
+
+            if (button != null && button.isVisible()) {
+                texts.add(button.getText());
+            }
+        }
+
+        return texts;
+    }
+
+    private Button choiceSaying(Parent screen, String wanted) {
+        for (String id : new String[]{"#choiceButton1", "#choiceButton2", "#choiceButton3"}) {
+            Button button = (Button) screen.lookup(id);
+
+            if (button != null
+                    && button.isVisible()
+                    && button.getText() != null
+                    && button.getText().contains(wanted)) {
+
+                return button;
+            }
+        }
+
+        return null;
     }
 }

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.String?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Rectangle?>
+
+<StackPane fx:id="nameRoot"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.example.al_mirath.controller.NameController"
+           stylesheets="@../css/almirath-theme.css">
+
+    <styleClass>
+        <String fx:value="welcome-root"/>
+    </styleClass>
+
+    <ImageView fx:id="nameBackground"
+               preserveRatio="false"
+               smooth="true"
+               cache="true"
+               mouseTransparent="true"/>
+
+    <Rectangle fx:id="nameOverlay"
+               fill="BLACK"
+               opacity="0.34"
+               mouseTransparent="true"/>
+
+    <VBox alignment="CENTER"
+          spacing="22"
+          maxWidth="760">
+
+        <styleClass>
+            <String fx:value="welcome-card"/>
+        </styleClass>
+
+        <Label text="Whose life is this?"
+               wrapText="true"
+               textAlignment="CENTER"
+               maxWidth="760">
+            <styleClass>
+                <String fx:value="name-title"/>
+            </styleClass>
+        </Label>
+
+        <Label fx:id="nameNoteLabel"
+               text="The name you give is the one the chronicles will keep, and the one your house is called by after you are gone."
+               wrapText="true"
+               textAlignment="CENTER"
+               minHeight="-Infinity"
+               maxWidth="620">
+            <styleClass>
+                <String fx:value="name-note"/>
+            </styleClass>
+        </Label>
+
+        <TextField fx:id="nameField"
+                   promptText="Your name"
+                   alignment="CENTER"
+                   maxWidth="420"
+                   minHeight="52"
+                   onAction="#beginLife">
+            <styleClass>
+                <String fx:value="name-field"/>
+            </styleClass>
+        </TextField>
+
+        <HBox alignment="CENTER" spacing="16">
+            <Button fx:id="beginButton"
+                    minWidth="-Infinity"
+                    text="Begin"
+                    prefWidth="240"
+                    minHeight="48"
+                    onAction="#beginLife">
+                <styleClass>
+                    <String fx:value="welcome-button"/>
+                </styleClass>
+            </Button>
+
+            <Button fx:id="rollNameButton"
+                    minWidth="-Infinity"
+                    text="Let fate name me"
+                    prefWidth="240"
+                    minHeight="48"
+                    onAction="#rollAName">
+                <styleClass>
+                    <String fx:value="welcome-button"/>
+                </styleClass>
+            </Button>
+        </HBox>
+
+        <Button minWidth="-Infinity"
+                text="Back"
+                prefWidth="200"
+                minHeight="44"
+                onAction="#backToMenu">
+            <styleClass>
+                <String fx:value="welcome-button"/>
+            </styleClass>
+        </Button>
+    </VBox>
+</StackPane>

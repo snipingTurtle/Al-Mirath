@@ -3,6 +3,7 @@ package com.example.al_mirath;
 import com.example.al_mirath.controller.AchievementsController;
 import com.example.al_mirath.controller.GameController;
 import com.example.al_mirath.controller.LegacyRecordsController;
+import com.example.al_mirath.controller.NameController;
 import com.example.al_mirath.controller.ScreenLifecycle;
 import com.example.al_mirath.controller.SettingsController;
 import com.example.al_mirath.controller.WelcomeController;
@@ -93,11 +94,42 @@ public class Main extends Application {
         }
     }
 
+    /** The naming step a new life passes through before it is generated. */
+    public void showNameScreen() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/example/al_mirath/fxml/name-screen.fxml")
+            );
+
+            Parent root = loader.load();
+
+            NameController controller = loader.getController();
+            controller.setMainApp(this);
+
+            applyScene(root, controller);
+
+            System.out.println("Name screen loaded.");
+
+        } catch (Exception e) {
+            System.out.println("Failed to load name screen.");
+            e.printStackTrace();
+        }
+    }
+
+    /** Starts a brand-new life under the name the player settled on. */
+    public void showNewLife(String chosenName) {
+        showGameScreen(null, chosenName);
+    }
+
     public void showGameScreen() {
-        showGameScreen(null);
+        showGameScreen(null, null);
     }
 
     public void showGameScreen(GameEngine restoredEngine) {
+        showGameScreen(restoredEngine, null);
+    }
+
+    private void showGameScreen(GameEngine restoredEngine, String chosenName) {
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/example/al_mirath/fxml/game-screen.fxml")
@@ -105,6 +137,7 @@ public class Main extends Application {
 
             GameController controller = new GameController();
             controller.setRestoredEngine(restoredEngine);
+            controller.setChosenName(chosenName);
             loader.setController(controller);
 
             Parent root = loader.load();

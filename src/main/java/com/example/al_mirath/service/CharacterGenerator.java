@@ -66,8 +66,24 @@ public class CharacterGenerator {
             "Impulsive"
     };
 
+    /** The longest a player-chosen name is allowed to be on a button. */
+    private static final int NAME_LIMIT = 32;
+
     public PlayerCharacter generateCharacter() {
-        String name = randomFrom(names);
+        return generateCharacter(null);
+    }
+
+    /**
+     * Builds a life, named by the player if they gave a name.
+     *
+     * <p>Everything else about the character is still rolled. Naming yourself
+     * decides who you are called, not who you were born to be.
+     *
+     * @param chosenName what the player typed, or null/blank to be named by
+     *                   the generator the way every life used to be
+     */
+    public PlayerCharacter generateCharacter(String chosenName) {
+        String name = nameOrRandom(chosenName);
         String era = randomFrom(eras);
         String origin = generateOriginByEra(era);
         String familyCondition = randomFrom(familyConditions);
@@ -368,6 +384,33 @@ public class CharacterGenerator {
 
             default -> "Poor Village Child";
         };
+    }
+
+    /** A name from the pool, for the reroll button and for unnamed lives. */
+    public String randomName() {
+        return randomFrom(names);
+    }
+
+    /**
+     * Cleans up what was typed into the naming field.
+     *
+     * <p>The name is printed on buttons, written into the dynasty's house
+     * name and saved to the legacy records, so it cannot carry line breaks or
+     * run past the width of a scroll. A name that survives none of that
+     * falls back to a rolled one rather than leaving the player nameless.
+     */
+    public String nameOrRandom(String chosenName) {
+        if (chosenName == null) {
+            return randomName();
+        }
+
+        String cleaned = chosenName.replaceAll("\\s+", " ").trim();
+
+        if (cleaned.length() > NAME_LIMIT) {
+            cleaned = cleaned.substring(0, NAME_LIMIT).trim();
+        }
+
+        return cleaned.isEmpty() ? randomName() : cleaned;
     }
 
     private String randomFrom(String[] array) {

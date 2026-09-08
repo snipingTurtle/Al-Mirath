@@ -138,13 +138,58 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path target/dist/* -DestinationPath "target/AlMirath-${{ matrix.label }}-portable.zip"
 
-      # jpackage builds Windows installers with WiX, and only version 3.
-      - name: Install WiX
+      # jpackage builds Windows installers with WiX 3, and the runner image
+      # already has it — the first attempt at this asked Chocolatey to install
+      # 3.11.2 and the step failed on "a newer version of wixtoolset
+      # (v3.14.1) is already installed", which is a refusal to downgrade
+      # rather than a missing tool. So nothing is installed here. jpackage
+      # finds candle and light by looking on the PATH, and they are not on it
+      # by default, which is the whole of what this step is for.
+      - name: Put WiX on the PATH
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install wixtoolset --version=3.11.2 --no-progress -y
-          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
+          $ErrorActionPreference = 'Stop'
+
+          if (Get-Command candle.exe -ErrorAction SilentlyContinue) {
+            Write-Host 'WiX is already on the PATH.'
+            exit 0
+          }
+
+          # Searched for rather than hardcoded: the version on the image moves,
+          # and a pinned "WiX Toolset v3.14" would break the next time it does.
+          $candidates = @()
+
+          if ($env:WIX) {
+            $candidates += (Join-Path $env:WIX 'bin')
+          }
+
+          $candidates += Get-ChildItem 'C:\Program Files (x86)', 'C:\Program Files' `
+              -Filter 'WiX Toolset v*' -Directory -ErrorAction SilentlyContinue |
+              ForEach-Object { Join-Path $_.FullName 'bin' }
+
+          $bin = $candidates |
+              Where-Object { Test-Path (Join-Path $_ 'candle.exe') } |
+              Select-Object -First 1
+
+          if (-not $bin) {
+            Write-Host 'No WiX on this image; fetching it.'
+
+            $zip = Join-Path $env:RUNNER_TEMP 'wix.zip'
+            $bin = Join-Path $env:RUNNER_TEMP 'wix'
+
+            Invoke-WebRequest -OutFile $zip `
+              -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip'
+
+            Expand-Archive -Path $zip -DestinationPath $bin -Force
+          }
+
+          if (-not (Test-Path (Join-Path $bin 'candle.exe'))) {
+            throw "No candle.exe under $bin; jpackage cannot build an installer."
+          }
+
+          Write-Host "Using WiX at $bin"
+          $bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Build the installer
         run: |
@@ -202,7 +247,15 @@ jobs:
   release:
     name: Release
     needs: package
-    if: startsWith(github.ref, 'refs/tags/')
+
+    # Runs even when a platform failed to build. One installer refusing to
+    # package is a reason to fix that platform, not a reason for nobody to be
+    # able to download the game: the first tagged build lost its Windows
+    # installer to a missing tool and published nothing at all, including the
+    # three platforms that were sitting there built and the Windows portable
+    # build that was fine. The failed job is still red on the run.
+    if: always() && startsWith(github.ref, 'refs/tags/')
+
     runs-on: ubuntu-latest
 
     steps:
@@ -218,6 +271,14 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           version="${GITHUB_REF#refs/tags/}"
+
+          if [ -z "$(ls -A builds 2>/dev/null)" ]; then
+            echo "Nothing built on any platform; there is no release to make."
+            exit 1
+          fi
+
+          echo "Publishing:"
+          ls -1 builds
 
           gh release create "$version" \
             --title "Al-Mirath $version" \

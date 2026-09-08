@@ -95,6 +95,12 @@ To get builds without cutting a release, run the workflow by hand from the
 **Actions** tab; the packages are attached to that run as artifacts and kept
 for a fortnight.
 
+If one platform fails to build, the release is still published with the ones
+that did — a Windows installer that will not package is a reason to fix
+Windows, not a reason for nobody to be able to download the game. The failed
+job stays red on the run, and every platform's portable archive is uploaded
+even when its installer step failed.
+
 ### Building a package yourself
 
 Needs **JDK 21 or newer** (`jpackage` ships with it). Build on the platform you

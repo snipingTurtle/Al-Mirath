@@ -122,14 +122,20 @@ class DynastySystemTest {
         }
     }
 
+    /**
+     * Being liked is not the same as having been taught.
+     *
+     * <p>Any warm cast member used to clear the bar, which made the most
+     * consequential relationship in a run a side effect of being popular.
+     * Taking a student is a decision the player makes in an event now, and
+     * that decision is what this asks for.
+     */
     @Test
-    @DisplayName("a house with no blood left can still be handed to a student")
+    @DisplayName("a house with no blood left goes to a student, not to whoever liked you")
     void loyaltyInheritsWhenBloodDoesNot() {
         PlayerCharacter player = forebear(50, 50, 50, 50);
         RecurringCharacterRegistry cast = RecurringCharacterRegistry.createFor(player);
 
-        // A cast member you never invested in is an acquaintance, not an heir:
-        // friendships start well below the bar on purpose.
         assertTrue(
                 SuccessionService.candidates(household(), cast).isEmpty(),
                 "a house was handed to somebody the player barely knew"
@@ -147,15 +153,27 @@ class DynastySystemTest {
 
         assertNotNull(companion, "the cast contained no companion at all");
 
-        cast.changeRelationship(companion, 40, "taught_them", "You taught them.", 50);
+        // Warmed as far as warmth goes — and still not an heir.
+        cast.changeRelationship(companion, 70, "a_life_together", "A life together.", 50);
+
+        assertTrue(
+                SuccessionService.candidates(household(), cast).isEmpty(),
+                "the house went to a devoted friend the player never chose to teach"
+        );
+
+        assertTrue(
+                cast.takeStudent("Idris", 50),
+                "the player could not take a student at all"
+        );
 
         List<Succession> heirs = SuccessionService.candidates(household(), cast);
 
-        assertFalse(heirs.isEmpty(), "a lifelong companion was left no way to inherit");
+        assertFalse(heirs.isEmpty(), "a student the player chose was left no way to inherit");
 
         for (Succession heir : heirs) {
             assertFalse(heir.blood(), "a student was recorded as blood");
             assertEquals("your student", heir.relation());
+            assertEquals("Idris", heir.name(), "somebody other than the student inherited");
         }
     }
 
@@ -441,7 +459,14 @@ class DynastySystemTest {
 
         String cityBefore = founder.getCurrentCityName();
         String worldBefore = founder.getCities().whereYouAreSummary();
-        String castBefore = founder.getRecurringCharacterSummary();
+
+        List<String> knewThem = new ArrayList<>();
+
+        for (var character : founder.getRecurringCharacters().all()) {
+            if (character.isAlive() && Math.abs(character.getRelationship()) >= 40) {
+                knewThem.add(character.getName());
+            }
+        }
 
         GameEngine heir = founder.succeedTo(founder.getSuccessors().get(0));
 
@@ -457,9 +482,27 @@ class DynastySystemTest {
                 "the world was regenerated rather than inherited"
         );
 
-        assertEquals(
-                castBefore, heir.getRecurringCharacterSummary(),
-                "everyone their forebear knew was forgotten"
+        // The people the house has history with are still out there. This used
+        // to assert the cast came across verbatim, which is how the heir ended
+        // up being told they had rejected a mentor at nine — what crosses is a
+        // standing between houses, not a copy of somebody else's address book.
+        List<String> stillThere = new ArrayList<>();
+
+        for (var character : heir.getRecurringCharacters().all()) {
+            stillThere.add(character.getName());
+        }
+
+        for (String name : knewThem) {
+            assertTrue(
+                    stillThere.contains(name),
+                    name + " mattered enough to the forebear to outlive them and "
+                            + "the heir has never heard of them"
+            );
+        }
+
+        assertFalse(
+                knewThem.isEmpty(),
+                "this life left nobody behind, so the test proves nothing"
         );
 
         // But the record of the last life is not the heir's record.

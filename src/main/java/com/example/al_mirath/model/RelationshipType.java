@@ -5,6 +5,7 @@ public enum RelationshipType {
     FRIEND,
     RIVAL,
     MENTOR,
+    STUDENT,
     ALLY,
     FAMILY_FRIEND,
     PATRON,
@@ -15,6 +16,7 @@ public enum RelationshipType {
             case FRIEND -> "Friend";
             case RIVAL -> "Rival";
             case MENTOR -> "Mentor";
+            case STUDENT -> "Student";
             case ALLY -> "Ally";
             case FAMILY_FRIEND -> "Family Friend";
             case PATRON -> "Patron";

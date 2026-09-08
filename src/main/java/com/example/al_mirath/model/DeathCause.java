@@ -33,7 +33,13 @@ public enum DeathCause {
     COURT_SUSPICION,
     INFORMED_ON,
     SHADOW_DEBT,
-    BURIED_LIE;
+    BURIED_LIE,
+
+    /** The city you were standing in was sick, and you were in it. */
+    PLAGUE,
+
+    /** The city you were standing in was being taken. */
+    SIEGE;
 
     private static final int CHILD = 13;
     private static final int YOUTH = 25;
@@ -52,7 +58,42 @@ public enum DeathCause {
             case INFORMED_ON -> "The report against you destroyed your protection.";
             case SHADOW_DEBT -> "The shadow network protected you for too long to let you walk away freely.";
             case BURIED_LIE -> "The lie you built began to collapse around you.";
+            case PLAGUE -> plague(age);
+            case SIEGE -> siege(age);
         };
+    }
+
+    private String plague(int age) {
+        if (age < CHILD) {
+            return "The sickness went through the quarter taking the small ones "
+                    + "first. You were carried out with the others, and the "
+                    + "household was not allowed to follow.";
+        }
+
+        if (age < ELDER) {
+            return "The sickness in the city found you the way it found "
+                    + "everybody, without any interest in who you were or what "
+                    + "you had been building.";
+        }
+
+        return "The sickness took the old first, and you were old. Nobody who "
+                + "knew what you had been was well enough to say so.";
+    }
+
+    private String siege(int age) {
+        if (age < CHILD) {
+            return "The walls did not hold, and a child in a city being taken "
+                    + "is not something anybody stops to count.";
+        }
+
+        if (age < ELDER) {
+            return "The city was being taken and you were in it. Nothing you had "
+                    + "made yourself into mattered to the men who came over the "
+                    + "wall.";
+        }
+
+        return "You had seen the city hold before and expected it to hold again. "
+                + "It did not, and you were too old to be anywhere else.";
     }
 
     private String frailty(int age) {

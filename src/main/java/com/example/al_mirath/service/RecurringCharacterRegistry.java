@@ -96,6 +96,30 @@ public final class RecurringCharacterRegistry {
     /** How strong a bond must be, either way, to leave someone behind. */
     private static final int LEGACY_BOND = 40;
 
+    /**
+     * The flag a story event uses to hand the player a student, with the
+     * student's name after it. Keyed by name rather than by a fixed id
+     * because the person is chosen when the offer is written, not here.
+     */
+    public static final String TAKE_STUDENT_PREFIX = "take_student_";
+
+    /**
+     * What a student grows into. The first rung exists only so the age gates
+     * line up: somebody taken on at sixteen starts at "Your Student" and
+     * climbs from there, and the last rung is reserved for a bond that
+     * actually held, the way every other ladder in the cast works.
+     */
+    private static final List<String> STUDENT_LADDER = List.of(
+            "Child at Your Door",
+            "Your Student",
+            "Your Copyist",
+            "Master in Their Own Right",
+            "Keeper of Your Name"
+    );
+
+    /** How warmly a student begins: you chose them and they know it. */
+    private static final int STUDENT_STARTING_BOND = 45;
+
     private final Map<String, RecurringCharacter> characters =
             new LinkedHashMap<>();
 
@@ -125,6 +149,21 @@ public final class RecurringCharacterRegistry {
             return;
         }
 
+        addOwnPeopleFor(player);
+    }
+
+    /**
+     * Gives a life the three people it starts with: someone who grew up
+     * beside them, someone who did not, and someone older who knows things.
+     *
+     * <p>Separate from {@link #generateInitialCast} because an heir needs
+     * these even though the registry is not empty — they inherit the house's
+     * standing with other people, but the friend they made at seven is their
+     * own. The ids are fixed, and deliberately so: every npc story flag in
+     * the game names them, so the people the flags reach have to be the ones
+     * whose life is actually being played.
+     */
+    public void addOwnPeopleFor(PlayerCharacter player) {
         int playerAge = player.getAge();
 
         addGenerated(
@@ -420,6 +459,206 @@ public final class RecurringCharacterRegistry {
         return List.copyOf(characters.values());
     }
 
+    /** The prefix that marks somebody the house knows rather than the player. */
+    private static final String INHERITED = "legacy_";
+
+    /** What the last generation's student is to this one. */
+    private static final String TAUGHT_BEFORE_YOU = "Taught by the One Before You";
+
+    /**
+     * The people the next generation is handed.
+     *
+     * <p>Copying the cast across wholesale was wrong in three separate ways,
+     * all of them visible in the Bonds panel the moment an heir took over:
+     * the forebear's dead were still listed as the heir's people, warmth
+     * earned over a lifetime was handed on at full strength to somebody who
+     * had never met them, and the memories still read in the second person —
+     * a twenty-four-year-old was told they had rejected a mentor at nine.
+     *
+     * <p>What actually crosses is a disposition. The living who mattered stay,
+     * at half the feeling and under a memory that says whose deed it was, and
+     * the heir is given their own companion, rival and mentor on top.
+     *
+     * <p>"Mattered" is the same bar a dying cast member has to clear to leave
+     * a child behind: a bond nobody did anything with is where it started, and
+     * an acquaintance the forebear merely had is not an inheritance.
+     */
+    public RecurringCharacterRegistry inheritedByTheHouse(PlayerCharacter heir) {
+        RecurringCharacterRegistry inherited = new RecurringCharacterRegistry(random);
+
+        for (RecurringCharacter character : characters.values()) {
+            if (!character.isAlive()
+                    || Math.abs(character.getRelationship()) < LEGACY_BOND) {
+
+                continue;
+            }
+
+            int carried = character.getRelationship() / 2;
+
+            // A student belonged to the person who taught them. The heir did
+            // not choose them and has taught them nothing, so they stop being
+            // a student — which also closes the door on a house being handed
+            // to somebody two generations of players never picked.
+            boolean wasTaught =
+                    character.getRelationshipType() == RelationshipType.STUDENT;
+
+            RecurringCharacter known =
+                    new RecurringCharacter(
+                            INHERITED + character.getId(),
+                            character.getName(),
+                            character.getBackground(),
+                            character.getPersonality(),
+                            wasTaught
+                                    ? RelationshipType.FAMILY_FRIEND
+                                    : character.getRelationshipType(),
+                            wasTaught ? TAUGHT_BEFORE_YOU : character.getCurrentRole(),
+                            character.getAge(),
+                            carried,
+                            character.isAlive(),
+                            wasTaught
+                                    ? List.of(TAUGHT_BEFORE_YOU)
+                                    : character.getRoleLadder(),
+                            wasTaught ? 0 : character.getRoleRank(),
+                            character.getParentName()
+                    );
+
+            known.addMemory(
+                    new NpcMemory(
+                            "inherited_standing",
+                            wasTaught
+                                    ? "They were taught everything they know by "
+                                            + "the one who held this house before you."
+                                    : standingBetweenTheHouses(carried),
+                            NpcMemory.BEFORE_YOUR_TIME,
+                            carried
+                    )
+            );
+
+            inherited.characters.put(known.getId(), known);
+        }
+
+        // Whoever the house has history with, the heir still gets a life of
+        // their own people to make history with.
+        inherited.addOwnPeopleFor(heir);
+
+        return inherited;
+    }
+
+    /** How a bond the player never made is explained to them. */
+    private static String standingBetweenTheHouses(int carried) {
+        if (carried >= 40) {
+            return "Their people owe yours something, and have not forgotten it.";
+        }
+
+        if (carried > 0) {
+            return "Their people and yours have been on good terms since before "
+                    + "you were born.";
+        }
+
+        if (carried <= -40) {
+            return "There is blood between their people and yours, and it was "
+                    + "spilled before you could have had a say in it.";
+        }
+
+        return "Their people and yours have never got on, and nobody now "
+                + "remembers exactly why.";
+    }
+
+    /** Whether somebody is currently being taught by the player. */
+    public boolean hasLivingStudent() {
+        for (RecurringCharacter character : characters.values()) {
+            if (character.isAlive()
+                    && character.getRelationshipType() == RelationshipType.STUDENT) {
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The name of whoever is currently asking to be taught.
+     *
+     * <p>Derived from the seed rather than rolled, so the offer keeps naming
+     * the same person for as long as it stands. Cast events are rebuilt from
+     * scratch every time the engine looks for one, and a rolled name would
+     * mean a different stranger at the door each year — the same churn that
+     * once had one life's city changing between decisions.
+     */
+    public String prospectiveStudentName(long seed) {
+        List<String> pool = new ArrayList<>(MALE_NAMES);
+        pool.addAll(FEMALE_NAMES);
+
+        int start = (int) Math.floorMod(seed, pool.size());
+
+        for (int step = 0; step < pool.size(); step++) {
+            String candidate = pool.get((start + step) % pool.size());
+
+            if (!containsName(candidate)) {
+                return candidate;
+            }
+        }
+
+        return pool.get(start);
+    }
+
+    /**
+     * Takes somebody on as a student.
+     *
+     * <p>They join the cast as a person rather than as a stat: they age,
+     * climb, can die, and can be turned against you like anyone else. What
+     * makes them different is that the player chose them, which is what
+     * makes them able to be handed the house later.
+     *
+     * @return false when there is already a student, or the name is unusable
+     */
+    public boolean takeStudent(String name, int playerAge) {
+        if (name == null || name.isBlank() || hasLivingStudent()) {
+            return false;
+        }
+
+        String id = "student_" + name.toLowerCase(java.util.Locale.ROOT);
+
+        if (characters.containsKey(id)) {
+            return false;
+        }
+
+        int age = 16 + random.nextInt(5);
+
+        RecurringCharacter student =
+                new RecurringCharacter(
+                        id,
+                        name,
+                        "Somebody who asked to be taught what you know, and was "
+                                + "not turned away.",
+                        PERSONALITIES.get(
+                                random.nextInt(PERSONALITIES.size())
+                        ),
+                        RelationshipType.STUDENT,
+                        STUDENT_LADDER.get(1),
+                        age,
+                        STUDENT_STARTING_BOND,
+                        true,
+                        STUDENT_LADDER,
+                        1,
+                        ""
+                );
+
+        student.addMemory(
+                new NpcMemory(
+                        "took_student",
+                        "You took them on when you did not have to.",
+                        playerAge,
+                        STUDENT_STARTING_BOND
+                )
+        );
+
+        characters.put(id, student);
+
+        return true;
+    }
+
     public void changeRelationship(
             String characterId,
             int amount,
@@ -454,6 +693,17 @@ public final class RecurringCharacterRegistry {
             String flag,
             int playerAge
     ) {
+        if (flag == null) {
+            return;
+        }
+
+        // Taking a student names a person the event content chose, so it
+        // cannot be a fixed case the way every other flag here is.
+        if (flag.startsWith(TAKE_STUDENT_PREFIX)) {
+            takeStudent(flag.substring(TAKE_STUDENT_PREFIX.length()), playerAge);
+            return;
+        }
+
         switch (flag) {
 
             case "npc_friend_secret_protected" ->
@@ -987,9 +1237,11 @@ public final class RecurringCharacterRegistry {
             if (strongest != null) {
                 result.append("\nRemembers: ")
                         .append(strongest.description())
-                        .append(" (you were ")
-                        .append(strongest.playerAge())
-                        .append(")");
+                        .append(
+                                strongest.predatesThePlayer()
+                                        ? " (from before your time)"
+                                        : " (you were " + strongest.playerAge() + ")"
+                        );
             }
 
             RivalFeud feud = character.feud();

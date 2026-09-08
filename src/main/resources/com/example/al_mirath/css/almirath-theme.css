@@ -2500,3 +2500,95 @@
     -fx-padding: 0;
 }
 
+
+/*
+ * The naming screen. It borrows the menu's ground and buttons, so all it
+ * needs of its own is a title that does not shout as loudly as the game's,
+ * a legible note, and a field that reads as ink on parchment rather than as
+ * a stock text box on top of the artwork.
+ */
+.name-title {
+    -fx-font-family: "Monotype Corsiva", "Gabriola", "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 46px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-text-fill:
+            linear-gradient(from 0% 0% to 0% 100%,
+            #fff3c4 0%,
+            #ffd76a 42%,
+            #d99a28 100%);
+    -fx-effect:
+            dropshadow(gaussian, rgba(0, 0, 0, 0.96), 16, 0.58, 0, 4),
+            dropshadow(gaussian, rgba(0, 0, 0, 0.80), 30, 0.40, 0, 0);
+}
+
+.name-note {
+    -fx-font-size: 15px;
+    -fx-text-fill: #f0dcb4;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.92), 10, 0.5, 0, 2);
+}
+
+.name-field {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(48, 28, 10, 0.86),
+            rgba(24, 13, 4, 0.90));
+    -fx-border-color: rgba(226, 176, 74, 0.85);
+    -fx-border-width: 1.6;
+    -fx-background-radius: 13;
+    -fx-border-radius: 13;
+    -fx-font-size: 22px;
+    -fx-text-fill: #ffe4a0;
+    -fx-prompt-text-fill: rgba(240, 220, 180, 0.45);
+    -fx-highlight-fill: rgba(226, 176, 74, 0.35);
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.72), 14, 0.34, 0, 4);
+}
+
+.name-field:focused {
+    -fx-border-color: #ffe4a0;
+}
+
+/*
+ * The event description's scroll pane.
+ *
+ * It exists only so the description can give its height up to the choices
+ * below it, so at any size where the text fits it has to be invisible: no
+ * panel, no border, no track, no arrows. The thumb appears only when there is
+ * genuinely more scene than room, which is the one moment the player needs to
+ * know the rest of it is still there.
+ */
+.description-scroll,
+.description-scroll > .viewport,
+.description-scroll .corner {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.description-scroll > .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-pref-width: 8px;
+    -fx-padding: 0;
+}
+
+.description-scroll > .scroll-bar:vertical > .track,
+.description-scroll > .scroll-bar:vertical > .track-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.description-scroll > .scroll-bar:vertical > .thumb {
+    -fx-background-color: rgba(226, 176, 74, 0.55);
+    -fx-background-radius: 8;
+}
+
+.description-scroll > .scroll-bar > .increment-button,
+.description-scroll > .scroll-bar > .decrement-button {
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}

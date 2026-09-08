@@ -113,6 +113,12 @@ class FxmlSmokeTest {
     }
 
     @Test
+    @DisplayName("the naming screen loads with its field and buttons bound")
+    void nameScreenLoads() throws Exception {
+        assertNotNull(load("/com/example/al_mirath/fxml/name-screen.fxml"));
+    }
+
+    @Test
     @DisplayName("the legacy records screen loads")
     void legacyRecordsScreenLoads() throws Exception {
         assertNotNull(load("/com/example/al_mirath/fxml/legacy-records-screen.fxml"));

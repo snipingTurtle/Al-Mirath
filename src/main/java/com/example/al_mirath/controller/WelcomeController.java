@@ -256,7 +256,9 @@ public class WelcomeController implements ScreenLifecycle {
         // sitting in the database and get picked up later by "Continue".
         SaveManager.clearSave();
 
-        mainApp.showGameScreen();
+        // The life is not generated yet: the player names it first, and the
+        // name they settle on is what the character is built with.
+        mainApp.showNameScreen();
     }
 
     @FXML

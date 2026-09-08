@@ -219,20 +219,48 @@
                         </styleClass>
                     </Label>
 
-                    <Label fx:id="eventDescriptionLabel"
-                           text="Event description"
-                           wrapText="true"
-                           textAlignment="CENTER"
-                           alignment="CENTER"
-                           maxWidth="630">
+                    <!--
+                      The scene gives up height, and scrolls rather than
+                      losing the lines it gave up.
+
+                      When the panel is short of room a VBox takes the shortfall
+                      off every child that can give, so below about 1280x720 the
+                      scene lost two lines and each choice below it lost one,
+                      both silently ellipsized. vgrow makes this the one child
+                      that flexes: it takes whatever the panel has spare, and
+                      gives it back first, which leaves the choices at the
+                      height their own text needs. The scroll pane is what makes
+                      that safe — what it gives up can still be read.
+                    -->
+                    <ScrollPane fx:id="eventDescriptionScroll"
+                                VBox.vgrow="ALWAYS"
+                                fitToWidth="true"
+                                hbarPolicy="NEVER"
+                                vbarPolicy="AS_NEEDED"
+                                pannable="true"
+                                minHeight="50"
+                                maxWidth="660">
 
                         <styleClass>
-                            <String fx:value="event-description"/>
+                            <String fx:value="description-scroll"/>
                         </styleClass>
-                    </Label>
+
+                        <Label fx:id="eventDescriptionLabel"
+                               text="Event description"
+                               wrapText="true"
+                               textAlignment="CENTER"
+                               alignment="CENTER"
+                               maxWidth="630">
+
+                            <styleClass>
+                                <String fx:value="event-description"/>
+                            </styleClass>
+                        </Label>
+                    </ScrollPane>
 
                     <!-- CHANGE CUES -->
-                    <VBox alignment="CENTER"
+                    <VBox fx:id="changeCueBox"
+                          alignment="CENTER"
                           spacing="4">
 
                         <Label fx:id="positiveCueLabel"
@@ -264,14 +292,23 @@
                         </Label>
                     </VBox>
 
-                    <!-- CHOICES -->
+                    <!--
+                      CHOICES
+
+                      minHeight is USE_PREF_SIZE, so a choice is pinned at the
+                      height its own text needs and the panel cannot take a
+                      line off it. Without this the shortfall in a small window
+                      is split between the scene and the choices, and a choice
+                      that has to be read before it can be made is the last
+                      thing here that should be shortened.
+                    -->
                     <VBox alignment="CENTER"
                           spacing="12">
 
                         <Button fx:id="choiceButton1"
                                 onAction="#handleChoice1"
                                 prefWidth="540"
-                                minHeight="52"
+                                minHeight="-Infinity"
                                 wrapText="true">
 
                             <styleClass>
@@ -282,7 +319,7 @@
                         <Button fx:id="choiceButton2"
                                 onAction="#handleChoice2"
                                 prefWidth="540"
-                                minHeight="52"
+                                minHeight="-Infinity"
                                 wrapText="true">
 
                             <styleClass>
@@ -293,7 +330,7 @@
                         <Button fx:id="choiceButton3"
                                 onAction="#handleChoice3"
                                 prefWidth="540"
-                                minHeight="52"
+                                minHeight="-Infinity"
                                 wrapText="true">
 
                             <styleClass>

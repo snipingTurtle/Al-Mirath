@@ -2548,3 +2548,47 @@
 .name-field:focused {
     -fx-border-color: #ffe4a0;
 }
+
+/*
+ * The event description's scroll pane.
+ *
+ * It exists only so the description can give its height up to the choices
+ * below it, so at any size where the text fits it has to be invisible: no
+ * panel, no border, no track, no arrows. The thumb appears only when there is
+ * genuinely more scene than room, which is the one moment the player needs to
+ * know the rest of it is still there.
+ */
+.description-scroll,
+.description-scroll > .viewport,
+.description-scroll .corner {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.description-scroll > .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-pref-width: 8px;
+    -fx-padding: 0;
+}
+
+.description-scroll > .scroll-bar:vertical > .track,
+.description-scroll > .scroll-bar:vertical > .track-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.description-scroll > .scroll-bar:vertical > .thumb {
+    -fx-background-color: rgba(226, 176, 74, 0.55);
+    -fx-background-radius: 8;
+}
+
+.description-scroll > .scroll-bar > .increment-button,
+.description-scroll > .scroll-bar > .decrement-button {
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}

@@ -230,6 +230,7 @@ public class GameController implements ScreenLifecycle {
 
     @FXML private Label positiveCueLabel;
     @FXML private Label negativeCueLabel;
+    @FXML private VBox changeCueBox;
 
     @FXML private Label healthLabel;
     @FXML private Label wealthLabel;
@@ -2630,6 +2631,30 @@ public class GameController implements ScreenLifecycle {
         label.setText(text);
         label.setVisible(hasText);
         label.setManaged(hasText);
+
+        updateCueBoxVisibility();
+    }
+
+    /**
+     * Takes the cue box out of the layout when it has nothing to say.
+     *
+     * <p>Its labels were already unmanaged when empty, but the box holding
+     * them was not, so a zero-height row still cost the panel one of its
+     * eighteen-pixel gaps on every screen that shows no stat changes — which
+     * is most of them, including the succession. The panel has no spare
+     * height to give away for nothing.
+     */
+    private void updateCueBoxVisibility() {
+        if (changeCueBox == null) {
+            return;
+        }
+
+        boolean anything =
+                (positiveCueLabel != null && positiveCueLabel.isManaged())
+                        || (negativeCueLabel != null && negativeCueLabel.isManaged());
+
+        changeCueBox.setVisible(anything);
+        changeCueBox.setManaged(anything);
     }
 
     private void hideChangeCue() {

@@ -433,17 +433,36 @@ class DynastySystemTest {
     }
 
     /** A completed life that has somebody to hand the house to. */
+    /**
+     * A finished life with somebody to carry the house and somebody still
+     * alive who knew them.
+     *
+     * <p>Both halves are needed by what this fixture is used for, and the
+     * second is easy to forget: a life can end with three heirs and every
+     * person it ever knew already buried, and then a test about which bonds
+     * cross a succession has nothing to measure and fails for no reason.
+     */
     private GameEngine aHouseWithAnHeir(Random random) {
-        for (int attempt = 0; attempt < 80; attempt++) {
+        for (int attempt = 0; attempt < 200; attempt++) {
             GameEngine engine = new GameEngine();
             live(engine, random);
 
-            if (engine.hasSuccessor()) {
+            if (engine.hasSuccessor() && someoneOutlivedThem(engine)) {
                 return engine;
             }
         }
 
-        return fail("in eighty lives, nobody ever left an heir");
+        return fail("in two hundred lives, nobody left an heir and a living face");
+    }
+
+    private boolean someoneOutlivedThem(GameEngine engine) {
+        for (var character : engine.getRecurringCharacters().all()) {
+            if (character.isAlive()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Test
@@ -457,10 +476,16 @@ class DynastySystemTest {
 
         // Made deliberately rather than hoped for: whether a random bot's
         // choices happened to leave somebody behind is not what this is about,
-        // and relying on it made the test pass or fail on the roll.
-        founder.getRecurringCharacters().changeRelationship(
-                "childhood_companion", 70, "a_life_together",
-                "You stood by them when nobody else would.", 40);
+        // and relying on it made the test pass or fail on the roll. Applied to
+        // everyone still alive, because naming one of them brought the same
+        // problem back in a quieter form — the person named can be dead.
+        for (var character : founder.getRecurringCharacters().all()) {
+            if (character.isAlive()) {
+                founder.getRecurringCharacters().changeRelationship(
+                        character.getId(), 70, "a_life_together",
+                        "You stood by them when nobody else would.", 40);
+            }
+        }
 
         List<String> knewThem = new ArrayList<>();
 

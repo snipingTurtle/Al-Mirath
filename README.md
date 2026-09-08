@@ -52,27 +52,50 @@ Lose, and the decision stands.
 
 ## Playing it
 
-You do not need Java, Maven, or an IDE to play — but somebody has to build a
-package for your platform first, on that platform. There are no prebuilt
-downloads yet.
+You do not need Java, Maven, or an IDE. Download the build for your platform
+from the [latest release](https://github.com/snipingTurtle/Al-Mirath/releases/latest),
+install it, and open it like anything else.
 
-### If you have a package
-
-| Platform | What you get | What you do |
+| Platform | Download | What you do |
 |---|---|---|
-| Windows | `AlMirath-1.0.exe` installer | Run it, then launch **Al-Mirath** from the Start menu |
-| macOS | `AlMirath-1.0.dmg` | Open it, drag the app to Applications, launch it |
-| Linux | `almirath_1.0_amd64.deb` | `sudo apt install ./almirath_1.0_amd64.deb`, then launch it from your applications menu |
+| Windows | `AlMirath-windows-x86_64.msi` | Run it, then launch **Al-Mirath** from the Start menu |
+| macOS (Apple silicon) | `AlMirath-macos-arm64.dmg` | Open it, drag the app to Applications |
+| macOS (Intel) | `AlMirath-macos-x86_64.dmg` | The same |
+| Linux | `AlMirath-linux-x86_64.deb` | `sudo apt install ./AlMirath-linux-x86_64.deb`, then launch it from your applications menu |
 
-The package carries its own Java runtime, so nothing else has to be installed
-and nothing else on the machine is touched. It is around 250 MB installed,
+Each one carries its own Java runtime, so nothing else has to be installed and
+nothing else on the machine is touched. They are around 250 MB installed,
 almost all of it artwork.
 
-There is also a portable form that needs no installer: the `AlMirath` folder
-produced by the `app-image` build below. Copy it anywhere and run
-`AlMirath/bin/AlMirath` (`AlMirath\AlMirath.exe` on Windows).
+Every platform also has a `-portable` archive that needs no installer at all:
+unpack it anywhere and run `AlMirath/bin/AlMirath`, or `AlMirath\AlMirath.exe`
+on Windows. Useful on a machine you cannot install software on.
 
-### Building a package
+The macOS builds are not signed by Apple, so the first launch is refused with
+"cannot be opened because the developer cannot be verified". Right-click the
+app and choose **Open**, which offers to run it anyway.
+
+### Publishing a release
+
+`.github/workflows/release.yml` builds all four, because jpackage can only
+build for the machine it runs on — a Windows installer has to be made on
+Windows. Tagging is all it takes:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+That runs the test suite, then builds on Linux, Windows, and both Intel and
+Apple silicon macOS runners in parallel, and attaches every installer and
+portable archive to a GitHub release named after the tag. The version in the
+package comes from the tag, so `v1.2.3` produces a 1.2.3 build.
+
+To get builds without cutting a release, run the workflow by hand from the
+**Actions** tab; the packages are attached to that run as artifacts and kept
+for a fortnight.
+
+### Building a package yourself
 
 Needs **JDK 21 or newer** (`jpackage` ships with it). Build on the platform you
 are building *for* — a Linux build will not run on Windows.
@@ -110,8 +133,13 @@ jpackage --type dmg --name AlMirath --app-version 1.0 \
 ```
 
 Replace `--type` with `app-image` on any platform to get the portable folder
-instead of an installer. On Linux, `--type deb` needs `dpkg` and `fakeroot`;
-`--type rpm` needs `rpmbuild`.
+instead of an installer.
+
+A few things the platforms want that the others do not: on Linux, `--type deb`
+needs `dpkg` and `fakeroot` and `--type rpm` needs `rpmbuild`; on Windows,
+either installer type needs [WiX 3](https://github.com/wixtoolset/wix3/releases)
+on the `PATH`. `--linux-deb-maintainer you@example.com` fills in the blank the
+Debian package otherwise leaves in its metadata.
 
 ### Running it without a package
 
@@ -137,6 +165,10 @@ JavaFX install, no IDE.
 Use `mvnw` / `mvnw.cmd` rather than a system Maven; it fetches the right version
 itself. Any IDE that imports a Maven project will do — the project carries
 Eclipse and IntelliJ metadata, and neither is required.
+
+Part of the suite drives real JavaFX screens, so it needs a display. On a
+headless machine, run it under a virtual one — `xvfb-run -a ./mvnw test` — which
+is what the workflow does on CI.
 
 The game creates its own database on first launch. There is nothing to install
 or configure.

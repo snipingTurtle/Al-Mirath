@@ -577,6 +577,37 @@
 
             <content>
                 <VBox spacing="4">
+                    <!--
+                      What the bars below are doing to the life being lived in
+                      them, said in words. The city moves the odds on a stat
+                      check, what a choice costs or earns, and whether a bad
+                      year kills you — none of which the player can work out
+                      from seven numbers on their own.
+
+                      Inside the scroll region with the bars rather than above
+                      it: a besieged and plague-stricken city has a lot to say,
+                      and said outside it that pushed the numbers it was
+                      explaining off the bottom of the drawer.
+                    -->
+                    <Label fx:id="cityEffectLabel"
+                           wrapText="true"
+                           minHeight="-Infinity"
+                           maxWidth="205"
+                           textAlignment="CENTER"
+                           alignment="CENTER">
+                        <styleClass>
+                            <String fx:value="drawer-text"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label text="━━━━━━━━━━━━"
+                           maxWidth="205"
+                           alignment="CENTER">
+                        <styleClass>
+                            <String fx:value="drawer-separator-text"/>
+                        </styleClass>
+                    </Label>
+
                     <Label fx:id="cityProsperityLabel">
                         <styleClass>
                             <String fx:value="drawer-text"/>

@@ -14,6 +14,7 @@ import com.example.al_mirath.minigame.MiniGame;
 import com.example.al_mirath.minigame.MiniGameFactory;
 import com.example.al_mirath.service.AchievementEvaluator;
 import com.example.al_mirath.service.BackgroundLibrary;
+import com.example.al_mirath.service.CityPressure;
 import com.example.al_mirath.service.GameEngine;
 import com.example.al_mirath.service.LegacyArchive;
 import com.example.al_mirath.service.ProgressService;
@@ -199,6 +200,7 @@ public class GameController implements ScreenLifecycle {
 
     @FXML private Label cityNameLabel;
     @FXML private Label cityConditionLabel;
+    @FXML private Label cityEffectLabel;
     @FXML private Label otherCitiesLabel;
 
     @FXML private Label cityProsperityLabel;
@@ -1074,6 +1076,10 @@ public class GameController implements ScreenLifecycle {
 
         if (cityConditionLabel != null) {
             cityConditionLabel.setText(here.condition().displayName());
+        }
+
+        if (cityEffectLabel != null) {
+            cityEffectLabel.setText(CityPressure.felt(here));
         }
 
         setCityMeasure(cityProsperityLabel, cityProsperityBar, "Prosperity", here.getProsperity());

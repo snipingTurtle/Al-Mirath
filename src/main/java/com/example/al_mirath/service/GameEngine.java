@@ -989,6 +989,16 @@ public class GameEngine {
     private static final int CAST_EVENT_WEIGHT = 4;
 
     /**
+     * How far the city has to move a choice's outcome before the result says
+     * so. Below this it is rounding, and a note on every single choice would
+     * be read as furniture rather than as information.
+     */
+    private static final int WORTH_SAYING = 3;
+
+    /** How much of the danger has to be the city's before it is blamed. */
+    private static final int CITY_KILLED_YOU = 2;
+
+    /**
      * Looks for the next event of a stage, drawing from the cast and the
      * general pool together.
      *
@@ -1177,8 +1187,20 @@ public class GameEngine {
             flagsToAdd = choice.getFailureFlags();
         }
 
+        City here = cities.currentCity();
+
+        // How far the city moved this choice's outcome, in total points. A
+        // one-point rounding difference is not worth telling the player about;
+        // saying so every time would train them to stop reading the line.
+        int bentBy = 0;
+
         for (Map.Entry<String, Integer> effect : statEffects.entrySet()) {
-            player.applyChange(effect.getKey(), effect.getValue());
+            int asWritten = effect.getValue();
+            int asItLands = CityPressure.bend(here, effect.getKey(), asWritten);
+
+            bentBy += Math.abs(asItLands - asWritten);
+
+            player.applyChange(effect.getKey(), asItLands);
         }
 
         for (Map.Entry<String, Integer> effect : factionEffects.entrySet()) {
@@ -1240,6 +1262,14 @@ public class GameEngine {
             finalResult = buildCheckedResultText(success, resultText);
         } else {
             finalResult = resultText;
+        }
+
+        // A city that quietly halves what you earned is not much better than
+        // a city that does nothing, because the player cannot tell the two
+        // apart. When it changed the outcome, it says so.
+        if (bentBy >= WORTH_SAYING && here != null) {
+            finalResult = finalResult + "\n\n" + here.getName() + ": "
+                    + CityPressure.felt(here);
         }
 
         return finalResult;
@@ -1592,20 +1622,36 @@ public class GameEngine {
         return minigamesLost;
     }
 
-    private boolean resolveChoiceSuccess(Choice choice) {
-        if (!choice.requiresStatCheck()) {
-            return true;
+    /**
+     * The odds on a choice, before anything is rolled.
+     *
+     * <p>Separate from the roll so the odds can be reasoned about on their
+     * own: where you are standing is part of whether something comes off, and
+     * a rule that only shows up as a shift in win rates over a thousand runs
+     * is a rule nobody can check.
+     */
+    int successChanceFor(Choice choice) {
+        if (choice == null || !choice.requiresStatCheck()) {
+            return 100;
         }
 
         int statValue = player.getStatValue(choice.getCheckStat());
         int difficulty = choice.getDifficulty();
 
-        int successChance = 50 + (statValue - difficulty);
-        successChance = Math.max(10, Math.min(90, successChance));
+        // A deal is easier in a trading city and harder in a thieving one;
+        // nothing political moves at all while the walls are being hit.
+        int successChance = 50 + (statValue - difficulty)
+                + CityPressure.shiftFor(cities.currentCity(), choice.getCheckStat());
 
-        int roll = random.nextInt(100) + 1;
+        return Math.max(10, Math.min(90, successChance));
+    }
 
-        return roll <= successChance;
+    boolean resolveChoiceSuccess(Choice choice) {
+        if (!choice.requiresStatCheck()) {
+            return true;
+        }
+
+        return random.nextInt(100) + 1 <= successChanceFor(choice);
     }
 
     private String buildCheckedResultText(boolean success, String resultText) {
@@ -1729,6 +1775,28 @@ public class GameEngine {
         if (worldState.hasFlag("framed_innocent") && factions.getCourt() <= 30) {
             risk += 15;
             cause = DeathCause.BURIED_LIE;
+        }
+
+        // The city itself, when it is bad enough to kill people who are doing
+        // nothing wrong. Placed above the failed-check branch so a plague that
+        // takes you is named as a plague rather than as a fumbled recitation.
+        int fromTheCity = CityPressure.deathRisk(cities.currentCity());
+
+        if (fromTheCity > 0) {
+            risk += fromTheCity;
+
+            // Named as the cause only when the city is doing enough of the
+            // killing to deserve it. A city one point over the plague line
+            // adds almost nothing, and reporting an old man's death in it as
+            // "the sickness found you" would be putting a name to a rounding
+            // error.
+            if (fromTheCity >= CITY_KILLED_YOU) {
+                DeathCause byTheCity = CityPressure.deathCause(cities.currentCity());
+
+                if (byTheCity != null) {
+                    cause = byTheCity;
+                }
+            }
         }
 
         // Failed stat-check choices are more dangerous

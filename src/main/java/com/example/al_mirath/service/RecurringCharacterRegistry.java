@@ -164,13 +164,18 @@ public final class RecurringCharacterRegistry {
      * whose life is actually being played.
      */
     public void addOwnPeopleFor(PlayerCharacter player) {
+        // All three begin as nobody in particular. A life is not handed a
+        // friend, an enemy and a teacher on its first day; it is handed three
+        // people in the same city, and what they become to the player is what
+        // the player does about them. The elder in particular may go a whole
+        // run without ever becoming a mentor.
         int playerAge = player.getAge();
 
         addGenerated(
                 "childhood_companion",
                 pickUniqueName(),
                 "A child from the same district who grew up beside you.",
-                RelationshipType.FRIEND,
+                RelationshipType.STRANGER,
                 COMPANION_LADDERS.get(
                         random.nextInt(COMPANION_LADDERS.size())
                 ),
@@ -185,7 +190,7 @@ public final class RecurringCharacterRegistry {
                 "early_rival",
                 pickUniqueName(),
                 "Someone whose path repeatedly crosses yours, never without tension.",
-                RelationshipType.RIVAL,
+                RelationshipType.STRANGER,
                 rivalLadder(player.getOrigin()),
                 Math.max(
                         7,
@@ -198,7 +203,7 @@ public final class RecurringCharacterRegistry {
                 "elder_mentor",
                 pickUniqueName(),
                 mentorBackground(player),
-                RelationshipType.MENTOR,
+                RelationshipType.STRANGER,
                 mentorLadder(player),
                 playerAge + 18 + random.nextInt(20),
                 35
@@ -459,6 +464,14 @@ public final class RecurringCharacterRegistry {
         return List.copyOf(characters.values());
     }
 
+    /**
+     * The most somebody can think of you after you have sold them. Below the
+     * point where a relationship is hostile, so a betrayal reliably makes an
+     * enemy rather than merely cooling a friendship that was warm enough to
+     * absorb it.
+     */
+    private static final int BETRAYED = -35;
+
     /** The prefix that marks somebody the house knows rather than the player. */
     private static final String INHERITED = "legacy_";
 
@@ -522,6 +535,17 @@ public final class RecurringCharacterRegistry {
                             character.getParentName()
                     );
 
+            // The house's history with them carries, and the halved warmth is
+            // then re-read: a friendship that only just cleared the bar in the
+            // last generation is a familiar name in this one, not a friend.
+            known.restoreHistory(
+                    true,
+                    character.wasEverRival()
+                            || character.getRelationshipType() == RelationshipType.RIVAL
+            );
+
+            known.changeRelationship(0);
+
             known.addMemory(
                     new NpcMemory(
                             "inherited_standing",
@@ -562,6 +586,43 @@ public final class RecurringCharacterRegistry {
 
         return "Their people and yours have never got on, and nobody now "
                 + "remembers exactly why.";
+    }
+
+    /**
+     * Ends what was between the player and somebody, whatever it was worth.
+     * Does nothing for somebody the cast has never heard of.
+     */
+    public void breakBond(String characterId, int ceiling) {
+        RecurringCharacter character = characters.get(characterId);
+
+        if (character != null) {
+            character.breakBond(ceiling);
+        }
+    }
+
+    /**
+     * Agrees a bond that warmth alone cannot produce — a teacher, a patron.
+     * Does nothing for somebody the cast has never heard of.
+     */
+    public void confer(String characterId, RelationshipType bond) {
+        RecurringCharacter character = characters.get(characterId);
+
+        if (character != null) {
+            character.confer(bond);
+        }
+    }
+
+    /**
+     * Ends an agreed bond, leaving whatever the warmth between them says they
+     * are now. Called before the warmth is changed, so the drop lands on a
+     * relationship that is already over rather than on one being protected.
+     */
+    public void revoke(String characterId) {
+        RecurringCharacter character = characters.get(characterId);
+
+        if (character != null) {
+            character.confer(RelationshipType.STRANGER);
+        }
     }
 
     /** Whether somebody is currently being taught by the player. */
@@ -724,14 +785,20 @@ public final class RecurringCharacterRegistry {
                             playerAge
                     );
 
-            case "npc_friend_betrayed" ->
-                    changeRelationship(
-                            "childhood_companion",
-                            -55,
-                            flag,
-                            "You sold a childhood secret for personal advantage.",
-                            playerAge
-                    );
+            // Not a withdrawal, an ending. However good things had been, they
+            // are not that any more, and the person who was owed better is now
+            // somebody with a reason.
+            case "npc_friend_betrayed" -> {
+                changeRelationship(
+                        "childhood_companion",
+                        -55,
+                        flag,
+                        "You sold a childhood secret for personal advantage.",
+                        playerAge
+                );
+
+                breakBond("childhood_companion", BETRAYED);
+            }
 
             case "npc_friend_welcomed_back" ->
                     changeRelationship(
@@ -913,25 +980,37 @@ public final class RecurringCharacterRegistry {
                             playerAge
                     );
 
+            // The moment the elder actually becomes a teacher. Taking the
+            // lesson is what makes them one; being on good terms with them
+            // for thirty years does not.
             case "npc_mentor_guidance_accepted",
-                 "npc_mentor_supported_family" ->
-                    changeRelationship(
-                            "elder_mentor",
-                            20,
-                            flag,
-                            "You accepted your mentor's guidance.",
-                            playerAge
-                    );
+                 "npc_mentor_supported_family" -> {
+                changeRelationship(
+                        "elder_mentor",
+                        20,
+                        flag,
+                        "You accepted their guidance, and they began to teach "
+                                + "you in earnest.",
+                        playerAge
+                );
 
+                confer("elder_mentor", RelationshipType.MENTOR);
+            }
+
+            // And the moment it stops. A bond that cannot be broken is not
+            // a bond, it is a label.
             case "npc_mentor_rejected",
-                 "npc_mentor_disowned_legacy" ->
-                    changeRelationship(
-                            "elder_mentor",
-                            -30,
-                            flag,
-                            "You rejected the bond between mentor and student.",
-                            playerAge
-                    );
+                 "npc_mentor_disowned_legacy" -> {
+                revoke("elder_mentor");
+
+                changeRelationship(
+                        "elder_mentor",
+                        -30,
+                        flag,
+                        "You rejected the bond between mentor and student.",
+                        playerAge
+                );
+            }
 
             case "npc_mentor_legacy_preserved",
                  "npc_mentor_final_reconciliation" ->
@@ -1206,6 +1285,14 @@ public final class RecurringCharacterRegistry {
         StringBuilder result = new StringBuilder();
 
         for (RecurringCharacter character : characters.values()) {
+            // Somebody the player has never had anything to do with is a
+            // person in the same city, not a bond. Naming them in the panel
+            // before they have said a word gave away every arc in the run on
+            // the first screen.
+            if (!character.isMet()) {
+                continue;
+            }
+
             if (!result.isEmpty()) {
                 result.append("\n\n");
             }
@@ -1274,6 +1361,13 @@ public final class RecurringCharacterRegistry {
                     "relationshipType",
                     character.getRelationshipType().name()
             );
+
+            // Neither can be worked out from the rest of a save: somebody the
+            // player has never spoken to and somebody they simply feel
+            // nothing about look identical on the numbers, and a quarrel that
+            // has been made up leaves no trace in the warmth it ended at.
+            object.put("met", character.isMet());
+            object.put("everRival", character.wasEverRival());
 
             object.put(
                     "currentRole",
@@ -1416,6 +1510,11 @@ public final class RecurringCharacterRegistry {
                                     ""
                             )
                     );
+
+            character.restoreHistory(
+                    object.optBoolean("met", true),
+                    object.optBoolean("everRival", false)
+            );
 
             JSONArray memories =
                     object.optJSONArray("memories");

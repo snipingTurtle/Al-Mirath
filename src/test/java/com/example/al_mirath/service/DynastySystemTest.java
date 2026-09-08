@@ -141,17 +141,13 @@ class DynastySystemTest {
                 "a house was handed to somebody the player barely knew"
         );
 
-        String companion = null;
+        // Keyed on the id: nobody starts a life already being anything, so
+        // "find the friend" would find nobody until one is made.
+        String companion = "childhood_companion";
 
-        for (var character : cast.all()) {
-            if (character.getRelationshipType()
-                    == com.example.al_mirath.model.RelationshipType.FRIEND) {
-
-                companion = character.getId();
-            }
-        }
-
-        assertNotNull(companion, "the cast contained no companion at all");
+        assertNotNull(
+                cast.get(companion), "the cast contained no companion at all"
+        );
 
         // Warmed as far as warmth goes — and still not an heir.
         cast.changeRelationship(companion, 70, "a_life_together", "A life together.", 50);
@@ -183,17 +179,12 @@ class DynastySystemTest {
         PlayerCharacter player = forebear(50, 50, 50, 50);
         RecurringCharacterRegistry cast = RecurringCharacterRegistry.createFor(player);
 
-        String rivalId = null;
+        String rivalId = "early_rival";
 
-        for (var character : cast.all()) {
-            if (character.getRelationshipType()
-                    == com.example.al_mirath.model.RelationshipType.RIVAL) {
+        assertNotNull(cast.get(rivalId), "the cast contained no rival at all");
 
-                rivalId = character.getId();
-            }
-        }
-
-        assertNotNull(rivalId, "the cast contained no rival at all");
+        // They are nobody until they cross you, so make them cross you.
+        cast.changeRelationship(rivalId, -40, "the_quarrel", "They crossed you.", 20);
 
         // Someone who spent your life fighting you is not close enough to be
         // handed the house, which the warmth bar settles on its own.
@@ -233,10 +224,14 @@ class DynastySystemTest {
 
         String rivalName = null;
 
+        // Written into the save rather than found in it. Nobody is born a
+        // rival now, and the point of this test is a combination the live
+        // game cannot build: warmth and stance disagreeing on disk.
         for (int i = 0; i < characters.length(); i++) {
             JSONObject character = characters.getJSONObject(i);
 
-            if ("RIVAL".equals(character.optString("relationshipType"))) {
+            if ("early_rival".equals(character.optString("id"))) {
+                character.put("relationshipType", "RIVAL");
                 character.put("relationship", 80);
                 rivalName = character.optString("name");
             }
@@ -438,17 +433,36 @@ class DynastySystemTest {
     }
 
     /** A completed life that has somebody to hand the house to. */
+    /**
+     * A finished life with somebody to carry the house and somebody still
+     * alive who knew them.
+     *
+     * <p>Both halves are needed by what this fixture is used for, and the
+     * second is easy to forget: a life can end with three heirs and every
+     * person it ever knew already buried, and then a test about which bonds
+     * cross a succession has nothing to measure and fails for no reason.
+     */
     private GameEngine aHouseWithAnHeir(Random random) {
-        for (int attempt = 0; attempt < 80; attempt++) {
+        for (int attempt = 0; attempt < 200; attempt++) {
             GameEngine engine = new GameEngine();
             live(engine, random);
 
-            if (engine.hasSuccessor()) {
+            if (engine.hasSuccessor() && someoneOutlivedThem(engine)) {
                 return engine;
             }
         }
 
-        return fail("in eighty lives, nobody ever left an heir");
+        return fail("in two hundred lives, nobody left an heir and a living face");
+    }
+
+    private boolean someoneOutlivedThem(GameEngine engine) {
+        for (var character : engine.getRecurringCharacters().all()) {
+            if (character.isAlive()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Test
@@ -459,6 +473,19 @@ class DynastySystemTest {
 
         String cityBefore = founder.getCurrentCityName();
         String worldBefore = founder.getCities().whereYouAreSummary();
+
+        // Made deliberately rather than hoped for: whether a random bot's
+        // choices happened to leave somebody behind is not what this is about,
+        // and relying on it made the test pass or fail on the roll. Applied to
+        // everyone still alive, because naming one of them brought the same
+        // problem back in a quieter form — the person named can be dead.
+        for (var character : founder.getRecurringCharacters().all()) {
+            if (character.isAlive()) {
+                founder.getRecurringCharacters().changeRelationship(
+                        character.getId(), 70, "a_life_together",
+                        "You stood by them when nobody else would.", 40);
+            }
+        }
 
         List<String> knewThem = new ArrayList<>();
 

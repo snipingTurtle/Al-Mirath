@@ -49,26 +49,25 @@ class BondsAcrossGenerationsTest {
         );
     }
 
-    /** The cast a long life leaves behind: warm, cold, weak and dead. */
+    /**
+     * The cast a long life leaves behind: warm, cold, weak and dead.
+     *
+     * <p>Keyed on the ids rather than on what people are, because nobody is
+     * anything at the start of a life any more — a companion becomes a friend
+     * by being treated like one, which is what this does.
+     */
     private RecurringCharacterRegistry aLifetimeOfPeople(PlayerCharacter player) {
         RecurringCharacterRegistry cast = RecurringCharacterRegistry.createFor(player);
 
-        for (RecurringCharacter character : cast.all()) {
-            switch (character.getRelationshipType()) {
-                case FRIEND -> cast.changeRelationship(
-                        character.getId(), 60, "a_life_together",
-                        "You stood by them when nobody else would.", 40);
+        cast.changeRelationship(
+                "childhood_companion", 60, "a_life_together",
+                "You stood by them when nobody else would.", 40);
 
-                case RIVAL -> cast.changeRelationship(
-                        character.getId(), -40, "the_long_quarrel",
-                        "You broke them in public, and they remember it.", 35);
+        cast.changeRelationship(
+                "early_rival", -40, "the_long_quarrel",
+                "You broke them in public, and they remember it.", 35);
 
-                default -> {
-                    // The mentor is left as they started: warm, but not much.
-                }
-            }
-        }
-
+        // The elder is left as they started: known, and nothing more.
         return cast;
     }
 
@@ -244,10 +243,15 @@ class BondsAcrossGenerationsTest {
         }
 
         // And the story flags reach that person, not the inherited one.
+        RecurringCharacter carried = find(inherited, "legacy_childhood_companion");
+
+        assertNotNull(carried, "the house's oldest friendship was not carried at all");
+
+        assertEquals(1, carried.getMemories().size());
+
         inherited.applyStoryFlag("npc_friend_secret_protected", 20);
 
         RecurringCharacter own = find(inherited, "childhood_companion");
-        RecurringCharacter carried = find(inherited, "legacy_childhood_companion");
 
         assertFalse(
                 own.getMemories().isEmpty(),

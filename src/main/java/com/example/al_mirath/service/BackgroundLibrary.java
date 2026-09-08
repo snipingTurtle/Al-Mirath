@@ -5,13 +5,18 @@ import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.PlayerCharacter;
 
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Random;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 public class BackgroundLibrary {
@@ -345,25 +350,14 @@ public class BackgroundLibrary {
                 return result;
             }
 
-            Path rootPath = Paths.get(url.toURI());
+            List<String> found = imagesUnder(url, resourcePath);
 
-            try (Stream<Path> stream = Files.walk(rootPath)) {
-                stream
-                        .filter(Files::isRegularFile)
-                        .filter(BackgroundLibrary::isImageFile)
-                        .sorted(Comparator.comparing(Path::toString))
-                        .forEach(path -> {
-                            Path relativePath = rootPath.relativize(path);
-                            String cleanPath = relativePath.toString().replace("\\", "/");
+            found.sort(Comparator.naturalOrder());
 
-                            String fullPath = folder.isEmpty()
-                                    ? BASE + cleanPath
-                                    : BASE + folder + "/" + cleanPath;
-
-                            if (isUsableBackground(fullPath)) {
-                                result.add(fullPath);
-                            }
-                        });
+            for (String path : found) {
+                if (isUsableBackground(path)) {
+                    result.add(path);
+                }
             }
 
             System.out.println("Loaded " + result.size() + " usable backgrounds from: " + resourcePath);
@@ -374,6 +368,99 @@ public class BackgroundLibrary {
         }
 
         return result;
+    }
+
+    /**
+     * Every image under a folder, wherever the game is running from.
+     *
+     * <p>The two cases are genuinely different and the difference is invisible
+     * until the game ships: a resource in a build directory is a file, and the
+     * same resource in a packaged jar is an entry in an archive with no file
+     * path at all.
+     */
+    static List<String> imagesUnder(URL url, String resourcePath) throws Exception {
+        return "jar".equals(url.getProtocol())
+                ? insideTheJar(url, resourcePath)
+                : onDisk(url, resourcePath);
+    }
+
+    /**
+     * Every image under a folder, when the game is running from a build
+     * directory or an IDE.
+     */
+    private static List<String> onDisk(URL url, String resourcePath) throws Exception {
+        List<String> found = new ArrayList<>();
+
+        Path rootPath = Paths.get(url.toURI());
+
+        try (Stream<Path> stream = Files.walk(rootPath)) {
+            stream
+                    .filter(Files::isRegularFile)
+                    .filter(BackgroundLibrary::isImageFile)
+                    .forEach(path -> {
+                        String cleanPath =
+                                rootPath.relativize(path).toString().replace("\\", "/");
+
+                        found.add(
+                                resourcePath.endsWith("/")
+                                        ? resourcePath + cleanPath
+                                        : resourcePath + "/" + cleanPath
+                        );
+                    });
+        }
+
+        return found;
+    }
+
+    /**
+     * The same, when the game is running from a packaged jar.
+     *
+     * <p>A resource inside a jar has no file path — {@code Paths.get} on a
+     * {@code jar:} URL throws, which is why a packaged build came up with no
+     * artwork at all while every development build looked fine. The entries
+     * have to be read from the archive itself.
+     */
+    static List<String> insideTheJar(URL url, String resourcePath)
+            throws Exception {
+
+        List<String> found = new ArrayList<>();
+
+        // jar:file:/path/to/almirath.jar!/com/example/... — the archive is the
+        // part before the separator, and it is URL-encoded.
+        String path = url.getPath();
+        int separator = path.indexOf("!");
+
+        String archive = URLDecoder.decode(
+                path.substring("file:".length(), separator < 0 ? path.length() : separator),
+                StandardCharsets.UTF_8
+        );
+
+        // Jar entries have no leading slash; resource paths do.
+        String prefix = resourcePath.startsWith("/")
+                ? resourcePath.substring(1)
+                : resourcePath;
+
+        if (!prefix.endsWith("/")) {
+            prefix = prefix + "/";
+        }
+
+        try (JarFile jar = new JarFile(archive)) {
+            Enumeration<JarEntry> entries = jar.entries();
+
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+
+                if (entry.isDirectory() || !entry.getName().startsWith(prefix)) {
+                    continue;
+                }
+
+                if (isImageFile(Paths.get(entry.getName()))) {
+                    found.add("/" + entry.getName());
+                }
+            }
+        }
+
+        return found;
     }
 
     private static boolean isImageFile(Path path) {

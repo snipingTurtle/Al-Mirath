@@ -459,7 +459,14 @@ class DynastySystemTest {
 
         String cityBefore = founder.getCurrentCityName();
         String worldBefore = founder.getCities().whereYouAreSummary();
-        String castBefore = founder.getRecurringCharacterSummary();
+
+        List<String> knewThem = new ArrayList<>();
+
+        for (var character : founder.getRecurringCharacters().all()) {
+            if (character.isAlive() && Math.abs(character.getRelationship()) >= 40) {
+                knewThem.add(character.getName());
+            }
+        }
 
         GameEngine heir = founder.succeedTo(founder.getSuccessors().get(0));
 
@@ -475,9 +482,27 @@ class DynastySystemTest {
                 "the world was regenerated rather than inherited"
         );
 
-        assertEquals(
-                castBefore, heir.getRecurringCharacterSummary(),
-                "everyone their forebear knew was forgotten"
+        // The people the house has history with are still out there. This used
+        // to assert the cast came across verbatim, which is how the heir ended
+        // up being told they had rejected a mentor at nine — what crosses is a
+        // standing between houses, not a copy of somebody else's address book.
+        List<String> stillThere = new ArrayList<>();
+
+        for (var character : heir.getRecurringCharacters().all()) {
+            stillThere.add(character.getName());
+        }
+
+        for (String name : knewThem) {
+            assertTrue(
+                    stillThere.contains(name),
+                    name + " mattered enough to the forebear to outlive them and "
+                            + "the heir has never heard of them"
+            );
+        }
+
+        assertFalse(
+                knewThem.isEmpty(),
+                "this life left nobody behind, so the test proves nothing"
         );
 
         // But the record of the last life is not the heir's record.

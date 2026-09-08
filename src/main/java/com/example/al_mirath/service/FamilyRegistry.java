@@ -488,7 +488,11 @@ public final class FamilyRegistry {
                             becomes,
                             member.getTrait(),
                             member.getAge(),
-                            member.getAffection(),
+                            // Halved toward neutral, the way the factions and
+                            // the name are. What the forebear felt for their
+                            // children is not what their children feel for
+                            // each other.
+                            member.getAffection() / 2,
                             true,
                             member.getLifePath(),
                             becomes == Kinship.CHILD ? "" : member.getParentId()

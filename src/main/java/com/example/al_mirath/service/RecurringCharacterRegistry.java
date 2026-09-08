@@ -149,6 +149,21 @@ public final class RecurringCharacterRegistry {
             return;
         }
 
+        addOwnPeopleFor(player);
+    }
+
+    /**
+     * Gives a life the three people it starts with: someone who grew up
+     * beside them, someone who did not, and someone older who knows things.
+     *
+     * <p>Separate from {@link #generateInitialCast} because an heir needs
+     * these even though the registry is not empty — they inherit the house's
+     * standing with other people, but the friend they made at seven is their
+     * own. The ids are fixed, and deliberately so: every npc story flag in
+     * the game names them, so the people the flags reach have to be the ones
+     * whose life is actually being played.
+     */
+    public void addOwnPeopleFor(PlayerCharacter player) {
         int playerAge = player.getAge();
 
         addGenerated(
@@ -442,6 +457,111 @@ public final class RecurringCharacterRegistry {
 
     public List<RecurringCharacter> all() {
         return List.copyOf(characters.values());
+    }
+
+    /** The prefix that marks somebody the house knows rather than the player. */
+    private static final String INHERITED = "legacy_";
+
+    /** What the last generation's student is to this one. */
+    private static final String TAUGHT_BEFORE_YOU = "Taught by the One Before You";
+
+    /**
+     * The people the next generation is handed.
+     *
+     * <p>Copying the cast across wholesale was wrong in three separate ways,
+     * all of them visible in the Bonds panel the moment an heir took over:
+     * the forebear's dead were still listed as the heir's people, warmth
+     * earned over a lifetime was handed on at full strength to somebody who
+     * had never met them, and the memories still read in the second person —
+     * a twenty-four-year-old was told they had rejected a mentor at nine.
+     *
+     * <p>What actually crosses is a disposition. The living who mattered stay,
+     * at half the feeling and under a memory that says whose deed it was, and
+     * the heir is given their own companion, rival and mentor on top.
+     *
+     * <p>"Mattered" is the same bar a dying cast member has to clear to leave
+     * a child behind: a bond nobody did anything with is where it started, and
+     * an acquaintance the forebear merely had is not an inheritance.
+     */
+    public RecurringCharacterRegistry inheritedByTheHouse(PlayerCharacter heir) {
+        RecurringCharacterRegistry inherited = new RecurringCharacterRegistry(random);
+
+        for (RecurringCharacter character : characters.values()) {
+            if (!character.isAlive()
+                    || Math.abs(character.getRelationship()) < LEGACY_BOND) {
+
+                continue;
+            }
+
+            int carried = character.getRelationship() / 2;
+
+            // A student belonged to the person who taught them. The heir did
+            // not choose them and has taught them nothing, so they stop being
+            // a student — which also closes the door on a house being handed
+            // to somebody two generations of players never picked.
+            boolean wasTaught =
+                    character.getRelationshipType() == RelationshipType.STUDENT;
+
+            RecurringCharacter known =
+                    new RecurringCharacter(
+                            INHERITED + character.getId(),
+                            character.getName(),
+                            character.getBackground(),
+                            character.getPersonality(),
+                            wasTaught
+                                    ? RelationshipType.FAMILY_FRIEND
+                                    : character.getRelationshipType(),
+                            wasTaught ? TAUGHT_BEFORE_YOU : character.getCurrentRole(),
+                            character.getAge(),
+                            carried,
+                            character.isAlive(),
+                            wasTaught
+                                    ? List.of(TAUGHT_BEFORE_YOU)
+                                    : character.getRoleLadder(),
+                            wasTaught ? 0 : character.getRoleRank(),
+                            character.getParentName()
+                    );
+
+            known.addMemory(
+                    new NpcMemory(
+                            "inherited_standing",
+                            wasTaught
+                                    ? "They were taught everything they know by "
+                                            + "the one who held this house before you."
+                                    : standingBetweenTheHouses(carried),
+                            NpcMemory.BEFORE_YOUR_TIME,
+                            carried
+                    )
+            );
+
+            inherited.characters.put(known.getId(), known);
+        }
+
+        // Whoever the house has history with, the heir still gets a life of
+        // their own people to make history with.
+        inherited.addOwnPeopleFor(heir);
+
+        return inherited;
+    }
+
+    /** How a bond the player never made is explained to them. */
+    private static String standingBetweenTheHouses(int carried) {
+        if (carried >= 40) {
+            return "Their people owe yours something, and have not forgotten it.";
+        }
+
+        if (carried > 0) {
+            return "Their people and yours have been on good terms since before "
+                    + "you were born.";
+        }
+
+        if (carried <= -40) {
+            return "There is blood between their people and yours, and it was "
+                    + "spilled before you could have had a say in it.";
+        }
+
+        return "Their people and yours have never got on, and nobody now "
+                + "remembers exactly why.";
     }
 
     /** Whether somebody is currently being taught by the player. */
@@ -1117,9 +1237,11 @@ public final class RecurringCharacterRegistry {
             if (strongest != null) {
                 result.append("\nRemembers: ")
                         .append(strongest.description())
-                        .append(" (you were ")
-                        .append(strongest.playerAge())
-                        .append(")");
+                        .append(
+                                strongest.predatesThePlayer()
+                                        ? " (from before your time)"
+                                        : " (you were " + strongest.playerAge() + ")"
+                        );
             }
 
             RivalFeud feud = character.feud();

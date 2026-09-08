@@ -239,12 +239,15 @@ public class GameEngine {
      * Hands the house to an heir and returns the life they will live in it.
      *
      * <p>The world is not rebuilt. The cities keep their sieges and their good
-     * decades, the cast keep their grudges — a rival's son is already waiting
-     * for a rival's son — and what the last generation was famous enough for
-     * to have travelled is still being said, at half its force, about the
-     * house rather than the person. What resets is the body and the record:
-     * the heir's health, learning and nerve are their own, and the titles and
-     * story flags belonged to whoever earned them.
+     * decades, the people the house has history with are still out there — a
+     * rival's son is already waiting for a rival's son — and what the last
+     * generation was famous enough for to have travelled is still being said,
+     * at half its force, about the house rather than the person. What resets
+     * is the body and the record: the heir's health, learning and nerve are
+     * their own, and the titles and story flags belonged to whoever earned
+     * them. The bonds come across the same way the factions and the name do,
+     * at half strength and as a disposition rather than a friendship, and the
+     * heir gets their own people on top of them.
      *
      * @return the heir's engine, or null when this succession is not on offer
      */
@@ -278,7 +281,7 @@ public class GameEngine {
                 successor,
                 SuccessionService.regardInheritedFrom(factions),
                 new WorldState(),
-                RecurringCharacterRegistry.fromJson(recurringCharacters.toJson()),
+                recurringCharacters.inheritedByTheHouse(successor),
                 household,
                 renown.inheritedByTheHouse(),
                 CityRegistry.fromJson(cities.toJson()),

@@ -39,6 +39,20 @@ public final class RecurringCharacter {
     private int relationship;
     private boolean alive;
 
+    /**
+     * Whether anything has actually passed between this person and the
+     * player. Until it has they are somebody in the same city, not somebody
+     * in the player's life, and the Bonds panel has no business naming them.
+     */
+    private boolean met;
+
+    /**
+     * Whether they have ever stood against the player. Kept after the warmth
+     * has recovered, because peace made with an enemy is a different thing
+     * from never having quarrelled, and it is what an alliance is made of.
+     */
+    private boolean everRival;
+
     private final List<NpcMemory> memories = new ArrayList<>();
 
     public RecurringCharacter(
@@ -106,12 +120,39 @@ public final class RecurringCharacter {
         this.alive = alive;
     }
 
+    /**
+     * Ends what was between you, whatever it was worth.
+     *
+     * <p>Some things are not a large withdrawal from an account. Selling a
+     * childhood secret does not leave a devoted friend merely less devoted:
+     * it leaves them someone you used to know. Without this, a friendship
+     * deep enough could absorb a betrayal and still be filed under Friend,
+     * which is the thing that made these numbers feel like weather rather
+     * than like consequences.
+     *
+     * @param ceiling the most they can feel about you from here
+     */
+    public void breakBond(int ceiling) {
+        met = true;
+
+        if (isConferred(relationshipType)) {
+            relationshipType = RelationshipType.STRANGER;
+        }
+
+        relationship = Math.min(relationship, clampRelationship(ceiling));
+
+        updateRelationshipType();
+    }
+
     public void changeRelationship(int amount) {
+        met = true;
         relationship = clampRelationship(relationship + amount);
         updateRelationshipType();
     }
 
     public void addMemory(NpcMemory memory) {
+        met = true;
+
         if (memory == null || hasMemory(memory.id())) {
             return;
         }
@@ -218,22 +259,87 @@ public final class RecurringCharacter {
         alive = false;
     }
 
+    /** Warmth at which somebody is a friend rather than a familiar face. */
+    private static final int FRIENDSHIP = 45;
+
+    /** Warmth at which somebody has stopped being on your side. */
+    private static final int HOSTILITY = -30;
+
+    /** Warmth at which a quarrel is over, though not forgotten. */
+    private static final int PEACE = 10;
+
+    /**
+     * What somebody is to the player, given how they feel about each other.
+     *
+     * <p>This used to only ever promote: a friend you sold out was still
+     * filed under Friend at eighty points of hatred, and the only way a
+     * relationship could change its nature was upward. What a person is to
+     * you has to be able to be lost, or none of the choices about them mean
+     * anything.
+     *
+     * <p>Two kinds of bond behave differently. Most are grown into and out of
+     * with warmth alone. A few — teacher, student, patron, friend of the
+     * house — are conferred: they are agreed to rather than drifted into, so
+     * warmth cannot create one, and they hold until the warmth behind them
+     * actually turns.
+     */
+    static RelationshipType stanceFor(
+            int warmth,
+            RelationshipType current,
+            boolean everRival
+    ) {
+        // Nothing survives real hostility, whatever it was called before.
+        if (warmth <= HOSTILITY) {
+            return RelationshipType.RIVAL;
+        }
+
+        if (isConferred(current)) {
+            return current;
+        }
+
+        if (warmth >= FRIENDSHIP) {
+            return RelationshipType.FRIEND;
+        }
+
+        // Somebody who fought you and stopped is not a stranger again.
+        if (everRival && warmth >= PEACE) {
+            return RelationshipType.ALLY;
+        }
+
+        return RelationshipType.STRANGER;
+    }
+
+    /** Bonds that are agreed to rather than drifted into. */
+    private static boolean isConferred(RelationshipType type) {
+        return type == RelationshipType.MENTOR
+                || type == RelationshipType.STUDENT
+                || type == RelationshipType.PATRON
+                || type == RelationshipType.FAMILY_FRIEND;
+    }
+
+    /**
+     * Agrees a bond that warmth alone cannot produce.
+     *
+     * <p>An elder the player has been polite to for thirty years is somebody
+     * they know well. They are a teacher only if the player took the lesson,
+     * which is a thing that happens in a scene rather than on a number.
+     */
+    public void confer(RelationshipType bond) {
+        relationshipType = Objects.requireNonNull(bond);
+        met = true;
+
+        updateRelationshipType();
+    }
+
     private void updateRelationshipType() {
-        if (relationship <= -45) {
-            relationshipType = RelationshipType.RIVAL;
-            return;
+        if (relationshipType == RelationshipType.RIVAL) {
+            everRival = true;
         }
 
-        if (relationship >= 60
-                && relationshipType == RelationshipType.STRANGER) {
+        relationshipType = stanceFor(relationship, relationshipType, everRival);
 
-            relationshipType = RelationshipType.FRIEND;
-        }
-
-        if (relationship >= 35
-                && relationshipType == RelationshipType.RIVAL) {
-
-            relationshipType = RelationshipType.ALLY;
+        if (relationshipType == RelationshipType.RIVAL) {
+            everRival = true;
         }
     }
 
@@ -303,6 +409,26 @@ public final class RecurringCharacter {
 
     public boolean isAlive() {
         return alive;
+    }
+
+    /** True once anything has actually passed between them and the player. */
+    public boolean isMet() {
+        return met;
+    }
+
+    /** True once they have stood against the player, even if that is over. */
+    public boolean wasEverRival() {
+        return everRival;
+    }
+
+    /**
+     * Restores the two facts a save has to carry that nothing else can be
+     * worked out from: whether the player has met them at all, and whether
+     * the warmth between them was ever hostility.
+     */
+    public void restoreHistory(boolean met, boolean everRival) {
+        this.met = met;
+        this.everRival = everRival || relationshipType == RelationshipType.RIVAL;
     }
 
     public List<String> getRoleLadder() {

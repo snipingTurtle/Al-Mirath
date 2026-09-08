@@ -225,6 +225,40 @@ jobs:
             esac
           done
 
+      # Attached as soon as this platform has something, rather than after
+      # every platform has finished. The first release built three platforms
+      # in nine minutes and then published nothing for two hours, because the
+      # Intel macOS job sat waiting for a runner that never came and a job
+      # that has not started is a job the release is still waiting on. A
+      # platform that is slow, or broken, or has no runner free should delay
+      # its own download and nobody else's.
+      - name: Attach this platform to the release
+        if: always() && startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          version="${GITHUB_REF#refs/tags/}"
+
+          files=$(ls target/AlMirath-*-portable.* target/installer/AlMirath-* 2>/dev/null || true)
+
+          if [ -z "$files" ]; then
+            echo "Nothing was built here to attach."
+            exit 0
+          fi
+
+          # Whichever platform finishes first makes the release; the rest find
+          # it already there and say so.
+          gh release create "$version" \
+            --title "Al-Mirath $version" \
+            --generate-notes \
+            || echo "Release already exists; adding to it."
+
+          echo "Attaching:"
+          echo "$files"
+
+          gh release upload "$version" $files --clobber
+
       # Kept even when a step above failed. If the Windows installer will not
       # build, the portable archive that built fine two steps earlier is still
       # worth having, and the job is still red so nobody misses that something
@@ -243,46 +277,3 @@ jobs:
           # a run produces four of them. A tagged release keeps its own copies
           # for good; these are only for looking at a build that has no tag.
           retention-days: 14
-
-  release:
-    name: Release
-    needs: package
-
-    # Runs even when a platform failed to build. One installer refusing to
-    # package is a reason to fix that platform, not a reason for nobody to be
-    # able to download the game: the first tagged build lost its Windows
-    # installer to a missing tool and published nothing at all, including the
-    # three platforms that were sitting there built and the Windows portable
-    # build that was fine. The failed job is still red on the run.
-    if: always() && startsWith(github.ref, 'refs/tags/')
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Collect every platform's builds
-        uses: actions/download-artifact@v4
-        with:
-          path: builds
-          merge-multiple: true
-
-      - name: Attach them to the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          version="${GITHUB_REF#refs/tags/}"
-
-          if [ -z "$(ls -A builds 2>/dev/null)" ]; then
-            echo "Nothing built on any platform; there is no release to make."
-            exit 1
-          fi
-
-          echo "Publishing:"
-          ls -1 builds
-
-          gh release create "$version" \
-            --title "Al-Mirath $version" \
-            --generate-notes \
-            || echo "Release already exists; uploading to it."
-
-          gh release upload "$version" builds/* --clobber

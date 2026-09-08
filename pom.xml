@@ -92,6 +92,73 @@
                 </configuration>
             </plugin>
 
+            <!--
+                Builds target/almirath.jar: the game, its dependencies, and the
+                JavaFX native libraries in one file that runs on a plain Java
+                runtime with `java -jar`. Without this, playing the game meant
+                installing Maven and a JDK and knowing what `javafx:run` is.
+
+                The jar carries the JavaFX natives for the platform it was built
+                on, because those are what Maven resolves for the machine doing
+                the building. A Linux build will not start on Windows. Building
+                on each platform is what `jpackage` needs anyway, and that is
+                the thing players actually install.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>almirath</finalName>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <!--
+                                        Launcher rather than Main: the JVM
+                                        refuses to start an Application subclass
+                                        when JavaFX is on the classpath, which is
+                                        exactly what a single jar means.
+                                    -->
+                                    <mainClass>com.example.al_mirath.Launcher</mainClass>
+                                </transformer>
+
+                                <!-- So the SQLite driver is still found by JDBC. -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <!--
+                                            One jar is one classpath, so the
+                                            module declarations of the things
+                                            inside it no longer describe
+                                            anything, and a duplicate at the
+                                            root makes the jar unreadable.
+                                        -->
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/*/module-info.class</exclude>
+
+                                        <!-- Signatures do not survive repacking. -->
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 

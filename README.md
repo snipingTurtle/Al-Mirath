@@ -50,21 +50,96 @@ Lose, and the decision stands.
 - **Keyboard play**: `1` `2` `3` to choose, `Space` to advance or skip the text
   reveal, `R` to challenge fate, `Esc` for the menu.
 
-## Running it
+## Playing it
 
-Requires JDK 21 or newer.
+You do not need Java, Maven, or an IDE to play — but somebody has to build a
+package for your platform first, on that platform. There are no prebuilt
+downloads yet.
+
+### If you have a package
+
+| Platform | What you get | What you do |
+|---|---|---|
+| Windows | `AlMirath-1.0.exe` installer | Run it, then launch **Al-Mirath** from the Start menu |
+| macOS | `AlMirath-1.0.dmg` | Open it, drag the app to Applications, launch it |
+| Linux | `almirath_1.0_amd64.deb` | `sudo apt install ./almirath_1.0_amd64.deb`, then launch it from your applications menu |
+
+The package carries its own Java runtime, so nothing else has to be installed
+and nothing else on the machine is touched. It is around 250 MB installed,
+almost all of it artwork.
+
+There is also a portable form that needs no installer: the `AlMirath` folder
+produced by the `app-image` build below. Copy it anywhere and run
+`AlMirath/bin/AlMirath` (`AlMirath\AlMirath.exe` on Windows).
+
+### Building a package
+
+Needs **JDK 21 or newer** (`jpackage` ships with it). Build on the platform you
+are building *for* — a Linux build will not run on Windows.
 
 ```bash
-mvn javafx:run
+./mvnw package -DskipTests          # produces target/almirath.jar
+mkdir -p target/app && cp target/almirath.jar target/app/
 ```
+
+Then, on **Linux**:
+
+```bash
+jpackage --type deb --name almirath --app-version 1.0 \
+  --input target/app --main-jar almirath.jar \
+  --main-class com.example.al_mirath.Launcher \
+  --dest target/dist --linux-shortcut
+```
+
+on **Windows** (`--type msi` also works):
+
+```
+jpackage --type exe --name AlMirath --app-version 1.0 ^
+  --input target/app --main-jar almirath.jar ^
+  --main-class com.example.al_mirath.Launcher ^
+  --dest target/dist --win-menu --win-shortcut
+```
+
+on **macOS**:
+
+```bash
+jpackage --type dmg --name AlMirath --app-version 1.0 \
+  --input target/app --main-jar almirath.jar \
+  --main-class com.example.al_mirath.Launcher \
+  --dest target/dist
+```
+
+Replace `--type` with `app-image` on any platform to get the portable folder
+instead of an installer. On Linux, `--type deb` needs `dpkg` and `fakeroot`;
+`--type rpm` needs `rpmbuild`.
+
+### Running it without a package
+
+If Java is already installed, the jar runs on its own:
+
+```bash
+./mvnw package -DskipTests
+java -jar target/almirath.jar
+```
+
+That jar contains the game, its dependencies and the JavaFX libraries for the
+platform it was built on, so it needs only a Java 21 runtime — no Maven, no
+JavaFX install, no IDE.
+
+## Working on it
+
+```bash
+./mvnw javafx:run    # run from source
+./mvnw test          # the engine and interface test suite
+./mvnw package       # build target/almirath.jar
+```
+
+Use `mvnw` / `mvnw.cmd` rather than a system Maven; it fetches the right version
+itself. Any IDE that imports a Maven project will do — the project carries
+Eclipse and IntelliJ metadata, and neither is required.
 
 The game creates its own database on first launch. There is nothing to install
 or configure.
-
-```bash
-mvn test        # run the engine test suite
-mvn package     # build a jar
-```
 
 ## Where your data lives
 
@@ -89,7 +164,7 @@ src/main/java/com/example/al_mirath/
 ├── service/      Game rules, event content, achievements, progress
 └── ui/           Reusable components: trial overlay, notification toasts
 
-src/test/java/    Engine tests covering rewind and save round-tripping
+src/test/java/    Engine, layout and packaging tests
 ```
 
 The engine holds no JavaFX types, so the rules are testable headlessly; the
@@ -97,12 +172,17 @@ controllers hold no game rules.
 
 ## Testing
 
-The rewind system is the one place where a bug corrupts a run silently instead
-of throwing, so it is covered directly: snapshots restoring every field, events
-replaying after a rewind, the token economy refusing to go negative, defensive
-copying of snapshot state, and saves written before Threads existed still
-loading.
-
 ```bash
-mvn test
+./mvnw test
 ```
+
+The suite covers the rules headlessly — rewind restoring every field, saves
+round-tripping, succession handing on a world rather than rebuilding one, the
+city bending the odds and the outcomes — and then covers the things that only
+break once a person is looking at them: that no text is cut off at small window
+sizes, that pressing New Game reaches the naming screen, that closing a final
+chronicle offers the succession, and that the artwork is still found when the
+game is a packaged jar rather than a folder of classes.
+
+That last group exists because each of those shipped broken at least once while
+every rules test passed.

@@ -67,10 +67,12 @@ jobs:
             label: windows-x86_64
             installer: msi
 
-          # macos-13 is the last Intel runner; macos-latest is Apple silicon.
+          # macos-15-intel is the Intel runner; macos-latest is Apple silicon.
           # The two need separate builds because the JavaFX native libraries
-          # and the bundled runtime are per-architecture.
-          - os: macos-13
+          # and the bundled runtime are per-architecture. This used to be
+          # macos-13, which GitHub has retired: the v1.0.0 build waited 24
+          # hours for one and was cancelled without ever starting.
+          - os: macos-15-intel
             label: macos-x86_64
             installer: dmg
 

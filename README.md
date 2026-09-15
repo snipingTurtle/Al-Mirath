@@ -87,19 +87,21 @@ git push origin v1.0.0
 ```
 
 That runs the test suite, then builds on Linux, Windows, and both Intel and
-Apple silicon macOS runners in parallel, and attaches every installer and
-portable archive to a GitHub release named after the tag. The version in the
-package comes from the tag, so `v1.2.3` produces a 1.2.3 build.
+Apple silicon macOS runners in parallel. Each attaches its own installer and
+portable archive to a GitHub release named after the tag as soon as it has
+them, so a platform that is slow, broken, or waiting on a scarce runner delays
+its own download and nobody else's. The version in the package comes from the
+tag, so `v1.2.3` produces a 1.2.3 build.
 
 To get builds without cutting a release, run the workflow by hand from the
 **Actions** tab; the packages are attached to that run as artifacts and kept
 for a fortnight.
 
-If one platform fails to build, the release is still published with the ones
-that did — a Windows installer that will not package is a reason to fix
-Windows, not a reason for nobody to be able to download the game. The failed
-job stays red on the run, and every platform's portable archive is uploaded
-even when its installer step failed.
+If one platform fails to build, the release still gets the ones that did — a
+Windows installer that will not package is a reason to fix Windows, not a
+reason for nobody to be able to download the game. The failed job stays red on
+the run, and a platform whose installer failed still attaches the portable
+archive it built before that.
 
 ### Building a package yourself
 

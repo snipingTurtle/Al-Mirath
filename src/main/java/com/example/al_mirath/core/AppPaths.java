@@ -17,6 +17,14 @@ public final class AppPaths {
 
     private static final String APP_FOLDER = "AlMirath";
 
+    /**
+     * Replaces the platform location when set. The test suite points it into
+     * target/, so running the tests never reads a player's settings or writes
+     * into their saves — a test once failed only because the machine running
+     * it had ambient motion switched off.
+     */
+    private static final String DATA_DIR_PROPERTY = "almirath.dataDir";
+
     private AppPaths() {
     }
 
@@ -55,6 +63,12 @@ public final class AppPaths {
     }
 
     private static Path resolvePlatformDirectory() {
+        String override = System.getProperty(DATA_DIR_PROPERTY);
+
+        if (override != null && !override.isBlank()) {
+            return Paths.get(override);
+        }
+
         String os = System.getProperty("os.name", "").toLowerCase();
         String home = System.getProperty("user.home", ".");
 

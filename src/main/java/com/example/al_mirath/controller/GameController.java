@@ -270,9 +270,11 @@ public class GameController implements ScreenLifecycle {
     @FXML private ProgressBar familyCouncilBar;
     @FXML private ProgressBar shadowNetworkBar;
 
+    @FXML private Label netWorthLabel;
     @FXML private Label fateTokenLabel;
     @FXML private javafx.scene.layout.HBox popupButtonRow;
     @FXML private Button popupRewindButton;
+    @FXML private VBox ageLogBox;
 
     @FXML private StackPane resultPopup;
     @FXML private StackPane popupShell;
@@ -333,9 +335,7 @@ public class GameController implements ScreenLifecycle {
         }
 
         eventTitleLabel.setText("Birth of a Life");
-        eventDescriptionLabel.setText(
-                "Your life is about to begin..."
-        );
+        typewriteDescription("Your life is about to begin...");
 
         setGameplayPanelsVisible(false);
 
@@ -490,7 +490,7 @@ public class GameController implements ScreenLifecycle {
      * can never type over each other.
      */
     private void typewriteDescription(String text) {
-        if (eventDescriptionLabel == null) {
+        if (ageLogBox == null) {
             return;
         }
 
@@ -499,18 +499,17 @@ public class GameController implements ScreenLifecycle {
         }
 
         String safeText = text == null ? "" : text;
+        Label newLogLabel = new Label();
+        newLogLabel.setWrapText(true);
+        newLogLabel.getStyleClass().add("event-description");
+        newLogLabel.setMaxWidth(630);
+        ageLogBox.getChildren().add(newLogLabel);
 
         if (!typewriterEnabled || safeText.length() > 600) {
-            eventDescriptionLabel.setText(safeText);
+            newLogLabel.setText(safeText);
             return;
         }
 
-        eventDescriptionLabel.setText("");
-
-        // One tick reveals however many characters are due, rather than one
-        // keyframe per character: the old form built a timeline of several
-        // hundred frames and re-wrapped the whole paragraph 83 times a second,
-        // shadow and all. The reveal reads at the same speed.
         int[] revealed = {0};
 
         Timeline reveal = new Timeline();
@@ -521,10 +520,9 @@ public class GameController implements ScreenLifecycle {
                     revealed[0] += CHARACTERS_PER_TICK;
 
                     if (revealed[0] >= safeText.length()) {
-                        eventDescriptionLabel.setText(safeText);
+                        newLogLabel.setText(safeText);
                         reveal.stop();
 
-                        // Only clear the field if this reveal still owns it.
                         if (typewriterTimeline == reveal) {
                             typewriterTimeline = null;
                         }
@@ -532,7 +530,7 @@ public class GameController implements ScreenLifecycle {
                         return;
                     }
 
-                    eventDescriptionLabel.setText(
+                    newLogLabel.setText(
                             safeText.substring(0, revealed[0])
                     );
                 }
@@ -544,7 +542,6 @@ public class GameController implements ScreenLifecycle {
         reveal.play();
     }
 
-    /** Lets a click or key finish the reveal instantly. */
     private void completeTypewriter() {
         if (typewriterTimeline != null) {
             typewriterTimeline.stop();
@@ -552,12 +549,14 @@ public class GameController implements ScreenLifecycle {
         }
     }
 
-    /** Prints the current event's description in full, skipping the reveal. */
     private void revealFullDescription() {
         GameEvent event = engine == null ? null : engine.getCurrentEvent();
 
-        if (event != null && eventDescriptionLabel != null) {
-            eventDescriptionLabel.setText(event.getDescription());
+        if (event != null && ageLogBox != null && !ageLogBox.getChildren().isEmpty()) {
+            Node lastNode = ageLogBox.getChildren().get(ageLogBox.getChildren().size() - 1);
+            if (lastNode instanceof Label) {
+                ((Label) lastNode).setText(event.getDescription());
+            }
         }
     }
 
@@ -1154,6 +1153,10 @@ public class GameController implements ScreenLifecycle {
         updateStatLabel(moralityLabel, moralityBar, "Morality", p.getMorality(), getDelta(beforeStats, "morality", p.getMorality()));
         updateStatLabel(familyLabel, familyBar, "Family Loyalty", p.getFamilyLoyalty(), getDelta(beforeStats, "familyLoyalty", p.getFamilyLoyalty()));
         updateStatLabel(stressLabel, stressBar, "Stress", p.getStress(), getDelta(beforeStats, "stress", p.getStress()));
+
+        if (netWorthLabel != null) {
+            netWorthLabel.setText("Net Worth: $" + String.format("%.0f", p.getNetWorth()));
+        }
     }
 
     private void updateFactions() {
@@ -1341,18 +1344,22 @@ public class GameController implements ScreenLifecycle {
 
     private void fadeEventText() {
         eventTitleLabel.setOpacity(0);
-        eventDescriptionLabel.setOpacity(0);
+        if (ageLogBox != null) {
+            ageLogBox.setOpacity(0);
+        }
 
         FadeTransition titleFade = new FadeTransition(Duration.millis(250), eventTitleLabel);
         titleFade.setFromValue(0);
         titleFade.setToValue(1);
 
-        FadeTransition descriptionFade = new FadeTransition(Duration.millis(350), eventDescriptionLabel);
-        descriptionFade.setFromValue(0);
-        descriptionFade.setToValue(1);
-
         titleFade.play();
-        descriptionFade.play();
+
+        if (ageLogBox != null) {
+            FadeTransition descriptionFade = new FadeTransition(Duration.millis(350), ageLogBox);
+            descriptionFade.setFromValue(0);
+            descriptionFade.setToValue(1);
+            descriptionFade.play();
+        }
     }
 
     /**
@@ -2717,5 +2724,121 @@ public class GameController implements ScreenLifecycle {
         } else {
             report.append(delta).append(" ").append(displayName);
         }
+    }
+
+    @FXML
+    public void handleAgeUp() {
+        if (engine == null || engine.getPlayer() == null || !engine.getPlayer().isAlive()) return;
+
+        engine.getPlayer().increaseAge(1);
+        updateStats();
+
+        Label log = new Label("Age " + engine.getPlayer().getAge() + ": A peaceful year has passed.");
+        log.getStyleClass().add("event-description");
+        log.setWrapText(true);
+        if (ageLogBox != null) {
+            ageLogBox.getChildren().add(log);
+        }
+    }
+
+    @FXML
+    public void handleActivities() {
+        if (engine == null || engine.getPlayer() == null || !engine.getPlayer().isAlive()) return;
+        int age = engine.getPlayer().getAge();
+        
+        popupTitleLabel.setText("Activities");
+        resultTextLabel.setText("Choose an activity:");
+        
+        // Remove old dynamic buttons if any
+        popupContentBox.getChildren().removeIf(node -> node instanceof Button && node != popupButtonRow);
+        
+        if (age >= 1) {
+            Button b = new Button("Play with toys");
+            b.getStyleClass().addAll("scroll-popup-button");
+            b.setOnAction(e -> {
+                engine.getPlayer().applyChange("health", 1);
+                addLogEntry("You played with toys. (Health +1)");
+                closePopup();
+                updateStats();
+            });
+            popupContentBox.getChildren().add(popupContentBox.getChildren().indexOf(popupButtonRow), b);
+        }
+        if (age >= 5) {
+            Button b = new Button("Visit Library");
+            b.getStyleClass().addAll("scroll-popup-button");
+            b.setOnAction(e -> {
+                engine.getPlayer().applyChange("education", 2);
+                addLogEntry("You visited the library. (Education +2)");
+                closePopup();
+                updateStats();
+            });
+            popupContentBox.getChildren().add(popupContentBox.getChildren().indexOf(popupButtonRow), b);
+        }
+        if (age >= 10) {
+            Button b = new Button("Learn Swordplay");
+            b.getStyleClass().addAll("scroll-popup-button");
+            b.setOnAction(e -> {
+                engine.getPlayer().applyChange("health", 3);
+                engine.getPlayer().applyChange("stress", 1);
+                addLogEntry("You learned swordplay. (Health +3, Stress +1)");
+                closePopup();
+                updateStats();
+            });
+            popupContentBox.getChildren().add(popupContentBox.getChildren().indexOf(popupButtonRow), b);
+        }
+        if (age >= 18) {
+            Button b = new Button("Gambling");
+            b.getStyleClass().addAll("scroll-popup-button");
+            b.setOnAction(e -> {
+                engine.getPlayer().applyChange("stress", -5);
+                double wager = 100.0;
+                if (Math.random() > 0.5) {
+                    engine.getPlayer().addNetWorth(wager);
+                    addLogEntry("You won at gambling! (+$" + wager + ", Stress -5)");
+                } else {
+                    engine.getPlayer().addNetWorth(-wager);
+                    addLogEntry("You lost at gambling. (-$" + wager + ", Stress -5)");
+                }
+                closePopup();
+                updateStats();
+            });
+            popupContentBox.getChildren().add(popupContentBox.getChildren().indexOf(popupButtonRow), b);
+        }
+        
+        popupContinueButton.setText("Close");
+        popupContinueButton.setVisible(true);
+        popupContinueButton.setManaged(true);
+        popupRewindButton.setVisible(false);
+        popupRewindButton.setManaged(false);
+        
+        resultPopup.setVisible(true);
+        resultPopup.setManaged(true);
+    }
+    
+    private void addLogEntry(String message) {
+        Label log = new Label("Age " + engine.getPlayer().getAge() + ": " + message);
+        log.getStyleClass().add("event-description");
+        log.setWrapText(true);
+        if (ageLogBox != null) {
+            ageLogBox.getChildren().add(log);
+        }
+    }
+
+    @FXML
+    public void handleRelationships() {
+        showPeoplePopup();
+    }
+
+    @FXML
+    public void handleAssets() {
+        if (engine == null) return;
+        showPopup("Assets", "Net Worth: $" + engine.getPlayer().getNetWorth() + "\n\n(More assets coming soon!)", PopupCategory.LOCKED_INFO);
+    }
+
+    @FXML
+    public void handleCareer() {
+        if (engine == null || engine.getPlayer() == null) return;
+        String status = engine.getPlayer().getCurrentStatus();
+        showPopup("Career", "Current Status: " + status + "\n\n(Career options coming soon!)", PopupCategory.LOCKED_INFO);
     }
 }

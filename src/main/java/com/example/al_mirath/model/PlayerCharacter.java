@@ -24,6 +24,7 @@ public class PlayerCharacter {
     private int morality;
     private int familyLoyalty;
     private int stress;
+    private double netWorth;
 
     public PlayerCharacter(
             String name,
@@ -57,6 +58,26 @@ public class PlayerCharacter {
         this.familyLoyalty = clamp(familyLoyalty);
         this.stress = clamp(stress);
         this.currentStatus = origin;
+
+        if ("Royal House".equals(origin) || "Nobility".equals(origin)) {
+            this.netWorth = 1000000.0;
+        } else if ("Merchant Guild".equals(origin)) {
+            this.netWorth = 50000.0;
+        } else {
+            this.netWorth = 0.0;
+        }
+    }
+
+    public double getNetWorth() {
+        return netWorth;
+    }
+
+    public void setNetWorth(double netWorth) {
+        this.netWorth = netWorth;
+    }
+
+    public void addNetWorth(double amount) {
+        this.netWorth += amount;
     }
 
     public int getStatValue(String stat) {

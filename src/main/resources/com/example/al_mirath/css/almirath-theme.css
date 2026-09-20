@@ -2592,3 +2592,321 @@
     -fx-padding: 0;
     -fx-opacity: 0;
 }
+
+/* ===================================================== */
+/* A LIFE, A YEAR AT A TIME                              */
+/*                                                       */
+/* The chronicle, the heartbeat, and the menus a player  */
+/* spends a year inside. Appended last so it wins over   */
+/* the earlier passes without editing them.              */
+/* ===================================================== */
+
+/* WHO YOU ARE, ABOVE THE LOG */
+
+.life-subheading {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: #e6c98a;
+    -fx-opacity: 0.92;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.85), 4, 0.3, 0, 1);
+}
+
+/* THE CHRONICLE */
+
+.log-line {
+    -fx-font-family: "Constantia", "Georgia", "Times New Roman", serif;
+    -fx-font-size: 14.5px;
+    -fx-text-fill: #f2e6cd;
+    -fx-padding: 3 10 3 10;
+    -fx-background-radius: 6;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.85), 3, 0.25, 0, 1);
+}
+
+/* Ordinary years: a salary paid, a quiet evening. */
+.log-plain {
+    -fx-text-fill: #ddd0b4;
+}
+
+.log-good {
+    -fx-text-fill: #b9e6a8;
+    -fx-background-color: rgba(58, 116, 46, 0.14);
+    -fx-border-color: transparent transparent transparent rgba(140, 214, 118, 0.7);
+    -fx-border-width: 0 0 0 2.5;
+}
+
+.log-bad {
+    -fx-text-fill: #f0b0a0;
+    -fx-background-color: rgba(128, 44, 32, 0.16);
+    -fx-border-color: transparent transparent transparent rgba(224, 122, 100, 0.75);
+    -fx-border-width: 0 0 0 2.5;
+}
+
+/* Birthdays, coming of age, a death: the beats of a life. */
+.log-milestone {
+    -fx-text-fill: #ffd977;
+    -fx-font-weight: bold;
+    -fx-background-color: rgba(120, 88, 20, 0.20);
+    -fx-border-color: transparent transparent transparent rgba(255, 210, 100, 0.85);
+    -fx-border-width: 0 0 0 3;
+}
+
+/* A scene the player was asked to decide. */
+.log-scene {
+    -fx-text-fill: #e9d4ff;
+    -fx-font-style: italic;
+    -fx-background-color: rgba(76, 54, 110, 0.20);
+    -fx-border-color: transparent transparent transparent rgba(190, 160, 240, 0.7);
+    -fx-border-width: 0 0 0 2.5;
+}
+
+/* News that happened with or without you. */
+.log-world {
+    -fx-text-fill: #bdd6e8;
+    -fx-background-color: rgba(34, 62, 84, 0.18);
+    -fx-border-color: transparent transparent transparent rgba(150, 194, 224, 0.65);
+    -fx-border-width: 0 0 0 2.5;
+}
+
+/* THE HEARTBEAT */
+
+.age-up-button {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 1.2;
+    -fx-text-fill: #23160a;
+    -fx-background-color:
+            linear-gradient(to bottom, #ffdf94 0%, #edb851 46%, #c98f2c 100%);
+    -fx-background-radius: 26;
+    -fx-border-color: rgba(255, 233, 168, 0.95);
+    -fx-border-width: 2;
+    -fx-border-radius: 26;
+    -fx-cursor: hand;
+    -fx-effect:
+            dropshadow(gaussian, rgba(0,0,0,0.75), 16, 0.35, 0, 5),
+            dropshadow(gaussian, rgba(255, 206, 92, 0.45), 20, 0.4, 0, 0);
+}
+
+.age-up-button:hover {
+    -fx-background-color:
+            linear-gradient(to bottom, #fff0c0 0%, #f7cc6b 46%, #d89c33 100%);
+    -fx-scale-x: 1.03;
+    -fx-scale-y: 1.03;
+}
+
+.age-up-button:pressed {
+    -fx-scale-x: 0.985;
+    -fx-scale-y: 0.985;
+}
+
+.age-up-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* THE ACTION BAR */
+
+.action-bar {
+    -fx-padding: 2 0 0 0;
+}
+
+.action-button {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 14px;
+    -fx-text-fill: #ffe9b4;
+    -fx-background-color:
+            linear-gradient(to bottom, rgba(84, 52, 18, 0.88), rgba(38, 22, 8, 0.92));
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(226, 174, 55, 0.78);
+    -fx-border-width: 1.6;
+    -fx-border-radius: 12;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 10, 0.3, 0, 3);
+}
+
+.action-button:hover {
+    -fx-text-fill: #fff4d2;
+    -fx-background-color:
+            linear-gradient(to bottom, rgba(116, 74, 26, 0.94), rgba(56, 33, 12, 0.96));
+    -fx-border-color: rgba(255, 216, 118, 0.95);
+}
+
+/* A SCENE'S CHOICES, INSIDE THE SCROLL */
+
+.scene-choice {
+    -fx-font-size: 14.5px;
+    -fx-padding: 9 16 9 16;
+    -fx-text-alignment: center;
+}
+
+/* ===================================================== */
+/* THE LIST MENU                                         */
+/* ===================================================== */
+
+.menu-overlay {
+    -fx-background-color: rgba(6, 4, 2, 0.74);
+}
+
+.menu-panel {
+    -fx-background-color:
+            linear-gradient(to bottom,
+            rgba(58, 36, 13, 0.97),
+            rgba(30, 18, 7, 0.98));
+    -fx-background-radius: 18;
+    -fx-border-color: rgba(233, 184, 70, 0.9);
+    -fx-border-width: 2.2;
+    -fx-border-radius: 18;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.85), 34, 0.45, 0, 12);
+}
+
+.menu-title {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffd977;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.9), 6, 0.4, 0, 2);
+}
+
+.menu-subtitle {
+    -fx-font-size: 13.5px;
+    -fx-text-fill: #d9c49a;
+    -fx-text-alignment: center;
+}
+
+.menu-section {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 1.6;
+    -fx-text-fill: #e8b94a;
+    -fx-padding: 0 0 2 4;
+}
+
+.menu-note {
+    -fx-font-size: 13px;
+    -fx-text-fill: #c9b590;
+    -fx-font-style: italic;
+    -fx-padding: 2 6 6 6;
+}
+
+.menu-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+}
+
+.menu-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* ONE ROW */
+
+/* A box, not a button: see ListMenuOverlay#buildRow. */
+.menu-row {
+    -fx-background-color: rgba(92, 60, 22, 0.32);
+    -fx-background-radius: 11;
+    -fx-border-color: rgba(214, 166, 66, 0.42);
+    -fx-border-width: 1.3;
+    -fx-border-radius: 11;
+    -fx-padding: 9 14 9 14;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.menu-row:hover {
+    -fx-background-color: rgba(134, 90, 34, 0.52);
+    -fx-border-color: rgba(255, 214, 112, 0.9);
+}
+
+.menu-row-shut {
+    -fx-opacity: 1.0;
+    -fx-background-color: rgba(40, 28, 14, 0.42);
+    -fx-border-color: rgba(150, 118, 60, 0.30);
+    -fx-cursor: default;
+}
+
+.menu-row-name {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 15px;
+    -fx-text-fill: #ffe9b4;
+}
+
+/* A shut row is still meant to be read: it is the thing to aim at. */
+.menu-row-shut .menu-row-name {
+    -fx-text-fill: #9d8c6d;
+}
+
+.menu-row-detail {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #cbb994;
+}
+
+.menu-row-shut .menu-row-detail {
+    -fx-text-fill: #8a7c62;
+}
+
+.menu-row-locked {
+    -fx-font-size: 12px;
+    -fx-text-fill: #e09a86;
+    -fx-font-style: italic;
+}
+
+.menu-row-trailing {
+    -fx-font-size: 12.5px;
+    -fx-text-fill: #f0c86a;
+    -fx-text-alignment: right;
+}
+
+.menu-row-shut .menu-row-trailing {
+    -fx-text-fill: #97835a;
+}
+
+/* ===================================================== */
+/* THE NEW TRIALS                                        */
+/* ===================================================== */
+
+/* The caravan road */
+
+.caravan-leg-cost {
+    -fx-font-family: "Constantia", "Georgia", serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffdf9a;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.95), 4, 0.6, 0, 1);
+}
+
+.caravan-caption {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: #cbb994;
+}
+
+.caravan-oasis:hover {
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(255, 214, 112, 0.85), 14, 0.5, 0, 0);
+}
+
+/* The geometer's bench */
+
+.tile-option {
+    -fx-background-color: rgba(70, 46, 18, 0.55);
+    -fx-background-radius: 9;
+    -fx-border-color: rgba(214, 166, 66, 0.55);
+    -fx-border-width: 1.6;
+    -fx-border-radius: 9;
+    -fx-cursor: hand;
+}
+
+.tile-option:hover {
+    -fx-border-color: rgba(255, 220, 120, 1);
+    -fx-effect: dropshadow(gaussian, rgba(255, 206, 92, 0.6), 16, 0.4, 0, 0);
+}
+
+/* The poets' circle */
+
+.verse-line {
+    -fx-font-family: "Constantia", "Palatino Linotype", "Georgia", serif;
+    -fx-font-size: 17px;
+    -fx-font-style: italic;
+    -fx-text-fill: #f5e4c2;
+    -fx-text-alignment: center;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.85), 4, 0.3, 0, 1);
+}

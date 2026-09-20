@@ -365,7 +365,7 @@ class EarnedBondsTest {
         int namedBeforeMeeting = 0;
         int elderNeverTaught = 0;
         int companionEndedHostile = 0;
-        int peaceWasOffered = 0;
+        int[] peaceWasOffered = {0};
 
         Random random = new Random(17);
 
@@ -378,30 +378,22 @@ class EarnedBondsTest {
                 }
             }
 
-            while (engine.getCurrentEvent() != null && engine.getPlayer().isAlive()) {
-                List<Choice> playable = new ArrayList<>();
+            Lives.live(engine, (playing, event) -> {
+                Choice picked = Lives.anyOpen(playing, event, random);
 
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        playable.add(choice);
-                    }
+                if (picked == null) {
+                    return;
                 }
-
-                if (playable.isEmpty()) {
-                    break;
-                }
-
-                Choice picked = playable.get(random.nextInt(playable.size()));
 
                 for (String flag : picked.getSuccessFlags()) {
                     if (MAKING_PEACE.contains(flag)) {
-                        peaceWasOffered++;
+                        peaceWasOffered[0]++;
                         break;
                     }
                 }
 
-                engine.applyChoice(picked);
-            }
+                playing.applyChoice(picked);
+            });
 
             RecurringCharacterRegistry cast = engine.getRecurringCharacters();
 
@@ -459,9 +451,9 @@ class EarnedBondsTest {
         // happens in about a third of lives; that two of them add up to an
         // alliance is settled above, exactly, without a bot.
         assertTrue(
-                peaceWasOffered >= 10,
+                peaceWasOffered[0] >= 10,
                 "in " + lives + " lives the chance to make peace with a rival "
-                        + "came up only " + peaceWasOffered + " times; the arc is "
+                        + "came up only " + peaceWasOffered[0] + " times; the arc is "
                         + "not reachable in play"
         );
     }

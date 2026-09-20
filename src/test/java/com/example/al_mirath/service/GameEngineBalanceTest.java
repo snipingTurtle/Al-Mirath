@@ -25,21 +25,23 @@ class GameEngineBalanceTest {
         throw new IllegalStateException("no selectable choice on " + event.getTitle());
     }
 
-    /** Plays choices until the life ends or a cap is hit, to exercise long-run behavior. */
+    /**
+     * Plays the life the way the game does until the cap on decisions is hit,
+     * so long-run behaviour is exercised with time actually passing.
+     */
     private int playUntilEndOrLimit(GameEngine engine, int limit) {
-        int played = 0;
+        int[] played = {0};
 
-        while (played < limit) {
-            GameEvent event = engine.getCurrentEvent();
-            if (event == null) {
-                break;
+        Lives.live(engine, (playing, event) -> {
+            if (played[0] >= limit) {
+                return;
             }
 
-            engine.applyChoice(firstAvailableChoice(engine, event));
-            played++;
-        }
+            playing.applyChoice(firstAvailableChoice(playing, event));
+            played[0]++;
+        });
 
-        return played;
+        return played[0];
     }
 
     @Test
@@ -143,36 +145,38 @@ class GameEngineBalanceTest {
     @DisplayName("world events surface over a run of choices, without error")
     void worldEventsEventuallyFire() {
         int choicesToMake = 60;
-        int choicesMade = 0;
-        boolean sawWorldEvent = false;
+        int[] counted = {0};
+        boolean[] seen = {false};
 
-        while (choicesMade < choicesToMake) {
+        while (counted[0] < choicesToMake) {
             GameEngine engine = new GameEngine();
 
-            while (choicesMade < choicesToMake
-                    && engine.getCurrentEvent() != null) {
+            Lives.live(engine, (playing, event) -> {
+                if (counted[0] >= choicesToMake) {
+                    return;
+                }
 
-                engine.applyChoice(
-                        firstAvailableChoice(engine, engine.getCurrentEvent())
-                );
+                playing.applyChoice(firstAvailableChoice(playing, event));
+                counted[0]++;
 
-                choicesMade++;
+                if (!playing.getLatestWorldEventTitle().isBlank()) {
+                    seen[0] = true;
 
-                if (!engine.getLatestWorldEventTitle().isBlank()) {
-                    sawWorldEvent = true;
-
-                    String title = engine.getLatestWorldEventTitle();
-                    String message = engine.consumeLatestWorldEventMessage();
+                    String title = playing.getLatestWorldEventTitle();
+                    String message = playing.consumeLatestWorldEventMessage();
 
                     assertFalse(title.isBlank());
                     assertFalse(message.isBlank());
                     assertTrue(
-                            engine.getLatestWorldEventTitle().isBlank(),
+                            playing.getLatestWorldEventTitle().isBlank(),
                             "consuming must clear the pending title too"
                     );
                 }
-            }
+            });
         }
+
+        boolean sawWorldEvent = seen[0];
+        int choicesMade = counted[0];
 
         assertTrue(
                 sawWorldEvent,
@@ -188,14 +192,15 @@ class GameEngineBalanceTest {
 
         java.util.Set<String> seen = new java.util.HashSet<>();
 
-        for (int i = 0; i < 60 && engine.getCurrentEvent() != null; i++) {
-            engine.applyChoice(firstAvailableChoice(engine, engine.getCurrentEvent()));
+        Lives.live(engine, (playing, event) -> {
+            playing.applyChoice(firstAvailableChoice(playing, event));
 
-            String title = engine.getLatestWorldEventTitle();
+            String title = playing.getLatestWorldEventTitle();
+
             if (!title.isBlank()) {
                 assertTrue(seen.add(title), "world event repeated within one life: " + title);
-                engine.consumeLatestWorldEventMessage();
+                playing.consumeLatestWorldEventMessage();
             }
-        }
+        });
     }
 }

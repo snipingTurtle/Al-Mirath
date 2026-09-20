@@ -301,11 +301,9 @@ class StudentSystemTest {
 
         for (int life = 0; life < lives; life++) {
             GameEngine engine = new GameEngine();
-            boolean offered = false;
+            boolean[] offered = {false};
 
-            while (engine.getCurrentEvent() != null && engine.getPlayer().isAlive()) {
-                GameEvent event = engine.getCurrentEvent();
-
+            Lives.live(engine, (playing, event) -> {
                 Choice takeThemOn = null;
 
                 for (Choice choice : event.getChoices()) {
@@ -317,30 +315,20 @@ class StudentSystemTest {
                 }
 
                 if (takeThemOn != null) {
-                    offered = true;
-                }
-
-                List<Choice> available = new ArrayList<>();
-
-                for (Choice choice : event.getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
-                }
-
-                if (available.isEmpty()) {
-                    break;
+                    offered[0] = true;
                 }
 
                 Choice picked =
-                        takeThemOn != null && engine.canChoose(takeThemOn)
+                        takeThemOn != null && playing.canChoose(takeThemOn)
                                 ? takeThemOn
-                                : available.get(random.nextInt(available.size()));
+                                : Lives.anyOpen(playing, event, random);
 
-                engine.applyChoice(picked);
-            }
+                if (picked != null) {
+                    playing.applyChoice(picked);
+                }
+            });
 
-            if (offered) {
+            if (offered[0]) {
                 sawTheOffer++;
             }
 

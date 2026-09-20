@@ -389,21 +389,7 @@ class TitleForgeTest {
         for (int run = 0; run < 60; run++) {
             GameEngine engine = new GameEngine();
 
-            for (int i = 0; i < 40 && engine.getCurrentEvent() != null; i++) {
-                List<Choice> available = new ArrayList<>();
-
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
-                }
-
-                if (available.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(available.get(random.nextInt(available.size())));
-            }
+            Lives.live(engine, Lives.takingAnyOpenChoice(random));
 
             String crown = engine.getEarnedTitle();
 
@@ -437,21 +423,7 @@ class TitleForgeTest {
         for (int run = 0; run < 60; run++) {
             GameEngine engine = new GameEngine();
 
-            for (int i = 0; i < 40 && engine.getCurrentEvent() != null; i++) {
-                List<Choice> available = new ArrayList<>();
-
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
-                }
-
-                if (available.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(available.get(random.nextInt(available.size())));
-            }
+            Lives.live(engine, Lives.takingAnyOpenChoice(random));
 
             if (engine.getEarnedTitle().isBlank()) {
                 continue;

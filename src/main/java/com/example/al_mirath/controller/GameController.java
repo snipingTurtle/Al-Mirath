@@ -1,24 +1,34 @@
 package com.example.al_mirath.controller;
 
 import com.example.al_mirath.Main;
+import com.example.al_mirath.model.Activity;
+import com.example.al_mirath.model.ActivityResult;
 import com.example.al_mirath.model.Choice;
 import com.example.al_mirath.model.City;
 import com.example.al_mirath.model.EndingResult;
 import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.model.FactionRelations;
 import com.example.al_mirath.model.GameEvent;
+import com.example.al_mirath.model.FamilyMember;
 import com.example.al_mirath.model.LegacyRecord;
+import com.example.al_mirath.model.LifeLogEntry;
 import com.example.al_mirath.model.PlayerCharacter;
+import com.example.al_mirath.model.Property;
+import com.example.al_mirath.model.RecurringCharacter;
 import com.example.al_mirath.core.GameSettings;
 import com.example.al_mirath.minigame.MiniGame;
 import com.example.al_mirath.minigame.MiniGameFactory;
 import com.example.al_mirath.service.AchievementEvaluator;
+import com.example.al_mirath.service.ActivityLibrary;
 import com.example.al_mirath.service.BackgroundLibrary;
+import com.example.al_mirath.service.CareerService;
 import com.example.al_mirath.service.CityPressure;
 import com.example.al_mirath.service.GameEngine;
 import com.example.al_mirath.service.LegacyArchive;
 import com.example.al_mirath.service.ProgressService;
+import com.example.al_mirath.service.PropertyMarket;
 import com.example.al_mirath.service.SaveManager;
+import com.example.al_mirath.ui.ListMenuOverlay;
 import com.example.al_mirath.ui.MiniGameOverlay;
 import com.example.al_mirath.ui.TrialPromptOverlay;
 import com.example.al_mirath.ui.ToastLayer;
@@ -42,6 +52,7 @@ import javafx.scene.effect.Glow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -52,7 +63,9 @@ import javafx.util.Duration;
 import javafx.application.Platform;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GameController implements ScreenLifecycle {
@@ -63,7 +76,13 @@ public class GameController implements ScreenLifecycle {
      * now that world events carry arbitrary, unpredictable titles.
      */
     private enum PopupCategory {
-        BIRTH, CONSEQUENCE, LOCKED_INFO, LEGACY_TITLE, STATUS_CHANGE, FATE_TOKEN, WORLD_EVENT, ECHO, ENDING
+        BIRTH, CONSEQUENCE, LOCKED_INFO, LEGACY_TITLE, STATUS_CHANGE, FATE_TOKEN, WORLD_EVENT, ECHO, ENDING,
+
+        /**
+         * An authored scene, which carries its choices inside the scroll and
+         * therefore needs a taller one than a result the player only reads.
+         */
+        SCENE
     }
 
     private GameEngine engine;
@@ -152,6 +171,18 @@ public class GameController implements ScreenLifecycle {
     /** Set while a rewind is available so the popup can offer the challenge. */
     private boolean rewindOfferAvailable = false;
 
+    /**
+     * How much of the engine's life log has already been put on screen.
+     *
+     * <p>The log only ever grows, and a year can add a dozen lines, so the
+     * panel appends what is new rather than rebuilding a life's worth of
+     * labels every time anything happens.
+     */
+    private int linesRendered = 0;
+
+    /** Kept so a menu can be closed from the key handler. */
+    private ListMenuOverlay openMenu;
+
     private Timeline typewriterTimeline;
 
     /** The messenger-scroll artwork's own dimensions; it is never upscaled. */
@@ -224,7 +255,13 @@ public class GameController implements ScreenLifecycle {
     @FXML private Label traitLabel;
 
     @FXML private Label eventTitleLabel;
-    @FXML private Label eventDescriptionLabel;
+    @FXML private Label lifeSubheadingLabel;
+
+    @FXML private Button ageUpButton;
+    @FXML private javafx.scene.layout.HBox actionBar;
+
+    /** The log's viewport, kept scrolled to the newest line. */
+    @FXML private ScrollPane eventDescriptionScroll;
 
     @FXML private Button choiceButton1;
     @FXML private Button choiceButton2;
@@ -284,6 +321,9 @@ public class GameController implements ScreenLifecycle {
     @FXML private Label resultTextLabel;
     @FXML private ScrollPane popupMessageScroll;
     @FXML private Button popupContinueButton;
+    @FXML private VBox popupChoiceBox;
+    @FXML private Label popupDividerTop;
+    @FXML private Label popupDividerBottom;
 
     @FXML
     public void initialize() {
@@ -327,16 +367,27 @@ public class GameController implements ScreenLifecycle {
 
             Platform.runLater(() -> {
                 animateBackgroundMotion();
-                loadCurrentEvent();
+                refreshScreen();
                 setGameplayPanelsVisible(true);
+
+                // A save can be taken on a life that has already ended, and a
+                // save can be taken with a scene still waiting to be answered.
+                // Both have to survive being loaded, or the player comes back
+                // to a screen with nothing on it.
+                if (!engine.getPlayer().isAlive()) {
+                    endTheLife();
+                    return;
+                }
+
+                if (engine.isSceneDue()) {
+                    presentScene();
+                }
             });
 
             return;
         }
 
-        eventTitleLabel.setText("Birth of a Life");
-        typewriteDescription("Your life is about to begin...");
-
+        refreshScreen();
         setGameplayPanelsVisible(false);
 
         Platform.runLater(() -> {
@@ -401,29 +452,36 @@ public class GameController implements ScreenLifecycle {
 
         boolean popupOpen = resultPopup != null && resultPopup.isVisible();
 
+        boolean sceneOpen = popupOpen
+                && popupChoiceBox != null
+                && popupChoiceBox.isVisible()
+                && !popupChoiceBox.getChildren().isEmpty();
+
         switch (event.getCode()) {
-            case DIGIT1, NUMPAD1 -> {
-                if (!popupOpen) {
-                    triggerChoiceButton(choiceButton1, 0);
-                }
-            }
-            case DIGIT2, NUMPAD2 -> {
-                if (!popupOpen) {
-                    triggerChoiceButton(choiceButton2, 1);
-                }
-            }
-            case DIGIT3, NUMPAD3 -> {
-                if (!popupOpen) {
-                    triggerChoiceButton(choiceButton3, 2);
-                }
-            }
+            case DIGIT1, NUMPAD1 -> pickByNumber(sceneOpen, 0);
+            case DIGIT2, NUMPAD2 -> pickByNumber(sceneOpen, 1);
+            case DIGIT3, NUMPAD3 -> pickByNumber(sceneOpen, 2);
+
             case SPACE, ENTER -> {
+                if (sceneOpen) {
+                    // A scene has to be answered, not dismissed.
+                    return;
+                }
+
                 if (popupOpen) {
                     closePopup();
                 } else if (typewriterTimeline != null) {
                     // Impatient readers can skip the reveal.
                     completeTypewriter();
                     revealFullDescription();
+                } else {
+                    handleAgeUp();
+                }
+            }
+
+            case A -> {
+                if (!popupOpen) {
+                    handleActivities();
                 }
             }
             case R -> {
@@ -434,11 +492,17 @@ public class GameController implements ScreenLifecycle {
 
             case P -> {
                 if (!popupOpen) {
-                    showPeoplePopup();
+                    handleRelationships();
                 }
             }
 
-            case ESCAPE -> returnToMainMenu();
+            case ESCAPE -> {
+                if (openMenu != null) {
+                    openMenu.dismiss();
+                } else {
+                    returnToMainMenu();
+                }
+            }
             default -> {
                 // Every other key is left to the focused control.
             }
@@ -447,20 +511,32 @@ public class GameController implements ScreenLifecycle {
         event.consume();
     }
 
-    private void showPeoplePopup() {
-        if (engine == null) {
+    /**
+     * Answers a scene, or an heir offer, by number.
+     *
+     * <p>The succession still uses the three panel buttons; a scene uses the
+     * list inside the scroll. One key does both, because to the player they
+     * are the same gesture.
+     */
+    private void pickByNumber(boolean sceneOpen, int index) {
+        if (sceneOpen) {
+            if (index < popupChoiceBox.getChildren().size()
+                    && popupChoiceBox.getChildren().get(index) instanceof Button button
+                    && !button.isDisabled()) {
+
+                button.fire();
+            }
+
             return;
         }
 
-        showPopup(
-                "People in Your Life",
-                engine.getRecurringCharacterSummary(),
-                PopupCategory.LOCKED_INFO
-        );
-    }
+        Button panelButton = switch (index) {
+            case 0 -> choiceButton1;
+            case 1 -> choiceButton2;
+            default -> choiceButton3;
+        };
 
-    private void triggerChoiceButton(Button button, int index) {
-        if (button == null || !button.isVisible() || button.isDisabled()) {
+        if (panelButton == null || !panelButton.isVisible() || panelButton.isDisabled()) {
             return;
         }
 
@@ -1155,7 +1231,9 @@ public class GameController implements ScreenLifecycle {
         updateStatLabel(stressLabel, stressBar, "Stress", p.getStress(), getDelta(beforeStats, "stress", p.getStress()));
 
         if (netWorthLabel != null) {
-            netWorthLabel.setText("Net Worth: $" + String.format("%.0f", p.getNetWorth()));
+            // Dollars in ninth-century Baghdad were a placeholder from when
+            // the purse did nothing. It buys property and pays a household now.
+            netWorthLabel.setText("◈ " + p.purseText());
         }
     }
 
@@ -1238,108 +1316,275 @@ public class GameController implements ScreenLifecycle {
         }
     }
 
-    private void loadCurrentEvent() {
-        hideChangeCue();
-
+    /**
+     * Brings the screen back in line with the engine.
+     *
+     * <p>Called after anything that could have changed the character: a year
+     * passing, an activity, a post taken, a scene answered. It never decides
+     * anything — it reads.
+     */
+    private void refreshScreen() {
         updateCharacterInfo();
         updateStats();
         updateFactions();
+        updateFateTokenLabel();
+        renderLifeLog();
+        updateLifeHeader();
+        updateActionAvailability();
+    }
 
+    /** The two lines above the log: who this is, and where they have got to. */
+    private void updateLifeHeader() {
+        if (engine == null || engine.getPlayer() == null) {
+            return;
+        }
+
+        PlayerCharacter player = engine.getPlayer();
+
+        eventTitleLabel.setText(player.getName());
+
+        if (lifeSubheadingLabel == null) {
+            return;
+        }
+
+        StringBuilder line = new StringBuilder();
+
+        line.append(player.isAlive() ? "Age " + player.getAge() : "Died at " + player.getAge());
+        line.append("  ·  ").append(player.getCurrentStatus());
+
+        if (player.isEmployed()) {
+            line.append("  ·  ").append(player.careerTitle());
+        }
+
+        String city = engine.getCurrentCityName();
+
+        if (city != null && !city.isBlank()) {
+            line.append("  ·  ").append(city);
+        }
+
+        lifeSubheadingLabel.setText(line.toString());
+    }
+
+    /**
+     * Appends whatever the engine has written since the last look, and keeps
+     * the newest line in view.
+     */
+    private void renderLifeLog() {
+        if (engine == null || ageLogBox == null) {
+            return;
+        }
+
+        List<LifeLogEntry> log = engine.getLifeLog();
+
+        // A restart or a succession hands over a shorter log than the one on
+        // screen, which means this is a different life and the panel is stale.
+        if (log.size() < linesRendered) {
+            ageLogBox.getChildren().clear();
+            linesRendered = 0;
+        }
+
+        for (int i = linesRendered; i < log.size(); i++) {
+            LifeLogEntry entry = log.get(i);
+
+            Label line = new Label(entry.display());
+            line.setWrapText(true);
+            line.setMaxWidth(630);
+            line.getStyleClass().addAll("log-line", entry.styleClass());
+
+            ageLogBox.getChildren().add(line);
+        }
+
+        linesRendered = log.size();
+
+        // Scrolled after layout, or the pane measures itself before the new
+        // lines exist and stops one line short of the bottom every time.
+        if (eventDescriptionScroll != null) {
+            Platform.runLater(() -> eventDescriptionScroll.setVvalue(1.0));
+        }
+    }
+
+    /**
+     * Greys out what a dead character cannot do, and keeps the three panel
+     * buttons out of the way.
+     *
+     * <p>They belong to the succession now: a scene's choices live in the
+     * scroll with the scene, so the only thing left that needs three buttons
+     * under the log is choosing an heir.
+     */
+    private void updateActionAvailability() {
+        boolean alive = engine != null
+                && engine.getPlayer() != null
+                && engine.getPlayer().isAlive();
+
+        if (ageUpButton != null) {
+            ageUpButton.setDisable(!alive);
+        }
+
+        if (actionBar != null) {
+            actionBar.setDisable(!alive);
+        }
+
+        if (pendingSuccessors.isEmpty()) {
+            for (Button button : new Button[]{choiceButton1, choiceButton2, choiceButton3}) {
+                if (button != null) {
+                    button.setVisible(false);
+                    button.setManaged(false);
+                }
+            }
+        }
+    }
+
+    /**
+     * Puts an authored scene in front of the player, in the scroll, with its
+     * choices under it.
+     *
+     * <p>Scenes are modal on purpose. They are the moments the game is really
+     * about, and a decision that can be ignored by clicking something else on
+     * the screen is not a decision.
+     */
+    private void presentScene() {
         GameEvent event = engine.getCurrentEvent();
 
         if (event == null) {
-            EndingResult ending = engine.getEndingResult();
-
-            if (!legacyRecorded) {
-                PlayerCharacter player = engine.getPlayer();
-                int score = engine.calculateScore();
-
-                LegacyArchive.addRecord(new LegacyRecord(
-                        player.getName(),
-                        player.getEra(),
-                        player.getOrigin(),
-                        player.getFamilyCondition(),
-                        ending.getTitle(),
-                        player.getLegacyTitlesText(),
-                        player.getAge(),
-                        player.getCurrentStatus(),
-                        score
-                ));
-
-                AchievementEvaluator.afterLifeComplete(engine, ending, score);
-
-                legacyRecorded = true;
-            }
-
-            pendingSuccessors = offerableHeirs(engine.getSuccessors());
-
-            if (pendingSuccessors.isEmpty()) {
-                choiceButton1.setVisible(false);
-                choiceButton1.setManaged(false);
-
-                choiceButton2.setVisible(false);
-                choiceButton2.setManaged(false);
-
-                choiceButton3.setVisible(false);
-                choiceButton3.setManaged(false);
-
-                setGameplayPanelsVisible(false);
-            } else {
-                showSuccessionOffer();
-            }
-
-            if (!finalChronicleShown) {
-                finalChronicleShown = true;
-
-                String endingMessage =
-                        ending.getDescription()
-                                + "\n\n"
-                                + engine.getLifeSummary();
-
-                showPopup("Final Chronicle", endingMessage, PopupCategory.ENDING);
-            }
-
             return;
         }
 
-        System.out.println(
-                "Loading event: "
-                        + event.getLifeStage()
-                        + " — "
-                        + event.getTitle()
+        changeBackground(
+                BackgroundLibrary.getBackgroundForEvent(event, engine.getPlayer())
         );
 
-        String backgroundPath =
-                BackgroundLibrary.getBackgroundForEvent(
-                        event,
-                        engine.getPlayer()
-                );
+        activePopupTitle = event.getTitle();
+        activePopupCategory = PopupCategory.SCENE;
 
-        changeBackground(backgroundPath);
+        popupTitleLabel.setText(event.getTitle());
+        popupTitleLabel.setVisible(true);
+        popupTitleLabel.setManaged(true);
 
-        eventTitleLabel.setText(event.getTitle());
+        resultTextLabel.setText(event.getDescription());
 
-        typewriteDescription(event.getDescription());
+        configurePopupAppearance(PopupCategory.SCENE);
+        applyPopupVisualEffect(PopupCategory.SCENE);
 
-        configureChoiceIfAvailable(choiceButton1, event, 0);
-        configureChoiceIfAvailable(choiceButton2, event, 1);
-        configureChoiceIfAvailable(choiceButton3, event, 2);
+        buildSceneChoices(event);
 
-        fadeEventText();
+        popupContinueButton.setVisible(false);
+        popupContinueButton.setManaged(false);
+        popupRewindButton.setVisible(false);
+        popupRewindButton.setManaged(false);
+
+        if (popupMessageScroll != null) {
+            popupMessageScroll.setVvalue(0);
+        }
+
+        resultPopup.setManaged(true);
+        resultPopup.setVisible(true);
+        resultPopup.setOpacity(0);
+        resultPopup.setMouseTransparent(false);
+        resultPopup.toFront();
+
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(220), resultPopup);
+        fadeIn.setFromValue(0);
+        fadeIn.setToValue(1);
+        fadeIn.play();
     }
 
-    private void configureChoiceIfAvailable(Button button, GameEvent event, int index) {
-        if (button == null || event == null) return;
-
-        if (index >= event.getChoices().size()) {
-            button.setVisible(false);
-            button.setManaged(false);
+    private void buildSceneChoices(GameEvent event) {
+        if (popupChoiceBox == null) {
             return;
         }
 
-        configureChoiceButton(button, event.getChoices().get(index));
-        button.setVisible(true);
-        button.setManaged(true);
+        popupChoiceBox.getChildren().clear();
+
+        for (int index = 0; index < event.getChoices().size(); index++) {
+            Choice choice = event.getChoices().get(index);
+
+            Button button = new Button();
+            button.getStyleClass().addAll("scroll-popup-button", "scene-choice");
+            button.setWrapText(true);
+            button.setMaxWidth(Double.MAX_VALUE);
+            button.setMinHeight(Region.USE_PREF_SIZE);
+
+            String lockedReason = engine.getLockedReason(choice);
+
+            if (lockedReason.isEmpty()) {
+                button.setText(choice.getText());
+
+                final int chosen = index;
+                button.setOnAction(event1 -> {
+                    clearSceneChoices();
+                    choose(chosen);
+                });
+            } else {
+                button.setText(choice.getText() + "\n" + lockedReason);
+                button.setDisable(true);
+            }
+
+            popupChoiceBox.getChildren().add(button);
+        }
+
+        popupChoiceBox.setVisible(true);
+        popupChoiceBox.setManaged(true);
+    }
+
+    private void clearSceneChoices() {
+        if (popupChoiceBox == null) {
+            return;
+        }
+
+        popupChoiceBox.getChildren().clear();
+        popupChoiceBox.setVisible(false);
+        popupChoiceBox.setManaged(false);
+    }
+
+    /**
+     * Closes the book on a life: writes the record, scores it, and offers the
+     * house to whoever can carry it.
+     */
+    private void endTheLife() {
+        if (finalChronicleShown) {
+            return;
+        }
+
+        EndingResult ending = engine.getEndingResult();
+
+        if (!legacyRecorded) {
+            PlayerCharacter player = engine.getPlayer();
+            int score = engine.calculateScore();
+
+            LegacyArchive.addRecord(new LegacyRecord(
+                    player.getName(),
+                    player.getEra(),
+                    player.getOrigin(),
+                    player.getFamilyCondition(),
+                    ending.getTitle(),
+                    player.getLegacyTitlesText(),
+                    player.getAge(),
+                    player.getCurrentStatus(),
+                    score
+            ));
+
+            AchievementEvaluator.afterLifeComplete(engine, ending, score);
+
+            legacyRecorded = true;
+        }
+
+        pendingSuccessors = offerableHeirs(engine.getSuccessors());
+
+        updateActionAvailability();
+
+        if (!pendingSuccessors.isEmpty()) {
+            // Built underneath the chronicle, so closing the chronicle reveals
+            // the offer instead of starting to assemble one.
+            showSuccessionOffer();
+        }
+
+        finalChronicleShown = true;
+
+        showPopup(
+                "Final Chronicle",
+                ending.getDescription() + "\n\n" + engine.getLifeSummary(),
+                PopupCategory.ENDING
+        );
     }
 
     private void fadeEventText() {
@@ -1496,8 +1741,14 @@ public class GameController implements ScreenLifecycle {
         pendingEchoTitle = "";
         pendingEchoMessage = "";
 
+        linesRendered = 0;
+
+        if (ageLogBox != null) {
+            ageLogBox.getChildren().clear();
+        }
+
         setGameplayPanelsVisible(true);
-        loadCurrentEvent();
+        refreshScreen();
     }
 
     private void configureChoiceButton(Button button, Choice choice) {
@@ -1587,9 +1838,11 @@ public class GameController implements ScreenLifecycle {
                         case PLAY -> startTrialOfSkill(choice);
                         case ROLL -> commitChoice(choice, null);
                         case CANCEL -> {
-                            // Back out entirely; the event stays on screen.
+                            // Back out entirely; the scene is still unanswered,
+                            // so it goes back on the screen as it was.
                             setGameplayPanelsVisible(true);
-                            loadCurrentEvent();
+                            refreshScreen();
+                            presentScene();
                         }
                     }
                 }
@@ -1658,6 +1911,12 @@ public class GameController implements ScreenLifecycle {
         changeBackground(consequenceBackground);
 
         String result = engine.applyChoice(choice, forcedOutcome);
+
+        // The log keeps what was decided; the scroll keeps what it read like.
+        engine.log(LifeLogEntry.scene(
+                engine.getPlayer().getAge(),
+                event.getTitle() + " — " + choice.getText()
+        ));
 
         pendingLegacyTitleMessage = engine.consumeLatestLegacyTitleMessage();
         pendingStatusChangeMessage = engine.consumeLatestStatusChangeMessage();
@@ -1793,8 +2052,9 @@ public class GameController implements ScreenLifecycle {
         updateFateTokenLabel();
         hideChangeCue();
 
-        loadCurrentEvent();
+        refreshScreen();
         setGameplayPanelsVisible(true);
+        presentScene();
 
         if (toastLayer != null) {
             toastLayer.show(
@@ -1879,6 +2139,16 @@ public class GameController implements ScreenLifecycle {
 
         resultTextLabel.setText(safeMessage);
 
+        // Anything but a scene is read and dismissed, so the choice list comes
+        // off and the Continue button comes back.
+        clearSceneChoices();
+
+        if (popupContinueButton != null) {
+            popupContinueButton.setVisible(true);
+            popupContinueButton.setManaged(true);
+            popupContinueButton.setText("Continue");
+        }
+
         configurePopupAppearance(category);
 
         if (popupMessageScroll != null) {
@@ -1909,6 +2179,7 @@ public class GameController implements ScreenLifecycle {
 
         boolean birthPopup = category == PopupCategory.BIRTH;
         boolean endingPopup = category == PopupCategory.ENDING;
+        boolean scenePopup = category == PopupCategory.SCENE;
 
         resultPopup.getStyleClass().removeAll(
                 "popup-birth",
@@ -1968,6 +2239,7 @@ public class GameController implements ScreenLifecycle {
 
             popupContentBox.setMaxWidth(440);
             popupContentBox.setPrefWidth(440);
+            popupContentBox.setMaxHeight(Region.USE_COMPUTED_SIZE);
             popupContentBox.setStyle("-fx-padding: 150 90 140 90;");
 
             popupTitleLabel.setMaxWidth(420);
@@ -1996,6 +2268,7 @@ public class GameController implements ScreenLifecycle {
 
                 popupContentBox.setMaxWidth(780);
                 popupContentBox.setPrefWidth(780);
+                popupContentBox.setMaxHeight(Region.USE_COMPUTED_SIZE);
                 popupContentBox.setStyle("-fx-padding: 76 200 80 200;");
 
                 popupTitleLabel.setMaxWidth(760);
@@ -2025,23 +2298,55 @@ public class GameController implements ScreenLifecycle {
                     popupContinueButton.setText("Continue");
                 }
 
+                // A scene puts its choices on the parchment under the text,
+                // so it needs a taller scroll than a result that is only read.
+                // Sized at 640 it had 346 usable pixels for a title, two
+                // dividers, three choices and the scene itself, and the scene
+                // was squeezed to two lines to make room.
+                int shellHeight = scenePopup ? 860 : 640;
+
+                // The parchment is drawn across a little over half the
+                // artwork's height, and a scene has to fit a title, the scene
+                // itself and up to three choices inside that. The two
+                // decorative rules are the first thing to go: they are worth
+                // sixty pixels and they are worth nothing else.
+                for (Label rule : new Label[]{popupDividerTop, popupDividerBottom}) {
+                    if (rule != null) {
+                        rule.setVisible(!scenePopup);
+                        rule.setManaged(!scenePopup);
+                    }
+                }
+
                 popupShell.setPrefWidth(1180);
-                popupShell.setPrefHeight(640);
+                popupShell.setPrefHeight(shellHeight);
                 popupShell.setMaxWidth(1180);
-                popupShell.setMaxHeight(640);
+                popupShell.setMaxHeight(shellHeight);
 
                 popupScrollBackground.setRotate(0);
                 popupScrollBackground.setFitWidth(1180);
-                popupScrollBackground.setFitHeight(640);
+                popupScrollBackground.setFitHeight(shellHeight);
 
                 popupContentBox.setMaxWidth(780);
                 popupContentBox.setPrefWidth(780);
-                popupContentBox.setStyle("-fx-padding: 82 190 86 190;");
+
+                // A scene's content is sized to itself and left to the
+                // StackPane to centre, rather than stretched to the shell and
+                // held off the edges with padding. The parchment is drawn in
+                // the middle half of the artwork, so a box that fills the
+                // whole shell puts its title above the paper and its last
+                // choice below it, whatever the padding says.
+                popupContentBox.setMaxHeight(scenePopup
+                        ? Region.USE_PREF_SIZE
+                        : Region.USE_COMPUTED_SIZE);
+
+                popupContentBox.setStyle(scenePopup
+                        ? "-fx-padding: 0 190 0 190;"
+                        : "-fx-padding: 82 190 86 190;");
 
                 popupTitleLabel.setMaxWidth(760);
                 resultTextLabel.setMaxWidth(730);
 
-                popupMessageScroll.setPrefViewportHeight(210);
+                popupMessageScroll.setPrefViewportHeight(scenePopup ? 200 : 210);
                 popupMessageScroll.setMaxWidth(760);
             }
         }
@@ -2277,15 +2582,18 @@ public class GameController implements ScreenLifecycle {
             rewindOfferAvailable = false;
             engine.clearSnapshot();
 
-            /*
-             * This is the important line:
-             * it retrieves and displays the next event.
-             */
-            loadCurrentEvent();
+            clearSceneChoices();
+            refreshScreen();
 
-            /*
-             * Do not reveal the HUD if loadCurrentEvent opened the ending popup.
-             */
+            // A life can end inside an activity as easily as inside a scene,
+            // so the chronicle is offered here rather than at the one place
+            // that used to be able to reach it.
+            if (!engine.getPlayer().isAlive()) {
+                setGameplayPanelsVisible(true);
+                endTheLife();
+                return;
+            }
+
             if (!resultPopup.isVisible()) {
                 setGameplayPanelsVisible(true);
             }
@@ -2323,14 +2631,13 @@ public class GameController implements ScreenLifecycle {
         hideChangeCue();
         setGameplayPanelsVisible(false);
 
-        updateCharacterInfo();
-        updateStats();
-        updateFactions();
+        linesRendered = 0;
 
-        eventTitleLabel.setText("Birth of a Life");
-        eventDescriptionLabel.setText(
-                "Your life is about to begin..."
-        );
+        if (ageLogBox != null) {
+            ageLogBox.getChildren().clear();
+        }
+
+        refreshScreen();
 
         String birthBackground =
                 BackgroundLibrary.getBirthBackground(
@@ -2726,119 +3033,683 @@ public class GameController implements ScreenLifecycle {
         }
     }
 
+    // ════════════════════════════════════════════════════════════════════
+    //  The year
+    // ════════════════════════════════════════════════════════════════════
+
+    /**
+     * One year passes.
+     *
+     * <p>The only control in the game that moves time. Everything the year
+     * did arrives as lines in the log; if it also brought a scene with it,
+     * that scene is raised once the year has been read.
+     */
     @FXML
     public void handleAgeUp() {
-        if (engine == null || engine.getPlayer() == null || !engine.getPlayer().isAlive()) return;
+        if (engine == null || engine.getPlayer() == null) {
+            return;
+        }
 
-        engine.getPlayer().increaseAge(1);
-        updateStats();
+        if (!engine.getPlayer().isAlive() || isBusy()) {
+            return;
+        }
 
-        Label log = new Label("Age " + engine.getPlayer().getAge() + ": A peaceful year has passed.");
-        log.getStyleClass().add("event-description");
-        log.setWrapText(true);
-        if (ageLogBox != null) {
-            ageLogBox.getChildren().add(log);
+        Map<String, Integer> beforeStats = snapshotStats();
+        Map<String, Integer> beforeFactions = snapshotFactions();
+
+        engine.ageOneYear();
+
+        refreshScreen();
+        showCastAnnouncements();
+        AchievementEvaluator.afterChoice(engine);
+        showChangeCue(beforeStats, beforeFactions);
+
+        String fateMessage = engine.consumeLatestFateTokenMessage();
+
+        if (!fateMessage.isBlank() && toastLayer != null) {
+            toastLayer.showFateToken(fateMessage);
+        }
+
+        if (!engine.getPlayer().isAlive()) {
+            endTheLife();
+            return;
+        }
+
+        if (engine.isSceneDue()) {
+            presentScene();
         }
     }
+
+    /** True while a popup, a menu, or a mini-game owns the screen. */
+    private boolean isBusy() {
+        if (isMiniGameActive() || openMenu != null) {
+            return true;
+        }
+
+        return resultPopup != null && resultPopup.isVisible();
+    }
+
+    /** Puts a menu on screen and remembers it, so Escape can take it off. */
+    private void showMenu(ListMenuOverlay menu) {
+        if (gameRoot == null) {
+            return;
+        }
+
+        openMenu = menu.onClose(() -> {
+            openMenu = null;
+            refreshScreen();
+        });
+
+        gameRoot.getChildren().add(menu);
+        menu.requestFocus();
+    }
+
+    /** Replaces the menu on screen with a fresh one, without a flash of nothing. */
+    private void replaceMenu(ListMenuOverlay menu) {
+        if (openMenu != null) {
+            ListMenuOverlay going = openMenu;
+            openMenu = null;
+            going.onClose(null);
+            going.dismiss();
+        }
+
+        showMenu(menu);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Activities
+    // ════════════════════════════════════════════════════════════════════
 
     @FXML
     public void handleActivities() {
-        if (engine == null || engine.getPlayer() == null || !engine.getPlayer().isAlive()) return;
-        int age = engine.getPlayer().getAge();
-        
-        popupTitleLabel.setText("Activities");
-        resultTextLabel.setText("Choose an activity:");
-        
-        // Remove old dynamic buttons if any
-        popupContentBox.getChildren().removeIf(node -> node instanceof Button && node != popupButtonRow);
-        
-        if (age >= 1) {
-            Button b = new Button("Play with toys");
-            b.getStyleClass().addAll("scroll-popup-button");
-            b.setOnAction(e -> {
-                engine.getPlayer().applyChange("health", 1);
-                addLogEntry("You played with toys. (Health +1)");
-                closePopup();
-                updateStats();
-            });
-            popupContentBox.getChildren().add(popupContentBox.getChildren().indexOf(popupButtonRow), b);
+        if (engine == null || !engine.getPlayer().isAlive() || isBusy()) {
+            return;
         }
-        if (age >= 5) {
-            Button b = new Button("Visit Library");
-            b.getStyleClass().addAll("scroll-popup-button");
-            b.setOnAction(e -> {
-                engine.getPlayer().applyChange("education", 2);
-                addLogEntry("You visited the library. (Education +2)");
-                closePopup();
-                updateStats();
-            });
-            popupContentBox.getChildren().add(popupContentBox.getChildren().indexOf(popupButtonRow), b);
+
+        PlayerCharacter player = engine.getPlayer();
+
+        ListMenuOverlay menu = new ListMenuOverlay(
+                "What will you do this year?",
+                "Age " + player.getAge() + "  ·  " + player.purseText()
+                        + "  ·  each can be done once a year"
+        );
+
+        Map<String, List<Activity>> grouped = engine.availableActivities();
+
+        if (grouped.isEmpty()) {
+            menu.note("There is nothing you can do at your age but grow.");
         }
-        if (age >= 10) {
-            Button b = new Button("Learn Swordplay");
-            b.getStyleClass().addAll("scroll-popup-button");
-            b.setOnAction(e -> {
-                engine.getPlayer().applyChange("health", 3);
-                engine.getPlayer().applyChange("stress", 1);
-                addLogEntry("You learned swordplay. (Health +3, Stress +1)");
-                closePopup();
-                updateStats();
-            });
-            popupContentBox.getChildren().add(popupContentBox.getChildren().indexOf(popupButtonRow), b);
-        }
-        if (age >= 18) {
-            Button b = new Button("Gambling");
-            b.getStyleClass().addAll("scroll-popup-button");
-            b.setOnAction(e -> {
-                engine.getPlayer().applyChange("stress", -5);
-                double wager = 100.0;
-                if (Math.random() > 0.5) {
-                    engine.getPlayer().addNetWorth(wager);
-                    addLogEntry("You won at gambling! (+$" + wager + ", Stress -5)");
+
+        for (Map.Entry<String, List<Activity>> section : grouped.entrySet()) {
+            menu.section(section.getKey());
+
+            for (Activity activity : section.getValue()) {
+                String locked = engine.lockedReasonFor(activity);
+                String trailing = trailingFor(activity);
+
+                if (locked.isEmpty()) {
+                    menu.add(ListMenuOverlay.Row.open(
+                            activity.name(),
+                            activity.description(),
+                            trailing,
+                            () -> {
+                                closeOpenMenu();
+                                attemptActivity(activity);
+                            }
+                    ));
                 } else {
-                    engine.getPlayer().addNetWorth(-wager);
-                    addLogEntry("You lost at gambling. (-$" + wager + ", Stress -5)");
+                    menu.add(ListMenuOverlay.Row.shut(
+                            activity.name(),
+                            activity.description(),
+                            trailing,
+                            locked
+                    ));
                 }
-                closePopup();
-                updateStats();
-            });
-            popupContentBox.getChildren().add(popupContentBox.getChildren().indexOf(popupButtonRow), b);
+            }
         }
-        
-        popupContinueButton.setText("Close");
-        popupContinueButton.setVisible(true);
-        popupContinueButton.setManaged(true);
-        popupRewindButton.setVisible(false);
-        popupRewindButton.setManaged(false);
-        
-        resultPopup.setVisible(true);
-        resultPopup.setManaged(true);
+
+        showMenu(menu);
     }
-    
-    private void addLogEntry(String message) {
-        Label log = new Label("Age " + engine.getPlayer().getAge() + ": " + message);
-        log.getStyleClass().add("event-description");
-        log.setWrapText(true);
-        if (ageLogBox != null) {
-            ageLogBox.getChildren().add(log);
+
+    /** The right-hand column of an activity row: what it costs, and whether it is earned. */
+    private String trailingFor(Activity activity) {
+        StringBuilder trailing = new StringBuilder();
+
+        if (activity.wealthCost() > 0) {
+            trailing.append(activity.wealthCost()).append(" d.");
+        } else if (activity.successPay() > 0) {
+            trailing.append("pays");
+        }
+
+        if (activity.requiresMiniGame()) {
+            if (!trailing.isEmpty()) {
+                trailing.append("\n");
+            }
+
+            trailing.append("skill");
+        }
+
+        return trailing.toString();
+    }
+
+    private void closeOpenMenu() {
+        if (openMenu != null) {
+            ListMenuOverlay going = openMenu;
+            openMenu = null;
+            going.onClose(null);
+            going.dismiss();
         }
     }
 
-    @FXML
-    public void handleRelationships() {
-        showPeoplePopup();
+    /**
+     * Attempts an activity, through its mini-game when it has one.
+     *
+     * <p>Withdrawing from the briefing costs nothing at all — not the year's
+     * attempt, not the fee. Nothing was done, so nothing happened.
+     */
+    private void attemptActivity(Activity activity) {
+        if (!activity.requiresMiniGame() || !GameSettings.areTrialsEnabled()) {
+            applyActivity(activity, null);
+            return;
+        }
+
+        MiniGame miniGame = MiniGameFactory.createByType(
+                activity.miniGameType(),
+                activity.difficulty()
+        );
+
+        setGameplayPanelsVisible(false);
+
+        MiniGameOverlay overlay = new MiniGameOverlay(miniGame, result -> {
+            if (result == null) {
+                setGameplayPanelsVisible(true);
+                refreshScreen();
+                return;
+            }
+
+            engine.recordMinigameOutcome(result.success());
+            AchievementEvaluator.afterMiniGame(engine, miniGame.getTitle(), result.success());
+
+            applyActivity(activity, result.success());
+        });
+
+        gameRoot.getChildren().add(overlay);
+        overlay.requestFocus();
     }
 
-    @FXML
-    public void handleAssets() {
-        if (engine == null) return;
-        showPopup("Assets", "Net Worth: $" + engine.getPlayer().getNetWorth() + "\n\n(More assets coming soon!)", PopupCategory.LOCKED_INFO);
+    private void applyActivity(Activity activity, Boolean outcome) {
+        Map<String, Integer> beforeStats = snapshotStats();
+        Map<String, Integer> beforeFactions = snapshotFactions();
+
+        ActivityResult result = engine.performActivity(activity, outcome);
+
+        refreshScreen();
+        showChangeCue(beforeStats, beforeFactions);
+        AchievementEvaluator.afterChoice(engine);
+
+        String effects = buildEffectReport(beforeStats, beforeFactions);
+
+        StringBuilder message = new StringBuilder(result.narration());
+
+        if (result.wealthChange() != 0) {
+            message.append("\n\n")
+                    .append(result.wealthChange() > 0 ? "You are " : "It cost you ")
+                    .append(Math.abs((long) result.wealthChange()))
+                    .append(result.wealthChange() > 0 ? " dirhams better off." : " dirhams.");
+        }
+
+        if (!effects.isBlank()) {
+            message.append("\n\n").append(effects);
+        }
+
+        showPopup(activity.name(), message.toString(), PopupCategory.CONSEQUENCE);
     }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Trade and office
+    // ════════════════════════════════════════════════════════════════════
 
     @FXML
     public void handleCareer() {
-        if (engine == null || engine.getPlayer() == null) return;
-        String status = engine.getPlayer().getCurrentStatus();
-        showPopup("Career", "Current Status: " + status + "\n\n(Career options coming soon!)", PopupCategory.LOCKED_INFO);
+        if (engine == null || !engine.getPlayer().isAlive() || isBusy()) {
+            return;
+        }
+
+        PlayerCharacter player = engine.getPlayer();
+
+        ListMenuOverlay menu = new ListMenuOverlay(
+                "Trade and Office",
+                player.isEmployed()
+                        ? player.careerTitle() + "  ·  " + player.annualIncome()
+                                + " dirhams a year  ·  " + player.getYearsInCareer()
+                                + " years served"
+                        : "You hold no post. A trade pays every year without being asked."
+        );
+
+        if (player.isEmployed()) {
+            menu.section("Where you stand");
+            menu.note(CareerService.nextRungRequirement(player));
+
+            menu.add(ListMenuOverlay.Row.open(
+                    "Ask to be raised",
+                    "Put it to them directly. Asking before they are ready costs you.",
+                    "",
+                    () -> {
+                        closeOpenMenu();
+                        showPopup("Advancement", engine.askForAdvancement(),
+                                PopupCategory.CONSEQUENCE);
+                    }
+            ));
+
+            if (player.getAge() >= 55) {
+                menu.add(ListMenuOverlay.Row.open(
+                        "Retire",
+                        "Keep the standing, give up the pay, and get your years back.",
+                        "",
+                        () -> {
+                            closeOpenMenu();
+                            showPopup("Retirement", engine.retire(),
+                                    PopupCategory.STATUS_CHANGE);
+                        }
+                ));
+            }
+
+            menu.add(ListMenuOverlay.Row.open(
+                    "Give up the post",
+                    "Walk out. Nothing stops you, which is rather the problem.",
+                    "",
+                    () -> {
+                        closeOpenMenu();
+                        showPopup("You Leave the Trade", engine.leaveTrade(),
+                                PopupCategory.STATUS_CHANGE);
+                    }
+            ));
+        }
+
+        menu.section("Posts you could take");
+
+        for (CareerService.Opening opening : engine.careerOpenings()) {
+            String detail = opening.career().description()
+                    + (opening.trial() == null
+                            ? "  They take anyone who turns up."
+                            : "  You will be tested.");
+
+            String trailing = opening.startingPay() + " d./yr";
+
+            if (opening.isOpen()) {
+                menu.add(ListMenuOverlay.Row.open(
+                        opening.title(),
+                        detail,
+                        trailing,
+                        () -> {
+                            closeOpenMenu();
+                            applyForPost(opening);
+                        }
+                ));
+            } else {
+                menu.add(ListMenuOverlay.Row.shut(
+                        opening.title(),
+                        detail,
+                        trailing,
+                        opening.blockedBy()
+                ));
+            }
+        }
+
+        showMenu(menu);
+    }
+
+    /** How hard an interview is: higher posts test you harder. */
+    private int interviewDifficulty(CareerService.Opening opening) {
+        return Math.max(1, Math.min(5, 2 + opening.entryRank()));
+    }
+
+    private void applyForPost(CareerService.Opening opening) {
+        if (opening.trial() == null) {
+            showPopup("A Trade", engine.takeJob(opening, true), PopupCategory.STATUS_CHANGE);
+            refreshScreen();
+            return;
+        }
+
+        if (!GameSettings.areTrialsEnabled()) {
+            // Without the trials, the stat gates that let them apply at all
+            // are the whole of the test, and they mostly pass it.
+            boolean hired = Math.random() < 0.75;
+
+            showPopup("A Trade", engine.takeJob(opening, hired),
+                    PopupCategory.STATUS_CHANGE);
+
+            refreshScreen();
+            return;
+        }
+
+        MiniGame miniGame = MiniGameFactory.createByType(
+                opening.trial(),
+                interviewDifficulty(opening)
+        );
+
+        setGameplayPanelsVisible(false);
+
+        MiniGameOverlay overlay = new MiniGameOverlay(miniGame, result -> {
+            if (result == null) {
+                setGameplayPanelsVisible(true);
+                refreshScreen();
+                return;
+            }
+
+            engine.recordMinigameOutcome(result.success());
+
+            String outcome = engine.takeJob(opening, result.success());
+
+            refreshScreen();
+            showPopup("A Trade", outcome, PopupCategory.STATUS_CHANGE);
+        });
+
+        gameRoot.getChildren().add(overlay);
+        overlay.requestFocus();
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Holdings
+    // ════════════════════════════════════════════════════════════════════
+
+    @FXML
+    public void handleAssets() {
+        if (engine == null || !engine.getPlayer().isAlive() || isBusy()) {
+            return;
+        }
+
+        PlayerCharacter player = engine.getPlayer();
+
+        ListMenuOverlay menu = new ListMenuOverlay(
+                "Holdings",
+                player.purseText() + " in hand  ·  everything you own is worth about "
+                        + (long) engine.getEstateValue() + " dirhams"
+        );
+
+        menu.section("What you hold");
+
+        if (player.getProperties().isEmpty()) {
+            menu.note("Nothing but what you are standing in. Property pays every year, "
+                    + "and unlike a purse it passes to your heirs.");
+        }
+
+        for (Property property : List.copyOf(player.getProperties())) {
+            menu.add(ListMenuOverlay.Row.open(
+                    property.name(),
+                    property.summary(),
+                    property.condition() + "%",
+                    () -> replaceMenu(buildPropertyMenu(property))
+            ));
+        }
+
+        menu.section("For sale in " + engine.getCurrentCityName());
+
+        List<PropertyMarket.Listing> listings = engine.propertyListings();
+
+        if (listings.isEmpty()) {
+            menu.note("Nothing is changing hands here this year.");
+        }
+
+        for (PropertyMarket.Listing listing : listings) {
+            String trailing = listing.price() + " d.";
+
+            if (listing.isOpen()) {
+                menu.add(ListMenuOverlay.Row.open(
+                        listing.name(),
+                        listing.summary(),
+                        trailing,
+                        () -> {
+                            closeOpenMenu();
+                            showPopup("Bought", engine.buyProperty(listing),
+                                    PopupCategory.STATUS_CHANGE);
+                        }
+                ));
+            } else {
+                menu.add(ListMenuOverlay.Row.shut(
+                        listing.name(),
+                        listing.summary(),
+                        trailing,
+                        listing.blockedBy()
+                ));
+            }
+        }
+
+        showMenu(menu);
+    }
+
+    /** What can be done with one thing you own. */
+    private ListMenuOverlay buildPropertyMenu(Property property) {
+        ListMenuOverlay menu = new ListMenuOverlay(
+                property.name(),
+                property.type().description() + "  ·  " + property.summary()
+        );
+
+        int quote = property.repairQuote();
+
+        if (quote > 0) {
+            menu.add(ListMenuOverlay.Row.open(
+                    "Have it put right",
+                    "Back to sound, and back to paying what it should.",
+                    quote + " d.",
+                    () -> {
+                        closeOpenMenu();
+                        showPopup("Repairs", engine.repairProperty(property),
+                                PopupCategory.CONSEQUENCE);
+                    }
+            ));
+        } else {
+            menu.note("It is in as good a state as it is going to be.");
+        }
+
+        menu.add(ListMenuOverlay.Row.open(
+                "Sell it",
+                "A quick sale never fetches what it cost.",
+                property.resaleValue() + " d.",
+                () -> {
+                    closeOpenMenu();
+                    showPopup("Sold", engine.sellProperty(property),
+                            PopupCategory.CONSEQUENCE);
+                }
+        ));
+
+        return menu;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  People
+    // ════════════════════════════════════════════════════════════════════
+
+    @FXML
+    public void handleRelationships() {
+        if (engine == null || !engine.getPlayer().isAlive() || isBusy()) {
+            return;
+        }
+
+        ListMenuOverlay menu = new ListMenuOverlay(
+                "The People in Your Life",
+                "A gift costs " + GameEngine.GIFT_COST
+                        + " dirhams. Time costs nothing and is worth more."
+        );
+
+        menu.section("Your household");
+
+        List<FamilyMember> household = new ArrayList<>();
+
+        for (FamilyMember member : engine.getFamily().all()) {
+            if (member.isAlive()) {
+                household.add(member);
+            }
+        }
+
+        if (household.isEmpty()) {
+            menu.note("Nobody of your blood is left.");
+        }
+
+        for (FamilyMember member : household) {
+            menu.add(ListMenuOverlay.Row.open(
+                    member.getName() + " — " + member.getKinship().displayName(),
+                    "Age " + member.getAge() + "  ·  " + member.getTrait()
+                            + "  ·  " + member.affectionLabel(),
+                    "",
+                    () -> replaceMenu(buildFamilyMenu(member))
+            ));
+        }
+
+        menu.section("People who keep coming back");
+
+        List<RecurringCharacter> bonds = new ArrayList<>();
+
+        for (RecurringCharacter character : engine.getRecurringCharacters().all()) {
+            if (character.isAlive() && character.isMet()) {
+                bonds.add(character);
+            }
+        }
+
+        if (bonds.isEmpty()) {
+            menu.note("Nobody has stayed in your life long enough to count yet.");
+        }
+
+        for (RecurringCharacter character : bonds) {
+            menu.add(ListMenuOverlay.Row.open(
+                    character.getName(),
+                    character.getCurrentRole() + "  ·  " + character.relationshipLabel(),
+                    "",
+                    () -> replaceMenu(buildBondMenu(character))
+            ));
+        }
+
+        String known = engine.getRenownSummary();
+
+        if (known != null && !known.isBlank()) {
+            menu.section("What the world says about you");
+            menu.note(known);
+        }
+
+        showMenu(menu);
+    }
+
+    private ListMenuOverlay buildFamilyMenu(FamilyMember member) {
+        ListMenuOverlay menu = new ListMenuOverlay(
+                member.getName(),
+                member.getKinship().displayName() + "  ·  age " + member.getAge()
+                        + "  ·  " + member.affectionLabel()
+        );
+
+        menu.add(ListMenuOverlay.Row.open(
+                "Spend time with them",
+                "An afternoon, and nothing asked for.",
+                "",
+                () -> {
+                    closeOpenMenu();
+                    showPopup(member.getName(),
+                            engine.spendTimeWithFamily(member.getId()),
+                            PopupCategory.CONSEQUENCE);
+                }
+        ));
+
+        menu.add(ListMenuOverlay.Row.open(
+                "Give them a gift",
+                "Something they would not have bought themselves.",
+                GameEngine.GIFT_COST + " d.",
+                () -> {
+                    closeOpenMenu();
+                    showPopup(member.getName(),
+                            engine.giveGiftToFamily(member.getId()),
+                            PopupCategory.CONSEQUENCE);
+                }
+        ));
+
+        if (member.getLifePath() != null) {
+            menu.section("What became of them");
+            menu.note(member.getLifePath().describe(member.getName()));
+        }
+
+        return menu;
+    }
+
+    private ListMenuOverlay buildBondMenu(RecurringCharacter character) {
+        ListMenuOverlay menu = new ListMenuOverlay(
+                character.getName(),
+                character.getCurrentRole() + "  ·  age " + character.getAge()
+                        + "  ·  " + character.relationshipLabel()
+        );
+
+        menu.add(ListMenuOverlay.Row.open(
+                "Call on them",
+                "Go and see them in a year nothing requires it.",
+                "",
+                () -> {
+                    closeOpenMenu();
+                    showPopup(character.getName(),
+                            engine.callOnBond(character.getId()),
+                            PopupCategory.CONSEQUENCE);
+                }
+        ));
+
+        menu.add(ListMenuOverlay.Row.open(
+                "Send them a gift",
+                "Remembered longer than it is worth.",
+                GameEngine.GIFT_COST + " d.",
+                () -> {
+                    closeOpenMenu();
+                    showPopup(character.getName(),
+                            engine.giveGiftToBond(character.getId()),
+                            PopupCategory.CONSEQUENCE);
+                }
+        ));
+
+        if (character.strongestMemory() != null) {
+            menu.section("What they remember");
+            menu.note(character.strongestMemory().description());
+        }
+
+        return menu;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  The road
+    // ════════════════════════════════════════════════════════════════════
+
+    @FXML
+    public void handleTravel() {
+        if (engine == null || !engine.getPlayer().isAlive() || isBusy()) {
+            return;
+        }
+
+        ListMenuOverlay menu = new ListMenuOverlay(
+                "The Road",
+                "You are in " + engine.getCurrentCityName()
+                        + ". Moving costs " + GameEngine.TRAVEL_COST
+                        + " dirhams and the good opinion of everyone you leave behind."
+        );
+
+        for (City city : engine.getCities().everyCity()) {
+            boolean here = city.getName().equals(engine.getCurrentCityName());
+
+            String detail = city.condition().displayName()
+                    + "  ·  prosperity " + city.getProsperity()
+                    + ", trade " + city.getTrade()
+                    + ", scholarship " + city.getScholarship();
+
+            if (here) {
+                menu.add(ListMenuOverlay.Row.shut(
+                        city.getName(), detail, "", "You are already here."));
+                continue;
+            }
+
+            menu.add(ListMenuOverlay.Row.open(
+                    city.getName(),
+                    detail,
+                    GameEngine.TRAVEL_COST + " d.",
+                    () -> {
+                        closeOpenMenu();
+                        showPopup("The Road", engine.travelTo(city.getName()),
+                                PopupCategory.STATUS_CHANGE);
+                    }
+            ));
+        }
+
+        showMenu(menu);
     }
 }

@@ -611,16 +611,14 @@ class CitySystemTest {
         }
 
         Random random = new Random(4);
-        int situated = 0;
+        int[] situated = {0};
 
         for (int run = 0; run < 25; run++) {
             GameEngine engine = new GameEngine();
 
-            for (int i = 0; i < 40 && engine.getCurrentEvent() != null; i++) {
-                GameEvent shown = engine.getCurrentEvent();
-
+            Lives.live(engine, (playing, shown) -> {
                 if (poolTitles.contains(shown.getTitle())) {
-                    String city = engine.getCurrentCityName();
+                    String city = playing.getCurrentCityName();
 
                     assertTrue(
                             shown.getDescription().startsWith(city + ","),
@@ -628,28 +626,20 @@ class CitySystemTest {
                                     + "player without saying they were in " + city
                     );
 
-                    situated++;
+                    situated[0]++;
                 }
 
-                List<Choice> available = new ArrayList<>();
+                Choice choice = Lives.anyOpen(playing, shown, random);
 
-                for (Choice choice : shown.getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
+                if (choice != null) {
+                    playing.applyChoice(choice);
                 }
-
-                if (available.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(available.get(random.nextInt(available.size())));
-            }
+            });
         }
 
         assertTrue(
-                situated > 50,
-                "only " + situated + " placeless events were ever situated; the "
+                situated[0] > 50,
+                "only " + situated[0] + " placeless events were ever situated; the "
                         + "map is not reaching the scenes the player reads"
         );
     }
@@ -674,33 +664,27 @@ class CitySystemTest {
             String home = engine.getCurrentCityName();
             Set<String> elsewhereShown = new HashSet<>();
 
-            for (int i = 0; i < 30 && engine.getCurrentEvent() != null; i++) {
-                List<Choice> available = new ArrayList<>();
+            Lives.live(engine, 30, (playing, event) -> {
+                Choice choice = Lives.anyOpen(playing, event, random);
 
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
+                if (choice == null || !playing.getCurrentCityName().equals(home)) {
+                    return;
                 }
 
-                if (available.isEmpty()) {
-                    break;
+                playing.applyChoice(choice);
+
+                if (!playing.getCurrentCityName().equals(home)) {
+                    return;
                 }
 
-                engine.applyChoice(available.get(random.nextInt(available.size())));
-
-                if (!engine.getCurrentCityName().equals(home)) {
-                    break;
-                }
-
-                elsewhereShown.add(engine.getCities().elsewhereSummary());
+                elsewhereShown.add(playing.getCities().elsewhereSummary());
 
                 assertFalse(
-                        engine.getCities().elsewhereSummary().contains(home),
+                        playing.getCities().elsewhereSummary().contains(home),
                         "the city the player is standing in was also listed as "
                                 + "somewhere else"
-                    );
-            }
+                );
+            });
 
             if (elsewhereShown.size() > 1) {
                 churned++;
@@ -751,21 +735,7 @@ class CitySystemTest {
         assertFalse(engine.getCurrentCityName().isBlank(), "the player began nowhere");
         assertFalse(engine.getCitySummary().isBlank(), "the panel had nothing to show");
 
-        for (int i = 0; i < 30 && engine.getCurrentEvent() != null; i++) {
-            List<Choice> available = new ArrayList<>();
-
-            for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                if (engine.canChoose(choice)) {
-                    available.add(choice);
-                }
-            }
-
-            if (available.isEmpty()) {
-                break;
-            }
-
-            engine.applyChoice(available.get(random.nextInt(available.size())));
-        }
+        Lives.live(engine, 30, Lives.takingAnyOpenChoice(random));
 
         GameEngine loaded = GameEngine.fromSaveJson(engine.toSaveJson());
 
@@ -787,43 +757,44 @@ class CitySystemTest {
     void rewindingUndoesWhatYouDidToThePlace() {
         Random random = new Random(8);
 
-        for (int run = 0; run < 40; run++) {
+        boolean[] proved = {false};
+
+        for (int run = 0; run < 40 && !proved[0]; run++) {
             GameEngine engine = new GameEngine();
 
-            for (int i = 0; i < 25 && engine.getCurrentEvent() != null; i++) {
-                String before = engine.getCitySummary();
-
-                List<Choice> available = new ArrayList<>();
-
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
+            Lives.live(engine, (playing, event) -> {
+                if (proved[0]) {
+                    return;
                 }
 
-                if (available.isEmpty()) {
-                    break;
+                String before = playing.getCitySummary();
+                Choice choice = Lives.anyOpen(playing, event, random);
+
+                if (choice == null) {
+                    return;
                 }
 
-                engine.applyChoice(available.get(random.nextInt(available.size())));
+                playing.applyChoice(choice);
 
-                if (!engine.canRewind() || before.equals(engine.getCitySummary())) {
-                    continue;
+                if (!playing.canRewind() || before.equals(playing.getCitySummary())) {
+                    return;
                 }
 
-                engine.rewindToLastSnapshot();
+                playing.rewindToLastSnapshot();
 
                 assertEquals(
                         before,
-                        engine.getCitySummary(),
+                        playing.getCitySummary(),
                         "a rewind left the city in the state the undone choice "
                                 + "had put it in"
                 );
 
-                return;
-            }
+                proved[0] = true;
+            });
         }
 
-        fail("in forty lives, no choice ever changed the city enough to rewind");
+        if (!proved[0]) {
+            fail("in forty lives, no choice ever changed the city enough to rewind");
+        }
     }
 }

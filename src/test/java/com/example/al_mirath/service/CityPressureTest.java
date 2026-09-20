@@ -416,7 +416,7 @@ class CityPressureTest {
     @DisplayName("the city reaches lives people play, in the results and the deaths")
     void theCityIsFeltInARun() {
         int lives = 150;
-        int resultsMentioningTheCity = 0;
+        int[] resultsMentioningTheCity = {0};
         int deathsInTheCity = 0;
 
         Random random = new Random(13);
@@ -424,28 +424,20 @@ class CityPressureTest {
         for (int life = 0; life < lives; life++) {
             GameEngine engine = new GameEngine();
 
-            while (engine.getCurrentEvent() != null && engine.getPlayer().isAlive()) {
-                List<Choice> playable = new ArrayList<>();
+            Lives.live(engine, (playing, event) -> {
+                Choice choice = Lives.anyOpen(playing, event, random);
 
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        playable.add(choice);
-                    }
+                if (choice == null) {
+                    return;
                 }
 
-                if (playable.isEmpty()) {
-                    break;
-                }
-
-                String city = engine.getCurrentCityName();
-
-                String result = engine.applyChoice(
-                        playable.get(random.nextInt(playable.size())));
+                String city = playing.getCurrentCityName();
+                String result = playing.applyChoice(choice);
 
                 if (result != null && result.contains(city + ":")) {
-                    resultsMentioningTheCity++;
+                    resultsMentioningTheCity[0]++;
                 }
-            }
+            });
 
             String reason = engine.getPlayer().getDeathReason();
 
@@ -465,9 +457,9 @@ class CityPressureTest {
         // hundred runs. The bars are far below that: they fail on the city
         // being ignored entirely, not on an unlucky sample.
         assertTrue(
-                resultsMentioningTheCity >= 40,
+                resultsMentioningTheCity[0] >= 40,
                 "across " + lives + " lives the city changed the outcome of a "
-                        + "choice only " + resultsMentioningTheCity + " times; it is "
+                        + "choice only " + resultsMentioningTheCity[0] + " times; it is "
                         + "not reaching the run"
         );
 
@@ -482,46 +474,60 @@ class CityPressureTest {
      * The one thing that must not happen: a city so bad the run is decided by
      * where the character happened to be born.
      */
+    /** How the death panel words a death the city caused. */
+    private static final List<String> KILLED_BY_THE_CITY = List.of(
+            "sickness in the city",
+            "sickness went through",
+            "sickness took the old",
+            "city was being taken",
+            "walls did not hold",
+            "expected it to hold"
+    );
+
+    /**
+     * Counting overall mortality would measure the mortality curve, not the
+     * city — under a yearly clock everybody dies of something eventually, so
+     * "how often does a random life end" answers a different question every
+     * time the ageing model is touched. What this actually claims is that the
+     * map is one of the things that can kill you and not the main one, so
+     * that is what it counts.
+     */
     @Test
     @DisplayName("the city colours a run without deciding it")
     void theCityDoesNotTakeOverTheRun() {
         int lives = 200;
-        int died = 0;
+        int deaths = 0;
+        int killedByTheCity = 0;
 
         Random random = new Random(7);
 
         for (int life = 0; life < lives; life++) {
             GameEngine engine = new GameEngine();
 
-            while (engine.getCurrentEvent() != null && engine.getPlayer().isAlive()) {
-                List<Choice> playable = new ArrayList<>();
+            Lives.live(engine, Lives.takingAnyOpenChoice(random));
 
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        playable.add(choice);
-                    }
-                }
-
-                if (playable.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(playable.get(random.nextInt(playable.size())));
+            if (engine.getPlayer().isAlive()) {
+                continue;
             }
 
-            if (!engine.getPlayer().isAlive()) {
-                died++;
+            deaths++;
+
+            String reason = engine.getPlayer().getDeathReason();
+
+            if (KILLED_BY_THE_CITY.stream().anyMatch(reason::contains)) {
+                killedByTheCity++;
             }
         }
 
-        int mortality = 100 * died / lives;
+        assertTrue(deaths > 0, "no deaths sampled, so this proved nothing");
 
-        // A random bot dies about 75% of the time with the cities inert and
-        // about 79% with them live. Anything approaching ninety means the map
-        // has stopped colouring the run and started being it.
-        if (mortality > 88) {
-            fail("a random life now dies " + mortality + "% of the time; the city "
-                    + "has gone from a pressure to the thing that decides a run");
+        int share = 100 * killedByTheCity / deaths;
+
+        // Measured at roughly one death in ten. A third would mean the plague
+        // and the siege had stopped being weather and started being the game.
+        if (share > 33) {
+            fail(share + "% of deaths were the city itself; it has gone from a "
+                    + "pressure to the thing that decides a run");
         }
     }
 }

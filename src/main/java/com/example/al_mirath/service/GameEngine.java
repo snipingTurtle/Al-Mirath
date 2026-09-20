@@ -1,5 +1,8 @@
 package com.example.al_mirath.service;
 
+import com.example.al_mirath.model.Activity;
+import com.example.al_mirath.model.ActivityResult;
+import com.example.al_mirath.model.Career;
 import com.example.al_mirath.model.Choice;
 import com.example.al_mirath.model.City;
 import com.example.al_mirath.model.ChoiceRequirement;
@@ -7,7 +10,9 @@ import com.example.al_mirath.model.DelayedConsequence;
 import com.example.al_mirath.model.FactionRelations;
 import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.GameSnapshot;
+import com.example.al_mirath.model.LifeLogEntry;
 import com.example.al_mirath.model.PlayerCharacter;
+import com.example.al_mirath.model.Property;
 import com.example.al_mirath.model.Renown;
 import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.model.WorldEvent;
@@ -17,6 +22,7 @@ import com.example.al_mirath.model.Dynasty;
 import com.example.al_mirath.model.EarnedTitle;
 import com.example.al_mirath.model.EndingResult;
 import com.example.al_mirath.model.FamilyMember;
+import com.example.al_mirath.model.RecurringCharacter;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -25,6 +31,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.HashMap;
@@ -107,6 +115,32 @@ public class GameEngine {
      */
     private final List<String> pendingCastAnnouncements = new ArrayList<>();
 
+    /**
+     * Every line of the life so far, oldest first.
+     *
+     * <p>The log is the game's memory. Stats say what a character is; only
+     * this says what they did, and it is what the player actually reads while
+     * ageing through a decade.
+     */
+    private final List<LifeLogEntry> lifeLog = new ArrayList<>();
+
+    /**
+     * Years since the last narrative scene, and whether one is waiting.
+     *
+     * <p>Scenes are the authored set pieces. Firing one every year would
+     * exhaust a life's worth of content by thirty and make ageing up feel
+     * like a slideshow; firing them purely at random leaves long dead
+     * stretches. The chance climbs the longer it has been.
+     */
+    private int yearsSinceScene = 0;
+    private boolean sceneDue = false;
+
+    /** Reseeded each year, so the property market is stable within a year. */
+    private long marketSeed = new Random().nextLong();
+
+    /** Activity ids attempted at least once this life, for once-in-a-life entries. */
+    private final Set<String> lifetimeActivities = new LinkedHashSet<>();
+
     public GameEngine() {
         this(null);
     }
@@ -133,6 +167,10 @@ public class GameEngine {
         this.dynasty = Dynasty.foundedBy(player);
 
         this.eventPool = EventLibrary.createEventPool();
+
+        log("You were born into " + player.getOrigin().toLowerCase()
+                + " in the " + player.getEra() + ", in " + cities.currentCityName() + ".",
+                LifeLogEntry.Tone.MILESTONE);
     }
 
     /**
@@ -292,10 +330,71 @@ public class GameEngine {
                 null
         );
 
+        next.log(
+                "You take up the house after " + player.getName()
+                        + ", who died at " + player.getAge() + ".",
+                LifeLogEntry.Tone.MILESTONE
+        );
+
+        handDownTheEstate(next);
+
         // The heir's first scene is chosen the same way every other scene is,
         // on the first look at it.
         return next;
     }
+
+    /**
+     * What the heir actually receives.
+     *
+     * <p>Standing is inherited at half strength and titles are not inherited
+     * at all, which is correct — but a house that could pass on nothing
+     * material made buying property a way of destroying money. Land and walls
+     * outlive people; that is the whole reason anyone bought them.
+     *
+     * <p>The purse is cut, because a death is expensive: the burial, the
+     * division among the other heirs, and whatever the court takes for
+     * witnessing the transfer.
+     */
+    private void handDownTheEstate(GameEngine next) {
+        List<Property> inherited = new ArrayList<>();
+
+        for (Property held : player.getProperties()) {
+            // A year or two of nobody in charge leaves a mark on a building.
+            Property passed = new Property(
+                    held.name(),
+                    held.type(),
+                    held.purchasePrice(),
+                    Math.max(10, held.condition() - 12)
+            );
+
+            inherited.add(passed);
+        }
+
+        next.player.replaceProperties(inherited);
+
+        double afterTheDivision = player.getNetWorth() * INHERITED_SHARE;
+        next.player.setNetWorth(Math.max(0, afterTheDivision));
+
+        if (!inherited.isEmpty()) {
+            next.log(
+                    "You inherited " + inherited.size()
+                            + (inherited.size() == 1 ? " holding" : " holdings")
+                            + " from " + player.getName() + ", and the repairs that come with them.",
+                    LifeLogEntry.Tone.MILESTONE
+            );
+        }
+
+        if (afterTheDivision >= 1) {
+            next.log(
+                    "After the burial and the division, " + (long) afterTheDivision
+                            + " dirhams came to you.",
+                    LifeLogEntry.Tone.MILESTONE
+            );
+        }
+    }
+
+    /** What survives a death, a burial, and the other claimants. */
+    private static final double INHERITED_SHARE = 0.55;
 
     public Dynasty getDynasty() {
         return dynasty;
@@ -345,6 +444,16 @@ public class GameEngine {
         playerJson.put("familyLoyalty", player.getFamilyLoyalty());
         playerJson.put("stress", player.getStress());
         playerJson.put("legacyTitles", new JSONArray(player.getLegacyTitles()));
+
+        playerJson.put("netWorth", player.getNetWorth());
+        playerJson.put("career", player.getCareer().name());
+        playerJson.put("careerRank", player.getCareerRank());
+        playerJson.put("yearsInCareer", player.getYearsInCareer());
+        playerJson.put("yearsInRank", player.getYearsInRank());
+        playerJson.put("retired", player.isRetired());
+        playerJson.put("properties", Property.listToJson(player.getProperties()));
+        playerJson.put("spentThisYear", new JSONArray(player.getSpentThisYear()));
+
         root.put("player", playerJson);
 
         JSONObject factionsJson = new JSONObject();
@@ -392,6 +501,23 @@ public class GameEngine {
         root.put("cities", cities.toJson());
         root.put("dynasty", dynasty.toJson());
 
+        root.put("yearsSinceScene", yearsSinceScene);
+        root.put("sceneDue", sceneDue);
+        root.put("marketSeed", marketSeed);
+        root.put("lifetimeActivities", new JSONArray(lifetimeActivities));
+
+        JSONArray logJson = new JSONArray();
+
+        for (LifeLogEntry entry : lifeLog) {
+            JSONObject line = new JSONObject();
+            line.put("age", entry.age());
+            line.put("text", entry.text());
+            line.put("tone", entry.tone().name());
+            logJson.put(line);
+        }
+
+        root.put("lifeLog", logJson);
+
         return root.toString();
     }
 
@@ -422,6 +548,34 @@ public class GameEngine {
         );
 
         player.setCurrentStatus(playerJson.getString("currentStatus"));
+
+        // Every field below postdates the first saves, so each one is
+        // optional: an old save has to keep loading, just without a trade.
+        if (playerJson.has("netWorth")) {
+            player.setNetWorth(playerJson.getDouble("netWorth"));
+        }
+
+        player.restoreCareer(
+                Career.fromName(playerJson.optString("career", "UNEMPLOYED")),
+                playerJson.optInt("careerRank", 0),
+                playerJson.optInt("yearsInCareer", 0),
+                playerJson.optInt("yearsInRank", 0),
+                playerJson.optBoolean("retired", false)
+        );
+
+        JSONArray propertiesJson = playerJson.optJSONArray("properties");
+
+        if (propertiesJson != null) {
+            player.replaceProperties(Property.listFromJson(propertiesJson));
+        }
+
+        JSONArray spentJson = playerJson.optJSONArray("spentThisYear");
+
+        if (spentJson != null) {
+            for (int i = 0; i < spentJson.length(); i++) {
+                player.markSpentThisYear(spentJson.getString(i));
+            }
+        }
 
         RecurringCharacterRegistry recurringCharacters;
 
@@ -528,6 +682,34 @@ public class GameEngine {
      */
     private void restoreProgression(JSONObject root) {
         this.fateTokens = root.optInt("fateTokens", 1);
+        this.yearsSinceScene = root.optInt("yearsSinceScene", 0);
+        this.sceneDue = root.optBoolean("sceneDue", false);
+        this.marketSeed = root.optLong("marketSeed", new Random().nextLong());
+
+        JSONArray lifetime = root.optJSONArray("lifetimeActivities");
+
+        if (lifetime != null) {
+            for (int i = 0; i < lifetime.length(); i++) {
+                this.lifetimeActivities.add(lifetime.getString(i));
+            }
+        }
+
+        JSONArray logJson = root.optJSONArray("lifeLog");
+
+        if (logJson != null) {
+            for (int i = 0; i < logJson.length(); i++) {
+                JSONObject line = logJson.getJSONObject(i);
+
+                this.lifeLog.add(new LifeLogEntry(
+                        line.optInt("age", 0),
+                        line.optString("text", ""),
+                        LifeLogEntry.Tone.valueOf(
+                                line.optString("tone", "NEUTRAL")
+                        )
+                ));
+            }
+        }
+
         this.choicesMade = root.optInt("choicesMade", 0);
         this.rewindsUsed = root.optInt("rewindsUsed", 0);
         this.minigamesWon = root.optInt("minigamesWon", 0);
@@ -937,15 +1119,23 @@ public class GameEngine {
             currentEvent = selectEventForCurrentStage();
         }
 
-        if (currentEvent == null && endingResult == null) {
-            endingResult = calculateEnding();
-        }
-
+        // Running out of authored scenes used to end the life. It should not:
+        // a life ends when the character dies, and a quiet old age with no
+        // set pieces left in it is a perfectly good ending to play toward.
         return currentEvent;
     }
 
     private GameEvent selectEventForCurrentStage() {
+        // A chapter cannot open before the character is old enough for it.
+        // Without this, burning through Childhood's scenes in six years put a
+        // nine-year-old into the Political Crisis.
+        int chapterCeiling = stageIndexForAge(player.getAge());
+
         while (currentStageIndex < lifeStages.size()) {
+            if (currentStageIndex > chapterCeiling) {
+                return null;
+            }
+
             String stage = lifeStages.get(currentStageIndex);
 
             int playedInStage = stageEventsPlayed.getOrDefault(stage, 0);
@@ -1221,24 +1411,17 @@ public class GameEngine {
             cities.applyStoryFlag(flag);
         }
 
-        int yearsPassed = advanceAgeAfterEvent();
+        // A scene happens inside a year; it does not silently consume six of
+        // them. Time is the age-up, and nothing else, which is what lets a
+        // player feel the difference between a decision and a decade.
+        yearsSinceScene = 0;
+        sceneDue = false;
 
-        pendingCastAnnouncements.addAll(
-                recurringCharacters.ageEveryone(yearsPassed)
-        );
-
-        pendingCastAnnouncements.addAll(
-                family.advanceYears(yearsPassed, player)
-        );
-
-        renown.spread(yearsPassed, player);
-        pendingCastAnnouncements.addAll(cities.advanceYears(yearsPassed));
-        recoverStressOverTime(yearsPassed);
         updateCurrentStatus();
         checkMortalityAfterChoice(choice, success);
 
-        // Checked after ageing, so an echo comes due the moment the years
-        // catch up with the choice that planted it.
+        // A flag set by this choice may already be overdue, if the character
+        // has lived past the age the echo was planted for.
         fireDueConsequences();
 
         latestLegacyTitleMessage = checkForNewLegacyTitles();
@@ -1536,6 +1719,10 @@ public class GameEngine {
         latestConsequenceEchoTitle = "";
         latestConsequenceEchoMessage = "";
 
+        // The scene is in front of the player again and unanswered, which is
+        // exactly what a pending scene is.
+        sceneDue = currentEvent != null;
+
         lastSnapshot = null;
         rewindsUsed++;
 
@@ -1659,28 +1846,6 @@ public class GameEngine {
         return outcome + "\n\n" + resultText;
     }
 
-    private int advanceAgeAfterEvent() {
-        if (currentEvent == null) {
-            return 0;
-        }
-
-        String stage = currentEvent.getLifeStage();
-        int yearsPassed;
-
-        switch (stage) {
-            case "Childhood" -> yearsPassed = random.nextInt(2) + 1; // 1–2 years
-            case "Youth" -> yearsPassed = random.nextInt(2) + 1; // 1–2 years
-            case "Adulthood" -> yearsPassed = random.nextInt(3) + 1; // 1–3 years
-            case "Political Crisis" -> yearsPassed = random.nextInt(3) + 1; // 1–3 years
-            case "Legacy" -> yearsPassed = random.nextInt(5) + 2; // 2–6 years
-            default -> yearsPassed = 1;
-        }
-
-        player.increaseAge(yearsPassed);
-
-        return yearsPassed;
-    }
-
     /**
      * Time between events brings some natural relief from pressure, on top of
      * whatever the choice itself did to stress. Combined with the dampening in
@@ -1692,98 +1857,159 @@ public class GameEngine {
             return;
         }
 
-        int recovery = Math.min(6, yearsPassed * 3);
-        player.applyChange("stress", -recovery);
+        // Proportional, so stress settles at a level rather than ratcheting.
+        // A flat three a year could not keep up with the two a year a trade
+        // costs plus whatever the scenes did, so every long life drifted to
+        // the ceiling and died of exhaustion in its thirties.
+        int recovery = 4 + player.getStress() / 15;
+
+        player.applyChange("stress", -recovery * yearsPassed);
     }
 
+    /**
+     * The danger a failed gamble adds, on top of whatever was already true.
+     *
+     * <p>An ordinary choice no longer rolls for death at all. It used to, when
+     * a choice carried years with it; now that the year is the clock, rolling
+     * on both would kill most characters before forty.
+     */
     private void checkMortalityAfterChoice(Choice choice, boolean success) {
+        if (!choice.requiresStatCheck() || success) {
+            return;
+        }
+
+        int extraRisk = 12;
+        DeathCause extraCause = null;
+
+        if (choice.getCheckStat().equals("health")) {
+            extraRisk += 45;
+            extraCause = DeathCause.INJURY;
+        }
+
+        if (choice.getCheckStat().equals("politicalPower")) {
+            extraRisk += 30;
+            extraCause = DeathCause.POWER_MOVE;
+        }
+
+        assessMortality(extraRisk, extraCause);
+    }
+
+    /**
+     * Rolls against everything currently trying to kill this character.
+     *
+     * @param extraRisk  danger from the thing that just happened
+     * @param extraCause what to blame if that danger is what took them
+     */
+    private void assessMortality(int extraRisk, DeathCause extraCause) {
         if (!player.isAlive()) {
             return;
         }
 
-        int risk = 0;
+        // Nobody outlasts this. Without a ceiling, a healthy character with
+        // no enemies can roll under the cap indefinitely.
+        if (player.getAge() >= 108) {
+            player.markDead(DeathCause.OLD_AGE.describe(player.getAge()));
+            return;
+        }
+
+        // Everything below is annual risk in parts per thousand.
+        //
+        // It used to be whole percents rolled once per decision, which was
+        // right when a decision carried years with it. Rolled once a year, the
+        // same numbers killed ninety-eight lives in a hundred before fifty:
+        // six percent a year from simply being sixty is a death sentence when
+        // you are sixty for ten years running. Per-mille also gives the room
+        // to make the difference between forty and forty-five mean something.
+        int risk = ageRisk();
 
         // The cause is picked here and turned into a sentence at the end, so
         // the wording can take the player's age into account. Later branches
         // overwrite earlier ones: the most specific danger is the one the
         // death panel names.
-        DeathCause cause = null;
+        // Nothing in particular still has to be called something. FRAILTY has
+        // its own telling for a child, a young adult and an elder, which is
+        // exactly what an ordinary death needs.
+        DeathCause cause = player.getAge() >= 60
+                ? DeathCause.OLD_AGE
+                : DeathCause.FRAILTY;
 
-        // Very low health is dangerous at any age
+        // Whether anything is actually out to get this character, as opposed
+        // to the ordinary background rate of being alive. The young are
+        // protected from the first and not from the second.
+        boolean specificDanger = false;
+
+        // A body that cannot take another bad winter.
         if (player.getHealth() <= 10) {
-            risk += 45;
+            risk += 420;
             cause = DeathCause.FRAILTY;
+            specificDanger = true;
         } else if (player.getHealth() <= 20) {
-            risk += 25;
+            risk += 170;
             cause = DeathCause.FRAILTY;
+            specificDanger = true;
         } else if (player.getHealth() <= 35) {
-            risk += 10;
+            risk += 55;
             cause = DeathCause.FRAILTY;
+            specificDanger = true;
         }
 
-        // Stress makes health risk worse
+        // Pressure wears out a body faster than the body admits.
         if (player.getStress() >= 90) {
-            risk += 25;
+            risk += 85;
             cause = DeathCause.EXHAUSTION;
+            specificDanger = true;
         } else if (player.getStress() >= 75) {
-            risk += 12;
+            risk += 35;
             cause = DeathCause.EXHAUSTION;
+            specificDanger = true;
         }
 
         // A reputation for cruelty is its own hazard: it costs you the people
         // who would otherwise have protected you, and it gives somebody a
         // reason to act.
         if (player.getMorality() <= 15) {
-            risk += 15;
+            risk += 42;
             cause = DeathCause.ENMITY;
+            specificDanger = true;
         } else if (player.getMorality() <= 30) {
-            risk += 8;
+            risk += 14;
             cause = DeathCause.ENMITY;
-        }
-
-        // Age risk
-        if (player.getAge() >= 90) {
-            risk += 55;
-            cause = DeathCause.OLD_AGE;
-        } else if (player.getAge() >= 80) {
-            risk += 30;
-            cause = DeathCause.OLD_AGE;
-        } else if (player.getAge() >= 70) {
-            risk += 15;
-            cause = DeathCause.OLD_AGE;
-        } else if (player.getAge() >= 60) {
-            risk += 6;
-            cause = DeathCause.OLD_AGE;
+            specificDanger = true;
         }
 
         // Dangerous political consequences
         if (worldState.hasFlag("court_suspicion") && factions.getCourt() <= 25) {
-            risk += 20;
+            risk += 75;
             cause = DeathCause.COURT_SUSPICION;
+            specificDanger = true;
         }
 
         if (worldState.hasFlag("collector_reported_you") && factions.getCourt() <= 30) {
-            risk += 18;
+            risk += 65;
             cause = DeathCause.INFORMED_ON;
+            specificDanger = true;
         }
 
         if (worldState.hasFlag("owed_shadow_debt") && factions.getShadowNetwork() >= 70) {
-            risk += 18;
+            risk += 65;
             cause = DeathCause.SHADOW_DEBT;
+            specificDanger = true;
         }
 
         if (worldState.hasFlag("framed_innocent") && factions.getCourt() <= 30) {
-            risk += 15;
+            risk += 55;
             cause = DeathCause.BURIED_LIE;
+            specificDanger = true;
         }
 
         // The city itself, when it is bad enough to kill people who are doing
-        // nothing wrong. Placed above the failed-check branch so a plague that
+        // nothing wrong. Placed above the caller's own danger so a plague that
         // takes you is named as a plague rather than as a fumbled recitation.
         int fromTheCity = CityPressure.deathRisk(cities.currentCity());
 
         if (fromTheCity > 0) {
-            risk += fromTheCity;
+            risk += fromTheCity * 10;
+            specificDanger = true;
 
             // Named as the cause only when the city is doing enough of the
             // killing to deserve it. A city one point over the plague line
@@ -1799,47 +2025,97 @@ public class GameEngine {
             }
         }
 
-        // Failed stat-check choices are more dangerous
-        if (choice.requiresStatCheck() && !success) {
-            risk += 10;
+        // Whatever the caller brought with it: a fumbled gamble, a wound
+        // taken at the frontier, a night that went wrong in somebody's house.
+        // In the same parts per thousand as everything else here.
+        if (extraRisk != 0) {
+            risk += extraRisk;
+            specificDanger = true;
 
-            if (choice.getCheckStat().equals("health")) {
-                risk += 15;
-                cause = DeathCause.INJURY;
-            }
-
-            if (choice.getCheckStat().equals("politicalPower")) {
-                risk += 10;
-                cause = DeathCause.POWER_MOVE;
+            if (extraCause != null) {
+                cause = extraCause;
             }
         }
 
-        // Young death should be possible, but only under heavy danger.
+        // Young death should be possible, but only under real danger.
         //
-        // Capping the risk was not enough: every branch above that raises the
-        // risk also names a cause, so no cause means the only thing against
-        // this character was a failed skill check. That left a healthy
-        // eight-year-old with an 8% chance of dying for fumbling a recitation,
-        // reported as "your life ended before your ambitions could unfold" —
-        // 4.7% of runs ended before age 13. Real danger still kills the young;
-        // an ordinary bad afternoon does not.
-        if (player.getAge() < 25 && player.getHealth() > 35 && player.getStress() < 80) {
-            risk = cause == null ? 0 : Math.min(risk, 8);
+        // A healthy, unhurried child is not killed by a fumbled recitation or
+        // by the arithmetic of a bad year. A child who is starving, terrified
+        // or in a plague city still can be, because that is what those things
+        // did.
+        if (player.getAge() < 25
+                && player.getAge() >= FIRST_YEARS_ARE_SAFE
+                && player.getHealth() > 35
+                && player.getStress() < 80) {
+
+            // A healthy young person who nothing is after faces only the
+            // ordinary chance of being alive in this century, and a young
+            // person who something is after still gets a ceiling on it.
+            risk = specificDanger ? Math.min(risk, 35) : ageRisk();
         }
 
-        // Keep risk controlled
-        risk = Math.max(0, Math.min(75, risk));
+        // Even a catastrophe leaves a chance of walking out of it.
+        risk = Math.max(0, Math.min(700, risk));
 
-        int roll = random.nextInt(100) + 1;
+        int roll = random.nextInt(1000) + 1;
 
         if (roll <= risk) {
-            String reason =
-                    cause == null
-                            ? "Your life ended before your ambitions could fully unfold."
-                            : cause.describe(player.getAge());
-
-            player.markDead(reason);
+            player.markDead(cause.describe(player.getAge()));
         }
+    }
+
+    /**
+     * The chance of dying this year of nothing in particular, per thousand.
+     *
+     * <p>Shaped like a real mortality curve rather than a set of thresholds:
+     * dangerous at the very start, almost flat through the middle, and rising
+     * steeply from the sixties. This is what makes reaching eighty an
+     * achievement instead of a formality.
+     */
+    private int ageRisk() {
+        int age = player.getAge();
+
+        // The first years are the household's to carry, not the player's.
+        // Real infant mortality was enormous, and simulating it means ending
+        // runs at two, before the player has made a single decision — a
+        // statistic faithfully modelled and a game nobody wants to play.
+        if (age < FIRST_YEARS_ARE_SAFE) {
+            return 0;
+        }
+
+        if (age < 15) {
+            return 3;
+        }
+
+        if (age < 30) {
+            return 4;
+        }
+
+        if (age < 45) {
+            return 8;
+        }
+
+        if (age < 55) {
+            return 16;
+        }
+
+        if (age < 65) {
+            return 32;
+        }
+
+        if (age < 75) {
+            return 70;
+        }
+
+        if (age < 85) {
+            return 140;
+        }
+
+        if (age < 95) {
+            return 250;
+        }
+
+        return 400;
     }
 
     /**
@@ -2386,5 +2662,899 @@ public class GameEngine {
             case "shadowNetwork" -> factions.getShadowNetwork();
             default -> 0;
         };
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  A year at a time
+    // ════════════════════════════════════════════════════════════════════
+
+    /** Below this a character cannot die: see {@link #ageRisk()}. */
+    private static final int FIRST_YEARS_ARE_SAFE = 5;
+
+    /** Age boundaries between the five chapters of a life. */
+    private static final int[] CHAPTER_STARTS = {0, 13, 25, 50, 65};
+
+    /** Which chapter an age belongs to. */
+    static int stageIndexForAge(int age) {
+        int index = 0;
+
+        for (int chapter = 0; chapter < CHAPTER_STARTS.length; chapter++) {
+            if (age >= CHAPTER_STARTS[chapter]) {
+                index = chapter;
+            }
+        }
+
+        return index;
+    }
+
+    /** Every line of the life so far, oldest first. */
+    public List<LifeLogEntry> getLifeLog() {
+        return List.copyOf(lifeLog);
+    }
+
+    /** Writes a line into the chronicle. */
+    public void log(LifeLogEntry entry) {
+        if (entry != null && !entry.text().isBlank()) {
+            lifeLog.add(entry);
+        }
+    }
+
+    private void log(String text, LifeLogEntry.Tone tone) {
+        log(new LifeLogEntry(player.getAge(), text, tone));
+    }
+
+    /**
+     * True when an authored scene is waiting to be answered.
+     *
+     * <p>Separate from {@link #getCurrentEvent()} because a scene can be
+     * available for years before it is due: the engine decides <em>when</em>,
+     * the interface decides how to show it.
+     *
+     * <p>Stays true from the moment the scene is raised until a choice is
+     * applied to it, rather than being cleared when it is first shown. A
+     * decision the player has been handed and not yet made is part of the
+     * saved state of a life, and a save taken mid-decision has to come back
+     * to that decision rather than to a screen with nothing on it.
+     */
+    public boolean isSceneDue() {
+        return sceneDue && player.isAlive() && getCurrentEvent() != null;
+    }
+
+    /**
+     * Lives one year.
+     *
+     * <p>This is the whole clock of the game. Everything that happens without
+     * the player deciding anything happens here, in the order a year happens
+     * in: you get older, you are paid, your holdings decay, the people around
+     * you age, something small happens to you, and then the world checks
+     * whether you are still alive.
+     *
+     * @return only the lines this year added, for the interface to reveal
+     */
+    public List<LifeLogEntry> ageOneYear() {
+        if (!player.isAlive()) {
+            return List.of();
+        }
+
+        int firstNewLine = lifeLog.size();
+
+        player.increaseAge(1);
+        player.clearYearlyActivities();
+        marketSeed = random.nextLong();
+        yearsSinceScene++;
+
+        openNewChapterIfDue();
+        earnTheYearsWages();
+        collectRentsAndDecay();
+        payLivingCosts();
+        ageTheBody();
+        letTheWorldTurn();
+        recoverStressOverTime(1);
+
+        YearlyLifeEvents.Moment moment =
+                YearlyLifeEvents.rollFor(player, !family.livingChildren().isEmpty());
+
+        if (moment != null) {
+            for (Map.Entry<String, Integer> effect : moment.effects().entrySet()) {
+                player.applyChange(effect.getKey(), effect.getValue());
+            }
+
+            log(new LifeLogEntry(player.getAge(), moment.text(), moment.tone()));
+        }
+
+        updateCurrentStatus();
+
+        String earnedTitles = checkForNewLegacyTitles();
+
+        if (!earnedTitles.isBlank()) {
+            for (String line : earnedTitles.split("\\n")) {
+                log(line, LifeLogEntry.Tone.MILESTONE);
+            }
+        }
+
+        latestLegacyTitleMessage = earnedTitles;
+
+        fireDueConsequences();
+
+        if (!latestConsequenceEchoTitle.isBlank()) {
+            log(latestConsequenceEchoTitle, LifeLogEntry.Tone.SCENE);
+        }
+
+        rollForWorldEvent();
+
+        if (!latestWorldEventTitle.isBlank()) {
+            log(latestWorldEventTitle, LifeLogEntry.Tone.WORLD);
+        }
+
+        assessMortality(0, null);
+
+        if (!player.isAlive()) {
+            log("You died. " + player.getDeathReason(), LifeLogEntry.Tone.MILESTONE);
+            endingResult = calculateEnding();
+        } else {
+            rollForScene();
+        }
+
+        return List.copyOf(lifeLog.subList(firstNewLine, lifeLog.size()));
+    }
+
+    /**
+     * Moves the life on to the next chapter when the age says so, rather than
+     * when the content runs out.
+     */
+    private void openNewChapterIfDue() {
+        int chapter = stageIndexForAge(player.getAge());
+
+        while (currentStageIndex < chapter) {
+            awardStageCompletionToken(lifeStages.get(currentStageIndex));
+            currentStageIndex++;
+
+            log(chapterOpening(lifeStages.get(currentStageIndex)), LifeLogEntry.Tone.MILESTONE);
+        }
+    }
+
+    private String chapterOpening(String stage) {
+        return switch (stage) {
+            case "Youth" -> "You are not a child any more, and the household has started to say so.";
+            case "Adulthood" -> "You are a grown man now, answerable for yourself and to other people.";
+            case "Political Crisis" -> "You have reached the age where what you do is other people's business.";
+            case "Legacy" -> "You are old. People ask you what things used to be like, and mean it.";
+            default -> "A new chapter of your life begins.";
+        };
+    }
+
+    /** Pay, advancement, and the occasional loss of a post. */
+    private void earnTheYearsWages() {
+        if (!player.isEmployed()) {
+            return;
+        }
+
+        player.recordYearWorked();
+
+        int wages = player.annualIncome();
+        player.addNetWorth(wages);
+
+        log("You worked the year as " + player.getCareer().rank(player.getCareerRank()).title()
+                + " and were paid " + wages + " dirhams.", LifeLogEntry.Tone.NEUTRAL);
+
+        // A trade wears on you, and pays you back in standing.
+        player.applyChange("stress", 2);
+
+        if (CareerService.isDismissalDue(player, factions)) {
+            String note = CareerService.dismissalNote(player);
+            player.leaveCareer();
+
+            log(note, LifeLogEntry.Tone.BAD);
+            player.applyChange("stress", 10);
+            player.applyChange("reputation", -4);
+            return;
+        }
+
+        if (CareerService.isPromotionDue(player) && random.nextInt(100) < 55) {
+            player.promote();
+            log(CareerService.promotionNote(player), LifeLogEntry.Tone.GOOD);
+            player.applyChange("reputation", 3);
+            player.applyChange("wealth", 2);
+        }
+    }
+
+    /** Rents in, condition out, and whatever the city did to the walls. */
+    private void collectRentsAndDecay() {
+        if (player.getProperties().isEmpty()) {
+            return;
+        }
+
+        int rents = player.propertyIncome();
+
+        if (rents > 0) {
+            player.addNetWorth(rents);
+            log("Your holdings brought in " + rents + " dirhams.", LifeLogEntry.Tone.GOOD);
+        }
+
+        int ease = 0;
+        int standing = 0;
+
+        for (Property property : player.getProperties()) {
+            String damage = PropertyMarket.weatherOneYear(property, cities.currentCity());
+
+            if (!damage.isBlank()) {
+                log(damage, LifeLogEntry.Tone.BAD);
+            }
+
+            ease += property.stressEffect();
+            standing += property.prestige();
+        }
+
+        if (ease != 0) {
+            player.applyChange("stress", ease);
+        }
+
+        // Owning things is visible, and visibility is most of reputation.
+        if (standing >= 8) {
+            player.applyChange("reputation", 1);
+        }
+    }
+
+    /**
+     * What it costs to be who you are for a year.
+     *
+     * <p>Scales with standing rather than with income, which is the trap:
+     * a rise in status raises the floor under you permanently, and a career
+     * lost at fifty leaves the same household to feed.
+     */
+    private void payLivingCosts() {
+        // Until you keep your own household you eat at somebody else's table.
+        // Charging a nine-year-old rent bankrupted every character in the game
+        // before they were old enough to earn, and then took six stress a year
+        // off them for the rest of their life for it.
+        if (player.getAge() < HOUSEHOLD_OF_YOUR_OWN) {
+            return;
+        }
+
+        int mouths = 1 + family.livingChildren().size() + (family.spouse() == null ? 0 : 1);
+        int standing = 5 + player.getWealth() / 3 + player.getReputation() / 6;
+
+        int costs = mouths * standing;
+
+        if (player.getNetWorth() >= costs) {
+            player.addNetWorth(-costs);
+            return;
+        }
+
+        // Short. Take what there is and live on the rest of it badly — but a
+        // lean year is a lean year, not a debt that compounds into a death.
+        player.setNetWorth(0);
+        player.applyChange("wealth", -2);
+        player.applyChange("stress", 4);
+
+        log("You lived hand to mouth this year, and the household knew it.",
+                LifeLogEntry.Tone.BAD);
+    }
+
+    /** The age from which a character is keeping their own roof up. */
+    private static final int HOUSEHOLD_OF_YOUR_OWN = 18;
+
+    /**
+     * What a year does to a body on its own.
+     *
+     * <p>Nothing until the forties, then a slow decline that accelerates, so
+     * that the last stretch of a long life is genuinely a fight rather than
+     * more of the same.
+     */
+    private void ageTheBody() {
+        int age = player.getAge();
+
+        if (age < 40) {
+            // Still filling out. A young character who is not being hurt by
+            // anything should slowly get stronger.
+            if (age >= 8 && player.getHealth() < 75 && random.nextInt(100) < 40) {
+                player.applyChange("health", 1);
+            }
+
+            return;
+        }
+
+        int decline;
+
+        if (age >= 80) {
+            decline = 3;
+        } else if (age >= 68) {
+            decline = 2;
+        } else if (age >= 56) {
+            decline = 1;
+        } else {
+            // Through the forties and early fifties it is a slow thing you
+            // only notice looking back, not a point a year off the tally.
+            decline = random.nextInt(100) < 45 ? 1 : 0;
+        }
+
+        // Years of pressure are paid for here, not at the time.
+        if (player.getStress() >= 70) {
+            decline++;
+        }
+
+        player.applyChange("health", -decline);
+    }
+
+    /** The cast, the household, the cities, and what people are saying. */
+    private void letTheWorldTurn() {
+        List<String> news = new ArrayList<>();
+
+        news.addAll(recurringCharacters.ageEveryone(1));
+        news.addAll(family.advanceYears(1, player));
+        news.addAll(cities.advanceYears(1));
+
+        renown.spread(1, player);
+
+        // The interface raises these as toasts; the log keeps them.
+        pendingCastAnnouncements.addAll(news);
+
+        for (String line : news) {
+            log(line, LifeLogEntry.Tone.WORLD);
+        }
+    }
+
+    /**
+     * Whether an authored scene interrupts this year.
+     *
+     * <p>The chance climbs with every quiet year, so a long gap ends itself
+     * rather than depending on a lucky roll.
+     */
+    private void rollForScene() {
+        if (sceneDue || getCurrentEvent() == null) {
+            return;
+        }
+
+        int chance = 18 + yearsSinceScene * 16;
+
+        if (random.nextInt(100) < chance) {
+            sceneDue = true;
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Activities
+    // ════════════════════════════════════════════════════════════════════
+
+    /** Everything on offer this year, grouped for the menu. */
+    public Map<String, List<Activity>> availableActivities() {
+        return ActivityLibrary.menuFor(player);
+    }
+
+    /** Why an activity cannot be attempted, or an empty string when it can. */
+    public String lockedReasonFor(Activity activity) {
+        return activity.lockedReason(
+                player,
+                !family.livingChildren().isEmpty(),
+                lifetimeActivities.contains(activity.id())
+        );
+    }
+
+    /**
+     * Does the thing.
+     *
+     * @param forcedOutcome non-null when a mini-game has already decided it;
+     *                      null lets the engine roll against the stat the
+     *                      activity leans on, so the game still works for a
+     *                      player who has turned trials off
+     */
+    public ActivityResult performActivity(Activity activity, Boolean forcedOutcome) {
+        String locked = lockedReasonFor(activity);
+
+        if (!locked.isEmpty()) {
+            return ActivityResult.failure(
+                    activity.name(), locked, Map.of(), Map.of(), List.of(), 0);
+        }
+
+        player.markSpentThisYear(activity.id());
+        lifetimeActivities.add(activity.id());
+
+        if (activity.wealthCost() > 0) {
+            player.spend(activity.wealthCost());
+        }
+
+        boolean success = forcedOutcome != null
+                ? forcedOutcome
+                : resolveActivityByStat(activity);
+
+        Map<String, Integer> statEffects = success
+                ? activity.successStatEffects()
+                : activity.failureStatEffects();
+
+        Map<String, Integer> factionEffects = success
+                ? activity.successFactionEffects()
+                : activity.failureFactionEffects();
+
+        List<String> flags = success
+                ? activity.successFlags()
+                : activity.failureFlags();
+
+        City here = cities.currentCity();
+        Map<String, Integer> statsApplied = new LinkedHashMap<>();
+
+        for (Map.Entry<String, Integer> effect : statEffects.entrySet()) {
+            int landed = CityPressure.bend(here, effect.getKey(), effect.getValue());
+
+            player.applyChange(effect.getKey(), landed);
+            statsApplied.put(effect.getKey(), landed);
+        }
+
+        for (Map.Entry<String, Integer> effect : factionEffects.entrySet()) {
+            factions.applyChange(effect.getKey(), effect.getValue());
+        }
+
+        for (String flag : flags) {
+            worldState.addFlag(flag);
+            scheduleConsequencesFor(flag);
+            recurringCharacters.applyStoryFlag(flag, player.getAge());
+            family.applyStoryFlag(flag);
+            renown.record(flag);
+            cities.applyStoryFlag(flag);
+        }
+
+        int pay = success ? activity.successPay() : activity.failurePay();
+        double purseChange = pay - activity.wealthCost();
+
+        if (pay != 0) {
+            player.addNetWorth(pay);
+        }
+
+        String narration = success ? activity.successText() : activity.failureText();
+
+        ActivityResult result = new ActivityResult(
+                activity.name(),
+                success,
+                narration,
+                statsApplied,
+                factionEffects,
+                flags,
+                purseChange
+        );
+
+        log(new LifeLogEntry(
+                player.getAge(),
+                narration + effectSuffix(statsApplied, factionEffects, purseChange),
+                success ? LifeLogEntry.Tone.GOOD : LifeLogEntry.Tone.BAD
+        ));
+
+        // An activity can be genuinely dangerous; the ones that are say so in
+        // their failure effects, and this is where that bill arrives.
+        if (!success && statEffects.getOrDefault("health", 0) <= -8) {
+            assessMortality(45, DeathCause.INJURY);
+        }
+
+        return result;
+    }
+
+    /**
+     * The fallback roll when no mini-game was played, against whatever stat
+     * the activity's challenge is really testing.
+     */
+    private boolean resolveActivityByStat(Activity activity) {
+        if (!activity.requiresMiniGame()) {
+            return true;
+        }
+
+        String stat = switch (activity.miniGameType()) {
+            case "merchant", "haggle", "caravan" -> "wealth";
+            case "courier", "archery", "lighthand" -> "health";
+            case "orator" -> "reputation";
+            default -> "education";
+        };
+
+        int chance = 42 + player.getStatValue(stat) / 2 - activity.difficulty() * 5;
+        chance += CityPressure.shiftFor(cities.currentCity(), stat);
+
+        return random.nextInt(100) < Math.max(15, Math.min(92, chance));
+    }
+
+    /** " (Education +4, Scholars +3) [+60 dirhams]", or nothing at all. */
+    private String effectSuffix(Map<String, Integer> stats,
+                                Map<String, Integer> factionEffects,
+                                double purseChange) {
+
+        StringBuilder parts = new StringBuilder();
+
+        for (Map.Entry<String, Integer> effect : stats.entrySet()) {
+            appendPart(parts, statDisplayName(effect.getKey()), effect.getValue());
+        }
+
+        for (Map.Entry<String, Integer> effect : factionEffects.entrySet()) {
+            appendPart(parts, factionDisplayName(effect.getKey()), effect.getValue());
+        }
+
+        StringBuilder suffix = new StringBuilder();
+
+        if (!parts.isEmpty()) {
+            suffix.append(" (").append(parts).append(")");
+        }
+
+        if (purseChange != 0) {
+            suffix.append(purseChange > 0 ? " [+" : " [")
+                    .append((long) purseChange)
+                    .append(" dirhams]");
+        }
+
+        return suffix.toString();
+    }
+
+    private void appendPart(StringBuilder parts, String name, int delta) {
+        if (delta == 0) {
+            return;
+        }
+
+        if (!parts.isEmpty()) {
+            parts.append(", ");
+        }
+
+        parts.append(name).append(delta > 0 ? " +" : " ").append(delta);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Trade and office
+    // ════════════════════════════════════════════════════════════════════
+
+    /** Every post the character could apply for today. */
+    public List<CareerService.Opening> careerOpenings() {
+        return CareerService.openings(player, factions, cities.currentCity());
+    }
+
+    /**
+     * Takes a post.
+     *
+     * @param hired whether the interview was passed; a refusal still costs
+     *              the year's attempt, which is what makes applying a decision
+     */
+    public String takeJob(CareerService.Opening opening, boolean hired) {
+        if (opening == null || !opening.isOpen()) {
+            return "They will not see you.";
+        }
+
+        if (!hired) {
+            player.applyChange("stress", 4);
+            log("You were turned down for " + opening.title() + ".", LifeLogEntry.Tone.BAD);
+
+            return "They heard you out, thanked you, and gave the post to somebody else.";
+        }
+
+        Career previous = player.getCareer();
+        player.takeCareer(opening.career(), opening.entryRank());
+
+        String note = previous == Career.UNEMPLOYED
+                ? "You were taken on as " + player.careerTitle() + "."
+                : "You left the " + previous.displayName().toLowerCase()
+                        + "s and were taken on as " + player.careerTitle() + ".";
+
+        log(note + " The pay is " + player.annualIncome() + " dirhams a year.",
+                LifeLogEntry.Tone.MILESTONE);
+
+        player.applyChange("reputation", 2);
+
+        return note;
+    }
+
+    /**
+     * Asking to be raised, rather than waiting to be noticed.
+     *
+     * <p>Asking when you are not ready costs standing with the people who had
+     * to say no. Without that, asking every year would be free.
+     */
+    public String askForAdvancement() {
+        if (!player.isEmployed()) {
+            return "You hold no post to be raised in.";
+        }
+
+        if (player.hasSpentThisYear("ask_advancement")) {
+            return "You have already asked this year. Asking twice is asking once too often.";
+        }
+
+        player.markSpentThisYear("ask_advancement");
+
+        if (CareerService.isPromotionDue(player)) {
+            player.promote();
+            log(CareerService.promotionNote(player), LifeLogEntry.Tone.GOOD);
+            player.applyChange("reputation", 3);
+
+            return CareerService.askOutcome(player, true);
+        }
+
+        player.applyChange("stress", 5);
+        player.applyChange("reputation", -2);
+        log("You asked to be raised, and were told to wait.", LifeLogEntry.Tone.BAD);
+
+        return CareerService.askOutcome(player, false);
+    }
+
+    /** Walks away from a trade. Nothing stops you; that is the problem. */
+    public String leaveTrade() {
+        if (!player.isEmployed()) {
+            return "You hold no post.";
+        }
+
+        String was = player.careerTitle();
+        player.leaveCareer();
+
+        log("You gave up your position as " + was + ".", LifeLogEntry.Tone.NEUTRAL);
+        player.applyChange("stress", -6);
+
+        return "You put down the work and walked out. It felt better than it will look.";
+    }
+
+    /** Stops working for good, keeping the standing and losing the pay. */
+    public String retire() {
+        if (!player.isEmployed()) {
+            return "There is nothing to retire from.";
+        }
+
+        String was = player.careerTitle();
+        player.retire();
+
+        log("You retired from your post as " + was + ".", LifeLogEntry.Tone.MILESTONE);
+        player.applyChange("stress", -12);
+        player.applyChange("reputation", 2);
+
+        return "You handed it over to somebody younger, who will do it differently.";
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Holdings
+    // ════════════════════════════════════════════════════════════════════
+
+    /** What is on the market in this city, this year. */
+    public List<PropertyMarket.Listing> propertyListings() {
+        return PropertyMarket.listings(player, cities.currentCity(), marketSeed);
+    }
+
+    public String buyProperty(PropertyMarket.Listing listing) {
+        if (listing == null || !listing.isOpen()) {
+            return "It is not yours to buy.";
+        }
+
+        if (!player.spend(listing.price())) {
+            return "You cannot cover it.";
+        }
+
+        Property bought = listing.toProperty();
+        player.addProperty(bought);
+        player.applyChange("wealth", 3);
+
+        log("You bought " + bought.name().toLowerCase() + " for "
+                + listing.price() + " dirhams.", LifeLogEntry.Tone.MILESTONE);
+
+        return "The deed is witnessed and yours. " + bought.summary();
+    }
+
+    public String sellProperty(Property property) {
+        if (property == null || !player.getProperties().contains(property)) {
+            return "You do not own it.";
+        }
+
+        int price = property.resaleValue();
+
+        player.removeProperty(property);
+        player.addNetWorth(price);
+
+        log("You sold " + property.name().toLowerCase() + " for " + price + " dirhams.",
+                LifeLogEntry.Tone.NEUTRAL);
+
+        return "Sold for " + price + " dirhams — rather less than you paid, as it always is.";
+    }
+
+    public String repairProperty(Property property) {
+        if (property == null || !player.getProperties().contains(property)) {
+            return "You do not own it.";
+        }
+
+        if (property.condition() >= 100) {
+            return "There is nothing wrong with it.";
+        }
+
+        // Asked for before the work is done, so the player is never charged
+        // for a repair they could not afford.
+        int quote = property.repairQuote();
+
+        if (player.getNetWorth() < quote) {
+            return "The masons want " + quote + " dirhams, and you do not have it.";
+        }
+
+        player.spend(quote);
+        property.repair();
+
+        log("You had " + property.name().toLowerCase() + " put right, for "
+                + quote + " dirhams.", LifeLogEntry.Tone.NEUTRAL);
+
+        return "It is sound again. That cost " + quote + " dirhams.";
+    }
+
+    /** Everything owned, at what it would fetch today. */
+    public double getEstateValue() {
+        return player.estateValue();
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  People
+    // ════════════════════════════════════════════════════════════════════
+
+    /** What it costs to give somebody something worth having. */
+    public static final int GIFT_COST = 60;
+
+    /**
+     * Spends an afternoon with one of your household.
+     *
+     * <p>The family registry already ages, marries and buries these people on
+     * its own. What it had no way to represent was a player who actually
+     * turned up — so a household could resent you for a neglect you had no
+     * means of avoiding.
+     */
+    public String spendTimeWithFamily(String memberId) {
+        FamilyMember member = family.get(memberId);
+
+        if (member == null || !member.isAlive()) {
+            return "They are not here.";
+        }
+
+        String key = "time_" + memberId;
+
+        if (player.hasSpentThisYear(key)) {
+            return "You have already given them this year what you had to give.";
+        }
+
+        player.markSpentThisYear(key);
+
+        member.changeAffection(6);
+        player.applyChange("familyLoyalty", 2);
+        player.applyChange("stress", -3);
+        factions.applyChange("familyCouncil", 1);
+
+        log("You spent time with " + member.getName() + ".", LifeLogEntry.Tone.GOOD);
+
+        return member.getName() + " is glad of it, and says so in the roundabout way "
+                + "your family says things. (" + member.affectionLabel() + ")";
+    }
+
+    /** A gift, which costs money and is worth more than the money. */
+    public String giveGiftToFamily(String memberId) {
+        FamilyMember member = family.get(memberId);
+
+        if (member == null || !member.isAlive()) {
+            return "They are not here.";
+        }
+
+        String key = "gift_" + memberId;
+
+        if (player.hasSpentThisYear(key)) {
+            return "You have already given them something this year.";
+        }
+
+        if (!player.spend(GIFT_COST)) {
+            return "You cannot spare the " + GIFT_COST + " dirhams.";
+        }
+
+        player.markSpentThisYear(key);
+
+        member.changeAffection(11);
+        player.applyChange("familyLoyalty", 3);
+        factions.applyChange("familyCouncil", 2);
+
+        log("You gave " + member.getName() + " a gift worth " + GIFT_COST
+                + " dirhams.", LifeLogEntry.Tone.GOOD);
+
+        return member.getName() + " did not expect it, which is most of why it worked. ("
+                + member.affectionLabel() + ")";
+    }
+
+    /** Keeping up with somebody outside the household. */
+    public String callOnBond(String characterId) {
+        RecurringCharacter character = recurringCharacters.get(characterId);
+
+        if (character == null || !character.isAlive()) {
+            return "They are not here.";
+        }
+
+        String key = "call_" + characterId;
+
+        if (player.hasSpentThisYear(key)) {
+            return "You have already sought them out this year.";
+        }
+
+        player.markSpentThisYear(key);
+
+        recurringCharacters.changeRelationship(
+                characterId,
+                6,
+                "called_on_" + characterId + "_" + player.getAge(),
+                "You went out of your way to see them in a year nothing required it.",
+                player.getAge()
+        );
+
+        player.applyChange("stress", -2);
+        player.applyChange("reputation", 1);
+
+        log("You sought out " + character.getName() + ".", LifeLogEntry.Tone.GOOD);
+
+        return character.getName() + " was surprised to be called on and pleased to have been. ("
+                + character.relationshipLabel() + ")";
+    }
+
+    /** A gift to somebody whose good opinion is worth having. */
+    public String giveGiftToBond(String characterId) {
+        RecurringCharacter character = recurringCharacters.get(characterId);
+
+        if (character == null || !character.isAlive()) {
+            return "They are not here.";
+        }
+
+        String key = "bondgift_" + characterId;
+
+        if (player.hasSpentThisYear(key)) {
+            return "You have already sent them something this year.";
+        }
+
+        if (!player.spend(GIFT_COST)) {
+            return "You cannot spare the " + GIFT_COST + " dirhams.";
+        }
+
+        player.markSpentThisYear(key);
+
+        recurringCharacters.changeRelationship(
+                characterId,
+                12,
+                "gift_to_" + characterId + "_" + player.getAge(),
+                "You sent them something worth sending.",
+                player.getAge()
+        );
+
+        player.applyChange("reputation", 1);
+
+        log("You sent " + character.getName() + " a gift.", LifeLogEntry.Tone.GOOD);
+
+        return character.getName() + " will remember it, which is the point of a gift "
+                + "in this world. (" + character.relationshipLabel() + ")";
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  The road
+    // ════════════════════════════════════════════════════════════════════
+
+    /** What it costs to move a household to another city. */
+    public static final int TRAVEL_COST = 150;
+
+    /**
+     * Moves. Where you live decides what work is on offer, what the market
+     * charges, and whether the year has a plague in it, so this is one of the
+     * larger decisions available and is priced accordingly.
+     */
+    public String travelTo(String cityName) {
+        if (cityName == null || cityName.equals(cities.currentCityName())) {
+            return "You are already there.";
+        }
+
+        if (player.hasSpentThisYear("travel")) {
+            return "You have already moved once this year. Let the dust settle.";
+        }
+
+        if (!player.spend(TRAVEL_COST)) {
+            return "The journey costs " + TRAVEL_COST + " dirhams, and you do not have it.";
+        }
+
+        String leaving = cities.currentCityName();
+
+        if (!cities.travelTo(cityName)) {
+            // Refund: nothing happened.
+            player.addNetWorth(TRAVEL_COST);
+            return "There is no road to there from here.";
+        }
+
+        player.markSpentThisYear("travel");
+        player.applyChange("stress", 6);
+
+        // The people who knew you are where you left them.
+        player.applyChange("reputation", -2);
+
+        log("You left " + leaving + " and settled in " + cityName + ".",
+                LifeLogEntry.Tone.MILESTONE);
+
+        return "You are in " + cityName + " now. " + cities.situate()
+                + "\n\nNobody here knows who you were in " + leaving + ".";
     }
 }

@@ -2,8 +2,10 @@ package com.example.al_mirath;
 
 import com.example.al_mirath.controller.GameController;
 import com.example.al_mirath.model.Choice;
+import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.service.GameEngine;
+import com.example.al_mirath.service.Lives;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -84,15 +86,7 @@ class ChoiceFitTest {
         for (int attempt = 0; attempt < 400; attempt++) {
             GameEngine engine = new GameEngine("Zaynab bint Yusuf");
 
-            while (engine.getCurrentEvent() != null && engine.getPlayer().isAlive()) {
-                List<Choice> playable = playable(engine);
-
-                if (playable.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(playable.get(random.nextInt(playable.size())));
-            }
+            Lives.live(engine, Lives.takingAnyOpenChoice(random));
 
             List<Succession> heirs = engine.getSuccessors();
 
@@ -122,25 +116,31 @@ class ChoiceFitTest {
         for (int attempt = 0; attempt < 200; attempt++) {
             GameEngine engine = new GameEngine("Zaynab bint Yusuf");
 
-            for (int step = 0; step < 14; step++) {
-                if (engine.getCurrentEvent() == null || !engine.getPlayer().isAlive()) {
+            // Played by hand rather than through Lives, because this fixture
+            // needs the life stopped at an exact moment: a long scene raised
+            // and not yet answered, which is when the scroll is tallest.
+            for (int year = 0; year < Lives.LIFE_CEILING; year++) {
+                engine.ageOneYear();
+
+                if (!engine.getPlayer().isAlive()) {
                     break;
                 }
 
-                List<Choice> playable = playable(engine);
+                GameEvent scene = engine.getCurrentEvent();
 
-                if (playable.isEmpty()) {
-                    break;
+                if (scene == null) {
+                    continue;
                 }
 
-                engine.applyChoice(playable.get(random.nextInt(playable.size())));
-            }
+                if (engine.isSceneDue() && scene.getDescription().length() > 400) {
+                    return engine;
+                }
 
-            if (engine.getPlayer().isAlive()
-                    && engine.getCurrentEvent() != null
-                    && engine.getCurrentEvent().getDescription().length() > 400) {
+                Choice choice = Lives.anyOpen(engine, scene, random);
 
-                return engine;
+                if (choice != null) {
+                    engine.applyChoice(choice);
+                }
             }
         }
 
@@ -256,12 +256,16 @@ class ChoiceFitTest {
      * would stop being about the choices.
      */
     private List<String> squeezedIn(Parent root) {
+        return squeezedIn(root, "#eventPanel");
+    }
+
+    private List<String> squeezedIn(Parent root, String panelId) {
         List<String> squeezed = new ArrayList<>();
 
-        Node panel = root.lookup("#eventPanel");
+        Node panel = root.lookup(panelId);
 
         if (panel == null) {
-            return List.of("the event panel is not on the screen at all");
+            return List.of(panelId + " is not on the screen at all");
         }
 
         for (Node node : ((Parent) panel).lookupAll("*")) {
@@ -339,7 +343,21 @@ class ChoiceFitTest {
         for (int[] size : new int[][]{{1280, 720}, {1024, 640}}) {
             Parent screen = screenFor(living, size[0], size[1]);
 
-            List<String> squeezed = onFxThread(() -> squeezedIn(screen));
+            Boolean sceneShowing = onFxThread(() -> {
+                Node choices = screen.lookup("#popupChoiceBox");
+
+                return choices != null
+                        && choices.isVisible()
+                        && !((Parent) choices).getChildrenUnmodifiable().isEmpty();
+            });
+
+            assertTrue(
+                    sceneShowing,
+                    "at " + size[0] + "x" + size[1] + " the waiting scene was "
+                            + "never put in front of the player"
+            );
+
+            List<String> squeezed = onFxThread(() -> squeezedIn(screen, "#popupContentBox"));
 
             if (!squeezed.isEmpty()) {
                 fail("at " + size[0] + "x" + size[1]
@@ -349,30 +367,40 @@ class ChoiceFitTest {
     }
 
     /**
-     * The scene gives its height up, but only when there is not enough to go
-     * round. At the size the game opens at it must be shown whole, with no
-     * scroll bar on a scene that fits.
+     * The chronicle is a whole life long, so of course it scrolls. What has to
+     * hold is which end of it the player is looking at.
+     *
+     * <p>This used to assert that the panel's content fitted without
+     * scrolling, which was the right thing to ask when the panel held one
+     * scene. Now it holds every line of a life, and a panel opened at the top
+     * would show a player their own birth every time they aged up.
      */
     @Test
-    @DisplayName("the scene is shown whole in a window that has room for it")
-    void nothingScrollsThatDoesNotHaveTo() throws Exception {
+    @DisplayName("the chronicle opens on the year you just lived, not on your birth")
+    void theChronicleShowsTheNewestLine() throws Exception {
         Parent screen = screenFor(finishedWithHeirs(), 1280, 720);
 
-        Double slack = onFxThread(() -> {
+        Double position = onFxThread(() -> {
             ScrollPane pane = (ScrollPane) screen.lookup("#eventDescriptionScroll");
 
-            assertNotNull(pane, "the scene has no scroll pane to give height up with");
+            assertNotNull(pane, "the chronicle has no scroll pane");
 
             Region content = (Region) pane.getContent();
 
-            return pane.getViewportBounds().getHeight() - content.getHeight();
+            // A chronicle shorter than its panel is pinned at zero and is
+            // showing all of itself, which is also correct.
+            if (content.getHeight() <= pane.getViewportBounds().getHeight()) {
+                return 1.0;
+            }
+
+            return pane.getVvalue();
         });
 
         assertTrue(
-                slack >= 0,
-                "at the size the game opens at, the scene was "
-                        + Math.abs(slack) + "px taller than the room it was given, "
-                        + "so the player is asked to scroll a scene that fits"
+                position > 0.95,
+                "the chronicle opened at " + position + " rather than at the "
+                        + "bottom, so the player is shown the start of a life "
+                        + "they have already lived"
         );
     }
 

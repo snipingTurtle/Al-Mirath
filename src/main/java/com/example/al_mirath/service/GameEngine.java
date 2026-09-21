@@ -2861,7 +2861,33 @@ public class GameEngine {
             rollForScene();
         }
 
+        // A year in which nothing happened is still a year, and the chronicle
+        // should say so. Pressing Age Up and getting an empty panel back reads
+        // as a game that missed the press, not as a quiet twelve months.
+        if (lifeLog.size() == firstNewLine) {
+            log(aQuietYear(), LifeLogEntry.Tone.NEUTRAL);
+        }
+
         return List.copyOf(lifeLog.subList(firstNewLine, lifeLog.size()));
+    }
+
+    /**
+     * What the chronicle says about a year with nothing in it.
+     *
+     * <p>Worded a few ways, because a run of quiet years written identically
+     * reads as a stuck record rather than as a life going along steadily.
+     */
+    private String aQuietYear() {
+        String[] quiet = {
+                "A quiet year. Nothing happened that anyone thought worth writing down.",
+                "The year passes without incident.",
+                "Nothing happens this year that changes anything.",
+                "A year of ordinary work, ordinary weather, and no news.",
+                "Nothing of note. The season turns and turns again.",
+                "A year like the one before it, and nobody complains about that."
+        };
+
+        return quiet[random.nextInt(quiet.length)];
     }
 
     /**

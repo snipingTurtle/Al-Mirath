@@ -326,9 +326,7 @@ public class CharacterGenerator {
             }
         }
 
-        // A life begins in early childhood so the player is present for the
-        // first formative years rather than joining an already-shaped person.
-        int startingAge = random.nextInt(2) + 5;
+        int startingAge = 0;
 
         return new PlayerCharacter(
                 name,

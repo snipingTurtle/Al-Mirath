@@ -5,6 +5,7 @@ import com.example.al_mirath.model.Choice;
 import com.example.al_mirath.model.LifePath;
 import com.example.al_mirath.model.Succession;
 import com.example.al_mirath.service.GameEngine;
+import com.example.al_mirath.service.Lives;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -60,21 +61,7 @@ class SuccessionScreenTest {
         for (int attempt = 0; attempt < 80; attempt++) {
             GameEngine engine = new GameEngine();
 
-            while (engine.getCurrentEvent() != null && engine.getPlayer().isAlive()) {
-                List<Choice> available = new ArrayList<>();
-
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
-                }
-
-                if (available.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(available.get(random.nextInt(available.size())));
-            }
+            Lives.live(engine, Lives.takingAnyOpenChoice(random));
 
             if (engine.hasSuccessor()) {
                 return engine;

@@ -145,25 +145,7 @@ class ArcIntegrityTest {
         for (int run = 0; run < lives; run++) {
             GameEngine engine = new GameEngine();
 
-            for (int i = 0; i < 60; i++) {
-                GameEvent event = engine.getCurrentEvent();
-                if (event == null) {
-                    break;
-                }
-
-                List<Choice> available = new ArrayList<>();
-                for (Choice choice : event.getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
-                }
-
-                if (available.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(available.get(random.nextInt(available.size())));
-            }
+            Lives.live(engine, Lives.takingAnyOpenChoice(random));
 
             if (ARC_FLAGS.stream().anyMatch(engine.getWorldFlags()::contains)) {
                 livesTouchingAnArc++;

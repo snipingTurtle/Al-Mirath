@@ -358,22 +358,7 @@ class BondsAcrossGenerationsTest {
         for (int attempt = 0; attempt < 300; attempt++) {
             GameEngine engine = new GameEngine("Yusuf");
 
-            while (engine.getCurrentEvent() != null && engine.getPlayer().isAlive()) {
-                List<com.example.al_mirath.model.Choice> playable =
-                        new java.util.ArrayList<>();
-
-                for (var choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        playable.add(choice);
-                    }
-                }
-
-                if (playable.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(playable.get(random.nextInt(playable.size())));
-            }
+            Lives.live(engine, Lives.takingAnyOpenChoice(random));
 
             if (engine.hasSuccessor()) {
                 return engine;

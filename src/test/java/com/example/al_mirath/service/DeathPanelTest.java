@@ -48,21 +48,22 @@ class DeathPanelTest {
         throw new IllegalStateException("no selectable choice");
     }
 
-    /** Plays until the player dies, or returns null if they survived. */
+    /**
+     * Plays a whole life out, a year at a time, and returns it once the
+     * character is dead. Null if they were somehow still standing at the end
+     * of the ceiling, which nobody should be.
+     */
     private GameEngine playUntilDeath(GameEngine engine) {
-        for (int i = 0; i < 40 && engine.getCurrentEvent() != null; i++) {
-            engine.applyChoice(
-                    firstAvailableChoice(engine, engine.getCurrentEvent())
-            );
+        Lives.live(engine, Lives.takingFirstOpenChoice());
 
-            if (!engine.getPlayer().isAlive()) {
-                // Forces the ending to be calculated.
-                engine.getCurrentEvent();
-                return engine;
-            }
+        if (engine.getPlayer().isAlive()) {
+            return null;
         }
 
-        return null;
+        // Forces the ending to be calculated.
+        engine.getCurrentEvent();
+
+        return engine;
     }
 
     private List<GameEngine> deaths(int wanted, int maxRuns) {

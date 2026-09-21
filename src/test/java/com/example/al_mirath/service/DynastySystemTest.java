@@ -415,21 +415,7 @@ class DynastySystemTest {
 
     /** Plays a life out, whatever happens to it. */
     private void live(GameEngine engine, Random random) {
-        while (engine.getCurrentEvent() != null && engine.getPlayer().isAlive()) {
-            List<Choice> available = new ArrayList<>();
-
-            for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                if (engine.canChoose(choice)) {
-                    available.add(choice);
-                }
-            }
-
-            if (available.isEmpty()) {
-                return;
-            }
-
-            engine.applyChoice(available.get(random.nextInt(available.size())));
-        }
+        Lives.live(engine, Lives.takingAnyOpenChoice(random));
     }
 
     /** A completed life that has somebody to hand the house to. */
@@ -481,8 +467,12 @@ class DynastySystemTest {
         // problem back in a quieter form — the person named can be dead.
         for (var character : founder.getRecurringCharacters().all()) {
             if (character.isAlive()) {
+                // Enough to clear the bar below from any starting point. A
+                // relative +70 left a forebear's bitter rival sitting at +30,
+                // and a long life in which everyone else had died of old age
+                // then had nobody who "knew them" at all.
                 founder.getRecurringCharacters().changeRelationship(
-                        character.getId(), 70, "a_life_together",
+                        character.getId(), 250, "a_life_together",
                         "You stood by them when nobody else would.", 40);
             }
         }
@@ -618,8 +608,20 @@ class DynastySystemTest {
 
         GameEngine heir = engine.succeedTo(engine.getSuccessors().get(0));
 
-        assertNotNull(heir.getCurrentEvent(), "the heir was handed a life with nothing in it");
-        assertTrue(heir.getPlayer().isAlive());
+        assertTrue(heir.getPlayer().isAlive(), "the heir was handed a life already over");
+
+        // A scene need not be waiting at the moment the house changes hands.
+        // The heir lives a year at a time like anybody else, and the chapter
+        // they are old enough for decides what they are shown.
+        for (int year = 0;
+             year < 20 && heir.getCurrentEvent() == null && heir.getPlayer().isAlive();
+             year++) {
+
+            heir.ageOneYear();
+        }
+
+        assertNotNull(heir.getCurrentEvent(),
+                "the heir went twenty years without a single scene");
 
         List<Choice> available = new ArrayList<>();
 

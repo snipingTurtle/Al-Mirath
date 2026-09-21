@@ -370,40 +370,40 @@ class RenownSystemTest {
     @DisplayName("a name the player earned reaches the events they are shown")
     void reputationReachesThePlayersScreen() {
         Random random = new Random(9);
+        boolean[] greeted = {false};
 
-        for (int run = 0; run < 120; run++) {
+        for (int run = 0; run < 120 && !greeted[0]; run++) {
             GameEngine engine = new GameEngine();
 
-            for (int i = 0; i < 40 && engine.getCurrentEvent() != null; i++) {
-                String scene = engine.getCurrentEvent().getDescription();
+            Lives.live(engine, (playing, event) -> {
+                if (greeted[0]) {
+                    return;
+                }
+
+                String scene = event.getDescription();
 
                 for (Renown story : Renown.values()) {
-                    if (engine.getRenown().reachOf(story) > 0
+                    if (playing.getRenown().reachOf(story) > 0
                             && scene.contains(story.epithet())) {
 
+                        greeted[0] = true;
                         return;
                     }
                 }
 
-                List<Choice> available = new ArrayList<>();
+                Choice choice = Lives.anyOpen(playing, event, random);
 
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
+                if (choice != null) {
+                    playing.applyChoice(choice);
                 }
-
-                if (available.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(available.get(random.nextInt(available.size())));
-            }
+            });
         }
 
-        fail("in 120 played lives, nobody ever greeted the player by what "
-                + "they had done; the engine is not passing renown into the "
-                + "scenes it builds");
+        if (!greeted[0]) {
+            fail("in 120 played lives, nobody ever greeted the player by what "
+                    + "they had done; the engine is not passing renown into the "
+                    + "scenes it builds");
+        }
     }
 
     @Test
@@ -434,21 +434,7 @@ class RenownSystemTest {
         for (int run = 0; run < 40 && !everEarned; run++) {
             GameEngine engine = new GameEngine();
 
-            for (int i = 0; i < 40 && engine.getCurrentEvent() != null; i++) {
-                List<Choice> available = new ArrayList<>();
-
-                for (Choice choice : engine.getCurrentEvent().getChoices()) {
-                    if (engine.canChoose(choice)) {
-                        available.add(choice);
-                    }
-                }
-
-                if (available.isEmpty()) {
-                    break;
-                }
-
-                engine.applyChoice(available.get(random.nextInt(available.size())));
-            }
+            Lives.live(engine, Lives.takingAnyOpenChoice(random));
 
             if (engine.getRenownSummary().isBlank()) {
                 continue;

@@ -64,6 +64,15 @@
                 </Label>
 
                 <Region HBox.hgrow="ALWAYS"/>
+                
+                <Label fx:id="netWorthLabel"
+                       minWidth="-Infinity"
+                       wrapText="false"
+                       text="Net Worth: $0">
+                    <styleClass>
+                        <String fx:value="fate-token-label"/>
+                    </styleClass>
+                </Label>
 
                 <Button minWidth="-Infinity" text="Restart Life"
                         onAction="#restartGame">
@@ -207,8 +216,16 @@
                         <String fx:value="parchment-panel"/>
                     </styleClass>
 
+                    <!--
+                      WHO YOU ARE, RIGHT NOW
+
+                      The header that used to name the scene now names the
+                      person. A year-by-year life is read downward through the
+                      log, and the one thing that has to stay pinned above it
+                      is whose life it is and how far through it they are.
+                    -->
                     <Label fx:id="eventTitleLabel"
-                           text="Event Title"
+                           text="A life begins"
                            wrapText="true"
                            textAlignment="CENTER"
                            alignment="CENTER"
@@ -216,6 +233,18 @@
 
                         <styleClass>
                             <String fx:value="event-title"/>
+                        </styleClass>
+                    </Label>
+
+                    <Label fx:id="lifeSubheadingLabel"
+                           text=""
+                           wrapText="true"
+                           textAlignment="CENTER"
+                           alignment="CENTER"
+                           maxWidth="660">
+
+                        <styleClass>
+                            <String fx:value="life-subheading"/>
                         </styleClass>
                     </Label>
 
@@ -245,17 +274,9 @@
                             <String fx:value="description-scroll"/>
                         </styleClass>
 
-                        <Label fx:id="eventDescriptionLabel"
-                               text="Event description"
-                               wrapText="true"
-                               textAlignment="CENTER"
-                               alignment="CENTER"
-                               maxWidth="630">
-
-                            <styleClass>
-                                <String fx:value="event-description"/>
-                            </styleClass>
-                        </Label>
+                        <VBox fx:id="ageLogBox" spacing="10" alignment="TOP_CENTER" maxWidth="630">
+                            <!-- Logs will be added here -->
+                        </VBox>
                     </ScrollPane>
 
                     <!-- CHANGE CUES -->
@@ -341,6 +362,79 @@
                 </VBox>
             </HBox>
         </center>
+        
+        <!--
+          THE HEARTBEAT
+
+          Age Up is the only thing that moves time, so it is the only control
+          here given its own row and its own weight. Everything on the row
+          below it is something to do inside a year, and none of them costs
+          one.
+        -->
+        <bottom>
+            <VBox alignment="CENTER" spacing="12">
+                <BorderPane.margin>
+                    <Insets bottom="16"/>
+                </BorderPane.margin>
+
+                <Button fx:id="ageUpButton"
+                        minWidth="-Infinity"
+                        text="Age Up  ▸"
+                        onAction="#handleAgeUp"
+                        prefWidth="280"
+                        prefHeight="52">
+                    <styleClass>
+                        <String fx:value="age-up-button"/>
+                    </styleClass>
+                </Button>
+
+                <HBox fx:id="actionBar" alignment="CENTER" spacing="10">
+                    <styleClass>
+                        <String fx:value="action-bar"/>
+                    </styleClass>
+
+                    <Button minWidth="-Infinity" text="Activities"
+                            onAction="#handleActivities"
+                            prefWidth="128" prefHeight="40">
+                        <styleClass>
+                            <String fx:value="action-button"/>
+                        </styleClass>
+                    </Button>
+
+                    <Button minWidth="-Infinity" text="Trade"
+                            onAction="#handleCareer"
+                            prefWidth="128" prefHeight="40">
+                        <styleClass>
+                            <String fx:value="action-button"/>
+                        </styleClass>
+                    </Button>
+
+                    <Button minWidth="-Infinity" text="Holdings"
+                            onAction="#handleAssets"
+                            prefWidth="128" prefHeight="40">
+                        <styleClass>
+                            <String fx:value="action-button"/>
+                        </styleClass>
+                    </Button>
+
+                    <Button minWidth="-Infinity" text="People"
+                            onAction="#handleRelationships"
+                            prefWidth="128" prefHeight="40">
+                        <styleClass>
+                            <String fx:value="action-button"/>
+                        </styleClass>
+                    </Button>
+
+                    <Button minWidth="-Infinity" text="Travel"
+                            onAction="#handleTravel"
+                            prefWidth="128" prefHeight="40">
+                        <styleClass>
+                            <String fx:value="action-button"/>
+                        </styleClass>
+                    </Button>
+                </HBox>
+            </VBox>
+        </bottom>
     </BorderPane>
 
     <!-- LEFT CHARACTER DRAWER -->
@@ -906,9 +1000,15 @@
                        mouseTransparent="true"
                        pickOnBounds="false"/>
 
+            <!--
+              Sized against the parchment art by the controller, which is the
+              only thing that knows which scroll is on screen: an upright
+              decree, a wide birth scroll, or the taller one a scene needs to
+              carry its choices.
+            -->
             <VBox fx:id="popupContentBox"
                   alignment="CENTER"
-                  spacing="12"
+                  spacing="10"
                   maxWidth="620"
                   prefWidth="620"
                   StackPane.alignment="CENTER">
@@ -943,10 +1043,12 @@
                 </Label>
 
                 <ScrollPane fx:id="popupMessageScroll"
+                            VBox.vgrow="ALWAYS"
                             fitToWidth="true"
                             hbarPolicy="NEVER"
                             vbarPolicy="AS_NEEDED"
                             pannable="true"
+                            minHeight="70"
                             prefViewportHeight="200"
                             maxWidth="600">
 
@@ -970,6 +1072,19 @@
                         </Label>
                     </content>
                 </ScrollPane>
+
+                <!--
+                  A scene's choices live in the scroll with the scene, so a
+                  decision is read and made in one place. Filled from code and
+                  emptied again when the popup is anything else.
+                -->
+                <VBox fx:id="popupChoiceBox"
+                      alignment="CENTER"
+                      spacing="7"
+                      visible="false"
+                      managed="false"
+                      minHeight="-Infinity"
+                      maxWidth="600"/>
 
                 <Label fx:id="popupDividerBottom"
                        text="──────────── ✦ ────────────">

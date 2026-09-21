@@ -22,14 +22,51 @@ public final class MiniGameFactory {
     public static MiniGame createFor(PlayerCharacter player, int stageIndex) {
         int difficulty = difficultyFor(stageIndex);
 
-        return switch (pickKind(player)) {
-            case SCRIBE -> new ScribeMiniGame(difficulty);
-            case MERCHANT -> new MerchantMiniGame(difficulty);
-            case COURIER -> new CourierMiniGame(difficulty);
-            case ORATOR -> new OratorMiniGame(difficulty);
-            case PHYSICIAN -> new PhysicianMiniGame(difficulty);
+        return build(pickKind(player), difficulty);
+    }
+
+    /**
+     * Builds a named challenge, which is how an activity asks for the one it
+     * was written around.
+     *
+     * <p>A rewind may present any test the character's life makes plausible,
+     * but training at the butts has to be the bow and nothing else — the
+     * activity's whole claim is that the player earned <em>that</em> skill.
+     *
+     * @param type       one of the names in {@link #TYPES}; anything
+     *                   unrecognised falls back to a random challenge rather
+     *                   than failing, so a content typo costs flavour and not
+     *                   a crash
+     * @param difficulty 1 (gentle) to 5 (brutal)
+     */
+    public static MiniGame createByType(String type, int difficulty) {
+        int scaled = Math.max(1, Math.min(5, difficulty));
+
+        if (type == null) {
+            return randomGame(scaled);
+        }
+
+        return switch (type.toLowerCase()) {
+            case "scribe" -> new ScribeMiniGame(scaled);
+            case "merchant" -> new MerchantMiniGame(scaled);
+            case "courier" -> new CourierMiniGame(scaled);
+            case "orator" -> new OratorMiniGame(scaled);
+            case "physician" -> new PhysicianMiniGame(scaled);
+            case "archery" -> new ArcheryMiniGame(scaled);
+            case "haggle" -> new HagglingMiniGame(scaled);
+            case "caravan" -> new CaravanMiniGame(scaled);
+            case "geometer" -> new GeometerMiniGame(scaled);
+            case "prosody" -> new ProsodyMiniGame(scaled);
+            case "lighthand" -> new LightHandMiniGame(scaled);
+            default -> randomGame(scaled);
         };
     }
+
+    /** Every challenge an activity may name. Used by content checks. */
+    public static final java.util.List<String> TYPES = java.util.List.of(
+            "scribe", "merchant", "courier", "orator", "physician",
+            "archery", "haggle", "caravan", "geometer", "prosody", "lighthand"
+    );
 
     /**
      * Builds the challenge for a Trial of Skill — a stat check the player has
@@ -50,36 +87,58 @@ public final class MiniGameFactory {
         String stat = checkStat == null ? "" : checkStat;
 
         return switch (stat) {
-            case "education" -> RANDOM.nextBoolean()
-                    ? new ScribeMiniGame(scaled)
-                    : new PhysicianMiniGame(scaled);
+            case "education" -> switch (RANDOM.nextInt(3)) {
+                case 0 -> new ScribeMiniGame(scaled);
+                case 1 -> new PhysicianMiniGame(scaled);
+                default -> new GeometerMiniGame(scaled);
+            };
 
-            case "wealth" -> new MerchantMiniGame(scaled);
+            case "wealth" -> RANDOM.nextBoolean()
+                    ? new MerchantMiniGame(scaled)
+                    : new HagglingMiniGame(scaled);
 
-            case "health" -> new CourierMiniGame(scaled);
+            case "health" -> RANDOM.nextBoolean()
+                    ? new CourierMiniGame(scaled)
+                    : new ArcheryMiniGame(scaled);
 
-            case "reputation", "morality" -> new OratorMiniGame(scaled);
-
-            case "politicalPower" -> RANDOM.nextBoolean()
+            case "reputation", "morality" -> RANDOM.nextBoolean()
                     ? new OratorMiniGame(scaled)
-                    : new CourierMiniGame(scaled);
+                    : new ProsodyMiniGame(scaled);
+
+            case "politicalPower" -> switch (RANDOM.nextInt(3)) {
+                case 0 -> new OratorMiniGame(scaled);
+                case 1 -> new CourierMiniGame(scaled);
+                default -> new LightHandMiniGame(scaled);
+            };
 
             default -> randomGame(scaled);
         };
     }
 
     private static MiniGame randomGame(int difficulty) {
-        return switch (randomKind()) {
+        return build(randomKind(), difficulty);
+    }
+
+    /** The single place a kind becomes a game, so adding one cannot be half-done. */
+    private static MiniGame build(Kind kind, int difficulty) {
+        return switch (kind) {
             case SCRIBE -> new ScribeMiniGame(difficulty);
             case MERCHANT -> new MerchantMiniGame(difficulty);
             case COURIER -> new CourierMiniGame(difficulty);
             case ORATOR -> new OratorMiniGame(difficulty);
             case PHYSICIAN -> new PhysicianMiniGame(difficulty);
+            case ARCHERY -> new ArcheryMiniGame(difficulty);
+            case HAGGLE -> new HagglingMiniGame(difficulty);
+            case CARAVAN -> new CaravanMiniGame(difficulty);
+            case GEOMETER -> new GeometerMiniGame(difficulty);
+            case PROSODY -> new ProsodyMiniGame(difficulty);
+            case LIGHTHAND -> new LightHandMiniGame(difficulty);
         };
     }
 
     private enum Kind {
-        SCRIBE, MERCHANT, COURIER, ORATOR, PHYSICIAN
+        SCRIBE, MERCHANT, COURIER, ORATOR, PHYSICIAN,
+        ARCHERY, HAGGLE, CARAVAN, GEOMETER, PROSODY, LIGHTHAND
     }
 
     /**

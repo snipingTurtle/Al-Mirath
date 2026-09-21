@@ -105,9 +105,45 @@ class YearlyLifeTest {
             }
         }
 
-        assertTrue(quiet < 24,
-                quiet + " of thirty years passed without a single thing being "
-                        + "written down; ageing up would read as nothing happening");
+        // Not "few enough" any more: none. A year with nothing in it says so
+        // in as many words, because an empty panel after pressing Age Up
+        // reads as a game that missed the press.
+        assertEquals(0, quiet,
+                quiet + " of thirty years returned nothing at all; ageing up "
+                        + "would leave the chronicle blank");
+    }
+
+    @Test
+    @DisplayName("a year with nothing in it says that nothing happened")
+    void aQuietYearIsStillWrittenDown() {
+        boolean sawAQuietYear = false;
+
+        // Quiet years are rare — about one year in fifty — so this looks
+        // across lives rather than along one. A single life can easily go
+        // forty years without one and prove nothing either way.
+        for (int life = 0; life < 20 && !sawAQuietYear; life++) {
+            GameEngine engine = new GameEngine();
+
+            for (int year = 0; year < 60 && engine.getPlayer().isAlive(); year++) {
+                List<LifeLogEntry> added = engine.ageOneYear();
+
+                assertFalse(added.isEmpty(),
+                        "the year the character turned " + engine.getPlayer().getAge()
+                                + " left the chronicle empty");
+
+                if (added.size() == 1
+                        && added.get(0).tone() == LifeLogEntry.Tone.NEUTRAL
+                        && added.get(0).text().toLowerCase().matches(
+                                ".*(quiet|nothing|without incident|ordinary|like the one before).*")) {
+
+                    sawAQuietYear = true;
+                }
+            }
+        }
+
+        assertTrue(sawAQuietYear,
+                "twenty lives went by without one quiet year being written down, "
+                        + "which means a year with nothing in it still reads as blank");
     }
 
     @Test

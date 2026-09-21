@@ -1489,6 +1489,12 @@ public class GameController implements ScreenLifecycle {
         StringBuilder line = new StringBuilder();
 
         line.append(player.isAlive() ? "Age " + player.getAge() : "Died at " + player.getAge());
+
+        // The year a life is actually living through. History arrives on its
+        // own dates now, so the date is worth having on screen: a player in
+        // Baghdad in 1257 should be able to see what is about to happen.
+        line.append("  ·  ").append(engine.getYearText());
+
         line.append("  ·  ").append(player.getCurrentStatus());
 
         if (player.isEmployed()) {

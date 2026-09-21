@@ -39,11 +39,24 @@ public final class CityRegistry {
 
     /** Builds the map a particular life is lived on. */
     public static CityRegistry createFor(PlayerCharacter player) {
+        String era = player == null ? "" : player.getEra();
+
+        return createFor(player, Eras.startOf(era));
+    }
+
+    /**
+     * The world as it stood in a given year.
+     *
+     * <p>An era is not a single moment: Baghdad is laid out in 762 and is no
+     * kind of birthplace in 755, and Istanbul is Istanbul from 1453. A life
+     * dated to a real year is only allowed the cities that were there for it.
+     */
+    public static CityRegistry createFor(PlayerCharacter player, int year) {
         CityRegistry registry = new CityRegistry();
 
         String era = player == null ? "" : player.getEra();
 
-        for (CityProfile profile : CityProfile.forEra(era)) {
+        for (CityProfile profile : Eras.citiesIn(era, year)) {
             registry.cities.put(
                     profile.name(),
                     new City(profile, registry.random, JITTER)

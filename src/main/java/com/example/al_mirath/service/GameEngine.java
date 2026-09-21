@@ -15,6 +15,7 @@ import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.model.Property;
 import com.example.al_mirath.model.Renown;
 import com.example.al_mirath.model.Succession;
+import com.example.al_mirath.model.HistoricalEvent;
 import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.DeathCause;
@@ -95,6 +96,26 @@ public class GameEngine {
 
     /** World events already shown this life, so the same news never repeats. */
     private final Set<String> shownWorldEvents = new HashSet<>();
+
+    /**
+     * The year this life began, on the calendar everyone else uses. A life
+     * is no longer merely "in the Abbasid Era": it is 1247, and eleven years
+     * from now the Mongols will be outside Baghdad whatever the player does.
+     */
+    private int birthYear;
+
+    /** Recorded events this life has already met, so none arrives twice. */
+    private final Set<String> firedHistory = new HashSet<>();
+
+    /**
+     * A catastrophe the player has been given the chance to answer, waiting
+     * on that answer before it decides whether they lived. The scene is put
+     * up the moment the event lands; the dying happens once they have chosen.
+     */
+    private String pendingHistoricalPeril = "";
+
+    /** Historical scenes raised this life, so a rewind can find them again. */
+    private final Map<String, GameEvent> historicalScenes = new HashMap<>();
     private String latestWorldEventTitle = "";
     private String latestWorldEventMessage = "";
 
@@ -156,6 +177,10 @@ public class GameEngine {
         this.factions = new FactionRelations();
         this.worldState = new WorldState();
 
+        // The year comes before everything: which cities are there to be born
+        // in depends on when this is, and so does what the birth scroll says.
+        this.birthYear = Eras.birthYearIn(player.getEra(), random);
+
         this.birthIntroMessage = createBirthIntroMessage();
 
         this.recurringCharacters =
@@ -163,13 +188,15 @@ public class GameEngine {
 
         this.family = FamilyRegistry.createFor(player);
         this.renown = new RenownRegistry();
-        this.cities = CityRegistry.createFor(player);
+
+        this.cities = CityRegistry.createFor(player, birthYear);
         this.dynasty = Dynasty.foundedBy(player);
 
         this.eventPool = EventLibrary.createEventPool();
 
         log("You were born into " + player.getOrigin().toLowerCase()
-                + " in the " + player.getEra() + ", in " + cities.currentCityName() + ".",
+                + " in the " + player.getEra() + ", in " + cities.currentCityName()
+                + ", in " + Eras.yearText(birthYear) + ".",
                 LifeLogEntry.Tone.MILESTONE);
     }
 
@@ -218,6 +245,7 @@ public class GameEngine {
         this.dynasty = dynasty == null ? Dynasty.foundedBy(player) : dynasty;
 
         this.eventPool = EventLibrary.createEventPool();
+        this.birthYear = Eras.birthYearIn(player.getEra(), random);
 
         this.currentStageIndex = currentStageIndex;
         this.stageEventsPlayed.putAll(stageEventsPlayed);
@@ -330,9 +358,17 @@ public class GameEngine {
                 null
         );
 
+        // The heir does not start the calendar again. They are alive in the
+        // year their forebear died in, at whatever age they are, and the
+        // house has already lived through everything it lived through: the
+        // sack of a city is not visited twice on the same household.
+        next.birthYear = getCurrentYear() - successor.getAge();
+        next.firedHistory.addAll(firedHistory);
+
         next.log(
                 "You take up the house after " + player.getName()
-                        + ", who died at " + player.getAge() + ".",
+                        + ", who died at " + player.getAge() + " in "
+                        + Eras.yearText(getCurrentYear()) + ".",
                 LifeLogEntry.Tone.MILESTONE
         );
 
@@ -480,6 +516,9 @@ public class GameEngine {
         root.put("minigamesWon", minigamesWon);
         root.put("minigamesLost", minigamesLost);
         root.put("shownWorldEvents", new JSONArray(shownWorldEvents));
+        root.put("birthYear", birthYear);
+        root.put("firedHistory", new JSONArray(firedHistory));
+        root.put("pendingHistoricalPeril", pendingHistoricalPeril);
         root.put("firedConsequences", new JSONArray(firedConsequences));
 
         // Only ids and trigger ages are stored; the full text is rebuilt from
@@ -728,6 +767,19 @@ public class GameEngine {
         if (worldEvents != null) {
             for (int i = 0; i < worldEvents.length(); i++) {
                 this.shownWorldEvents.add(worldEvents.getString(i));
+            }
+        }
+
+        // A saved life keeps its own year. Older saves have none, so they
+        // are given one from their era rather than starting at year zero.
+        this.birthYear = root.optInt("birthYear", Eras.birthYearIn(player.getEra(), random));
+        this.pendingHistoricalPeril = root.optString("pendingHistoricalPeril", "");
+
+        JSONArray metHistory = root.optJSONArray("firedHistory");
+
+        if (metHistory != null) {
+            for (int i = 0; i < metHistory.length(); i++) {
+                this.firedHistory.add(metHistory.getString(i));
             }
         }
 
@@ -1050,7 +1102,8 @@ public class GameEngine {
 
     private String createBirthIntroMessage() {
         return "A new life begins...\n\n"
-                + "You are born during the " + player.getEra() + ".\n\n"
+                + "You are born in " + Eras.yearText(birthYear)
+                + ", during the " + player.getEra() + ".\n\n"
                 + "Origin: " + player.getOrigin() + "\n"
                 + "Family Condition: " + player.getFamilyCondition() + "\n"
                 + "Trait: " + player.getTrait() + "\n\n"
@@ -1418,6 +1471,11 @@ public class GameEngine {
         sceneDue = false;
 
         updateCurrentStatus();
+
+        // Before the ordinary mortality roll: what the player just decided is
+        // exactly what decides this, and the flags for it were set above.
+        settlePendingPeril();
+
         checkMortalityAfterChoice(choice, success);
 
         // A flag set by this choice may already be overdue, if the character
@@ -1706,6 +1764,12 @@ public class GameEngine {
                         StudentEvents.create(recurringCharacters, player, worldState),
                         title
                 );
+            }
+
+            // A year out of the record belongs to no library: it was built
+            // when it happened, and a rewind has to find it where it was kept.
+            if (currentEvent == null) {
+                currentEvent = historicalScenes.get(title);
             }
         }
 
@@ -2780,6 +2844,8 @@ public class GameEngine {
             log(latestConsequenceEchoTitle, LifeLogEntry.Tone.SCENE);
         }
 
+        letHistoryHappen();
+
         rollForWorldEvent();
 
         if (!latestWorldEventTitle.isBlank()) {
@@ -2795,7 +2861,33 @@ public class GameEngine {
             rollForScene();
         }
 
+        // A year in which nothing happened is still a year, and the chronicle
+        // should say so. Pressing Age Up and getting an empty panel back reads
+        // as a game that missed the press, not as a quiet twelve months.
+        if (lifeLog.size() == firstNewLine) {
+            log(aQuietYear(), LifeLogEntry.Tone.NEUTRAL);
+        }
+
         return List.copyOf(lifeLog.subList(firstNewLine, lifeLog.size()));
+    }
+
+    /**
+     * What the chronicle says about a year with nothing in it.
+     *
+     * <p>Worded a few ways, because a run of quiet years written identically
+     * reads as a stuck record rather than as a life going along steadily.
+     */
+    private String aQuietYear() {
+        String[] quiet = {
+                "A quiet year. Nothing happened that anyone thought worth writing down.",
+                "The year passes without incident.",
+                "Nothing happens this year that changes anything.",
+                "A year of ordinary work, ordinary weather, and no news.",
+                "Nothing of note. The season turns and turns again.",
+                "A year like the one before it, and nobody complains about that."
+        };
+
+        return quiet[random.nextInt(quiet.length)];
     }
 
     /**
@@ -3000,6 +3092,171 @@ public class GameEngine {
      * <p>The chance climbs with every quiet year, so a long gap ends itself
      * rather than depending on a lucky roll.
      */
+    // ════════════════════════════════════════════════════════════════════
+    //  History
+    // ════════════════════════════════════════════════════════════════════
+
+    /** The year this life is living through. */
+    public int getCurrentYear() {
+        return birthYear + player.getAge();
+    }
+
+    public int getBirthYear() {
+        return birthYear;
+    }
+
+    /** The year as a player reads it: "1258 CE". */
+    public String getYearText() {
+        return Eras.yearText(getCurrentYear());
+    }
+
+    /** What this life has already lived through, for tests and the chronicle. */
+    public Set<String> getHistoryMet() {
+        return Set.copyOf(firedHistory);
+    }
+
+    /**
+     * Lets the year that actually happened happen.
+     *
+     * <p>Everything in {@link HistoricalTimeline} is dated, so this is not a
+     * roll: a character in Baghdad in 1258 meets Hulegu because Hulegu was
+     * there. What the player is given depends on how close it was. Something
+     * that happened to the empire is news; something that happened to their
+     * city is a scene they have to answer, and may not survive.
+     */
+    private void letHistoryHappen() {
+        String city = cities.currentCityName();
+
+        for (HistoricalEvent event
+                : HistoricalTimeline.eventsIn(getCurrentYear(), player.getEra(), city)) {
+
+            if (!firedHistory.add(event.id())) {
+                continue;
+            }
+
+            if (!event.flag().isBlank()) {
+                worldState.addFlag(event.flag());
+            }
+
+            boolean local = event.isLocalTo(city);
+
+            applyHistoricalEffects(event, local);
+
+            log(event.yearText() + " — " + event.title(), LifeLogEntry.Tone.WORLD);
+
+            // Something the player can answer is worth more than something
+            // they are told, so a scene wins over a decree whenever there is
+            // one to raise.
+            if (event.hasChoices() && (local || event.cities().isEmpty())) {
+                raiseHistoricalScene(event);
+                continue;
+            }
+
+            latestWorldEventTitle = event.title();
+            latestWorldEventMessage = event.account()
+                    + "\n\n" + event.yearText() + ".";
+
+            if (event.canKill() && local) {
+                resolveHistoricalPeril(event);
+            }
+        }
+    }
+
+    /**
+     * Distance takes the sting out. A rebellion in your street is not the
+     * same event as a rebellion two thousand miles away that you hear about
+     * from a carter, so an empire-wide announcement lands at a third.
+     */
+    private void applyHistoricalEffects(HistoricalEvent event, boolean local) {
+        int divisor = local ? 1 : 3;
+
+        for (Map.Entry<String, Integer> effect : event.statEffects().entrySet()) {
+            player.applyChange(effect.getKey(), effect.getValue() / divisor);
+        }
+
+        for (Map.Entry<String, Integer> effect : event.factionEffects().entrySet()) {
+            factions.applyChange(effect.getKey(), effect.getValue() / divisor);
+        }
+    }
+
+    /**
+     * Puts the year in front of the player as a scene, with its real choices.
+     *
+     * <p>A killing year waits on the answer rather than rolling before it.
+     * Leaving Baghdad in February 1258 has to be worth something, and it is
+     * only worth something if the dying is decided afterwards.
+     */
+    private void raiseHistoricalScene(HistoricalEvent event) {
+        String stage = lifeStages.get(Math.min(currentStageIndex, lifeStages.size() - 1));
+
+        GameEvent scene = new GameEvent(
+                event.title() + "  ·  " + event.yearText(),
+                event.account(),
+                stage,
+                event.choices()
+        );
+
+        historicalScenes.put(scene.getTitle(), scene);
+
+        currentEvent = scene;
+        sceneDue = true;
+
+        pendingHistoricalPeril = event.canKill() ? event.id() : "";
+    }
+
+    /** Settles a catastrophe the player has now answered. */
+    private void settlePendingPeril() {
+        if (pendingHistoricalPeril.isBlank()) {
+            return;
+        }
+
+        HistoricalEvent event = HistoricalTimeline.byId(pendingHistoricalPeril);
+        pendingHistoricalPeril = "";
+
+        if (event != null) {
+            resolveHistoricalPeril(event);
+        }
+    }
+
+    /**
+     * Decides whether the player was one of the people it happened to.
+     *
+     * <p>What they did counts: a household already out of the city, or behind
+     * a door they shut in time, is far likelier to see the next year. So does
+     * how strong they were when it arrived.
+     */
+    private void resolveHistoricalPeril(HistoricalEvent event) {
+        if (!player.isAlive() || !event.canKill()) {
+            return;
+        }
+
+        int chance = event.peril().deathChance();
+
+        if (event.isSparedBy(worldState.getFlags())) {
+            chance = chance / 4;
+        }
+
+        if (player.getHealth() < 35) {
+            chance += 8;
+        }
+
+        if (player.getAge() < 6 || player.getAge() > 60) {
+            chance += 6;
+        }
+
+        if (random.nextInt(100) >= chance) {
+            return;
+        }
+
+        player.markDead("You did not live through " + event.title()
+                + ", in " + event.yearText() + ".");
+
+        log("You died in " + event.title() + ", " + event.yearText() + ".",
+                LifeLogEntry.Tone.MILESTONE);
+
+        endingResult = calculateEnding();
+    }
+
     private void rollForScene() {
         if (sceneDue || getCurrentEvent() == null) {
             return;

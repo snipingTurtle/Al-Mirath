@@ -35,6 +35,47 @@ only once — a year has only so many afternoons in it.
 Every row that is shut says why it is shut. "Not until you are 18" is a plan;
 a missing row is nothing.
 
+## History happens whether you like it or not
+
+A life is not merely "in the Abbasid Era". It is dated: you are born in a real
+year, and the panel says so — `Age 12 · 1252 CE · Baghdad`. Every year you
+live through, the game checks what actually happened that year, in the city
+you are actually standing in.
+
+None of it is invented. Every entry in the timeline is dated from a published
+source and carries that source with it: the Metropolitan Museum of Art's
+Heilbrunn Timeline of Art History, Encyclopaedia Britannica, the World History
+Encyclopedia, and the US National Library of Medicine for the plague years.
+Where a source gives a year and not a month, the game says a year.
+
+How close you are decides what you get. Something that happened to the empire
+is news, and lands at a third of its weight. Something that happened to *your*
+city is a scene you have to answer, and may not survive.
+
+| Year | Where | What |
+|---|---|---|
+| 680 | Everywhere | Karbala. What you say about it in public is a choice with a price either way. |
+| 717 | Everywhere | The army goes to Constantinople for a year and fails. Go, pay the fine, or sell it grain. |
+| 750 | Damascus, Aleppo, Jerusalem | The Umayyads fall at the Zab, and men who served them are being looked for by name. |
+| 762 | Baghdad, Basra, Damascus | A new capital is laid out on the Tigris. Go while the rents are nothing, or wait and see. |
+| 869 | Basra | The Zanj rise in the salt flats. Leave the south, hold what you have, or trade with them. |
+| 1257 | Baghdad, Basra | Hulegu is coming. Leave, send the family out, or trust the walls. |
+| 1258 | Baghdad | Baghdad falls. The caliph and three hundred officials are put to death ten days after surrendering. |
+| 1348 | Cairo, Damascus, Aleppo, Jerusalem | The plague year. Damascus loses something like half of itself. |
+| 1400 | Aleppo | Timur destroys the Mamluk army in under an hour, and sacks the city for four days. |
+| 1453 | Istanbul | Constantinople falls after fifty-five days. The half-empty city is being handed to anyone who will live in it. |
+
+**It can kill you.** Being in Baghdad in 1258 or Cairo in 1348 is dangerous in
+a way that nothing you chose caused. What you *do* about it matters: a
+household already out of the city, or behind a door shut in time, is far more
+likely to see the next year than one that stayed. The warning usually comes a
+year early, and the warning is playable.
+
+Dates also decide the map. Baghdad is not a birthplace in 755 — it is laid out
+in 762 — and Istanbul is Istanbul from 1453. An heir does not restart the
+calendar: they take up the house in the year their forebear died in, and the
+house is not sacked twice.
+
 ## Mini-games
 
 Half the activities are not resolved by a die roll. They hand you a board.
@@ -98,6 +139,8 @@ last, and they are modal: a decision you can click past is not a decision.
 - **Renown**: what you are actually known for, which spreads over years and
   reaches the scenes you are shown.
 - **Delayed consequences** planted by a choice and coming due decades later.
+- **Real history**, dated from published sources, arriving on its own years in
+  the cities it actually reached.
 
 ## When you die
 

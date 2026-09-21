@@ -82,6 +82,13 @@
                         <String fx:value="settings-check"/>
                     </styleClass>
                 </CheckBox>
+
+                <CheckBox fx:id="autoScrollCheck"
+                          text="Scroll long passages down on their own">
+                    <styleClass>
+                        <String fx:value="settings-check"/>
+                    </styleClass>
+                </CheckBox>
             </VBox>
 
             <!-- AUDIO -->

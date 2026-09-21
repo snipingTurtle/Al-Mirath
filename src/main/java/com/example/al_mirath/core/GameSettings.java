@@ -19,6 +19,7 @@ public final class GameSettings {
     private static final String KEY_TYPEWRITER = "ui.typewriter";
     private static final String KEY_TRIALS = "gameplay.trials";
     private static final String KEY_AMBIENT_MOTION = "ui.ambientMotion";
+    private static final String KEY_AUTO_SCROLL = "ui.autoScroll";
 
     private static Properties properties;
 
@@ -115,6 +116,22 @@ public final class GameSettings {
      * run warm on a laptop. Turning it off leaves the art in place and stops
      * the continuous repaint.
      */
+    /**
+     * Whether a scroll too long for its parchment walks itself down.
+     *
+     * <p>On by default: the alternative is a scene whose last sentence is
+     * only there for players who think to drag a scrollbar they cannot
+     * easily see.
+     */
+    public static boolean isAutoScrollEnabled() {
+        return getBoolean(KEY_AUTO_SCROLL, true);
+    }
+
+    public static void setAutoScrollEnabled(boolean enabled) {
+        properties().setProperty(KEY_AUTO_SCROLL, String.valueOf(enabled));
+        persist();
+    }
+
     public static boolean isAmbientMotionEnabled() {
         return getBoolean(KEY_AMBIENT_MOTION, true);
     }

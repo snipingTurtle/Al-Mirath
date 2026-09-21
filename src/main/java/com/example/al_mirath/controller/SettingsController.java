@@ -18,6 +18,7 @@ public class SettingsController {
     @FXML private CheckBox typewriterCheck;
     @FXML private CheckBox trialsCheck;
     @FXML private CheckBox ambientMotionCheck;
+    @FXML private CheckBox autoScrollCheck;
     @FXML private Slider musicSlider;
     @FXML private Slider effectsSlider;
     @FXML private Label musicValueLabel;
@@ -39,6 +40,7 @@ public class SettingsController {
         typewriterCheck.setSelected(GameSettings.isTypewriterEnabled());
         trialsCheck.setSelected(GameSettings.areTrialsEnabled());
         ambientMotionCheck.setSelected(GameSettings.isAmbientMotionEnabled());
+        autoScrollCheck.setSelected(GameSettings.isAutoScrollEnabled());
 
         musicSlider.setValue(GameSettings.getMusicVolume() * 100);
         effectsSlider.setValue(GameSettings.getEffectsVolume() * 100);
@@ -57,6 +59,12 @@ public class SettingsController {
         // keeps whatever it started with.
         ambientMotionCheck.selectedProperty().addListener(
                 (observable, wasSelected, isSelected) -> GameSettings.setAmbientMotionEnabled(isSelected)
+        );
+
+        // Read afresh every time a scroll opens, so this one takes hold
+        // immediately rather than at the next screen.
+        autoScrollCheck.selectedProperty().addListener(
+                (observable, wasSelected, isSelected) -> GameSettings.setAutoScrollEnabled(isSelected)
         );
 
         musicSlider.valueProperty().addListener((observable, oldValue, newValue) -> {

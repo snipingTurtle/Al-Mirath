@@ -57,6 +57,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.transform.Scale;
 import javafx.util.Duration;
@@ -185,6 +187,15 @@ public class GameController implements ScreenLifecycle {
 
     private Timeline typewriterTimeline;
 
+    /** Lays the effect lines down one at a time; null when none is running. */
+    private Timeline effectRevealTimeline;
+
+    /** What the consequence popup reads once every line has landed. */
+    private String fullEffectText;
+
+    /** Walks a passage too long for the paper down; null when still. */
+    private Timeline autoScrollTimeline;
+
     /** The messenger-scroll artwork's own dimensions; it is never upscaled. */
     private static final double POPUP_ART_WIDTH = 980;
     private static final double POPUP_ART_HEIGHT = 560;
@@ -205,6 +216,37 @@ public class GameController implements ScreenLifecycle {
     /** Reveal cadence: ~30 fps, at the original 12ms-per-character speed. */
     private static final double TYPEWRITER_TICK_MILLIS = 33;
     private static final int CHARACTERS_PER_TICK = 3;
+
+    /**
+     * How long each line of "Effects of this choice" waits for the one before
+     * it. All four arriving at once read as a single block nobody looks at;
+     * a line at a time is the pause in which a player notices that the stress
+     * went up as well.
+     */
+    private static final Duration EFFECT_ROW_DELAY = Duration.seconds(0.8);
+
+    /**
+     * The share of the scroll artwork's height that is actually parchment.
+     * The paper is drawn between a quarter and about three quarters of the
+     * way down the image; content sized to the whole shell puts its title
+     * above the paper and its last line below it.
+     */
+    private static final double PAPER_BAND = 0.47;
+
+    /**
+     * How long a passage sits still before it starts walking down, and how
+     * fast it walks. The pause is there to be read in: a scroll that moves
+     * the instant it opens is a scroll nobody has finished the first line of.
+     */
+    private static final Duration AUTO_SCROLL_LEAD_IN = Duration.seconds(1.8);
+    private static final double AUTO_SCROLL_PIXELS_PER_SECOND = 24;
+
+    /**
+     * How far the paper's middle sits above the artwork's own middle. The
+     * band runs from 0.253 to 0.724, so its centre is a hair above centre,
+     * and content centred on the scroll hangs off the bottom edge by it.
+     */
+    private static final double PAPER_OFFSET = 0.0115;
     private boolean typewriterEnabled = GameSettings.isTypewriterEnabled();
 
     @FXML private StackPane gameRoot;
@@ -352,6 +394,7 @@ public class GameController implements ScreenLifecycle {
         bindPanelsToWindow();
         bindBackgroundMotionToPopup();
         initializePopupAssets();
+        stopAutoScrollOnTouch();
         initializeToastLayer();
         installKeyboardShortcuts();
         closeDrawersInstantly();
@@ -469,7 +512,13 @@ public class GameController implements ScreenLifecycle {
                 }
 
                 if (popupOpen) {
-                    closePopup();
+                    // The first press catches up the lines still arriving;
+                    // only the next one puts the scroll away.
+                    if (effectsStillArriving()) {
+                        completeEffectReveal();
+                    } else {
+                        closePopup();
+                    }
                 } else if (typewriterTimeline != null) {
                     // Impatient readers can skip the reveal.
                     completeTypewriter();
@@ -616,6 +665,96 @@ public class GameController implements ScreenLifecycle {
 
         typewriterTimeline = reveal;
         reveal.play();
+    }
+
+    /**
+     * Lets the effects of a choice arrive a line at a time.
+     *
+     * <p>The header goes up with the outcome, and each line below it lands
+     * {@link #EFFECT_ROW_DELAY} after the one before. Space finishes the wait
+     * for anyone who would rather read it all now, exactly as it skips the
+     * typewriter on the scene behind it.
+     */
+    private void revealEffects(String outcome, String effectReport) {
+        stopEffectReveal();
+        stopAutoScroll();
+
+        if (effectReport == null || effectReport.isBlank()) {
+            fullEffectText = null;
+            return;
+        }
+
+        String header = outcome + "\n\nEffects of this choice:";
+        String[] lines = effectReport.split("\n");
+
+        fullEffectText = header + "\n" + String.join("\n", lines);
+
+        resultTextLabel.setText(header);
+
+        StringBuilder shown = new StringBuilder(header);
+        Timeline reveal = new Timeline();
+
+        for (int i = 0; i < lines.length; i++) {
+            String line = lines[i];
+
+            reveal.getKeyFrames().add(new KeyFrame(
+                    EFFECT_ROW_DELAY.multiply(i + 1),
+                    event -> {
+                        shown.append("\n").append(line);
+                        resultTextLabel.setText(shown.toString());
+                        keepNewestEffectInView();
+                    }
+            ));
+        }
+
+        reveal.setOnFinished(event -> effectRevealTimeline = null);
+
+        effectRevealTimeline = reveal;
+        reveal.play();
+    }
+
+    /** True while lines are still landing, which is what Space interrupts. */
+    private boolean effectsStillArriving() {
+        return effectRevealTimeline != null;
+    }
+
+    /** Puts every remaining line up at once. */
+    private void completeEffectReveal() {
+        if (effectRevealTimeline == null) {
+            return;
+        }
+
+        effectRevealTimeline.stop();
+        effectRevealTimeline = null;
+
+        if (fullEffectText != null) {
+            resultTextLabel.setText(fullEffectText);
+            keepNewestEffectInView();
+        }
+    }
+
+    /**
+     * Follows the lines down as they land.
+     *
+     * <p>The scroll shows about six lines of a consequence, and an outcome of
+     * two lines plus four effects is more than that: without this the last
+     * effects arrive below the fold, which is the one place the player is
+     * being asked to look. Deferred, because the pane measures itself before
+     * the line it is being asked to scroll to exists.
+     */
+    private void keepNewestEffectInView() {
+        if (popupMessageScroll == null) {
+            return;
+        }
+
+        Platform.runLater(() -> popupMessageScroll.setVvalue(1.0));
+    }
+
+    private void stopEffectReveal() {
+        if (effectRevealTimeline != null) {
+            effectRevealTimeline.stop();
+            effectRevealTimeline = null;
+        }
     }
 
     private void completeTypewriter() {
@@ -1954,16 +2093,13 @@ public class GameController implements ScreenLifecycle {
         hideChangeCue();
 
         String effectReport = buildEffectReport(beforeStats, beforeFactions);
-        String popupMessage = result;
-
-        if (!effectReport.isBlank()) {
-            popupMessage += "\n\nEffects of this choice:\n" + effectReport;
-        }
-
-        String finalPopupMessage = popupMessage;
+        String outcome = result;
 
         Timeline popupDelay = new Timeline(
-                new KeyFrame(Duration.millis(520), e -> showPopup("", finalPopupMessage, PopupCategory.CONSEQUENCE))
+                new KeyFrame(Duration.millis(520), e -> {
+                    showPopup("", outcome, PopupCategory.CONSEQUENCE);
+                    revealEffects(outcome, effectReport);
+                })
         );
 
         popupDelay.play();
@@ -2126,6 +2262,9 @@ public class GameController implements ScreenLifecycle {
         String safeTitle = title == null ? "" : title;
         String safeMessage = message == null ? "" : message;
 
+        stopEffectReveal();
+        stopAutoScroll();
+
         activePopupTitle = safeTitle;
         activePopupCategory = category;
 
@@ -2171,6 +2310,8 @@ public class GameController implements ScreenLifecycle {
         fadeIn.setFromValue(0);
         fadeIn.setToValue(1);
         fadeIn.play();
+
+        startAutoScroll();
     }
 
     private void configurePopupAppearance(PopupCategory category) {
@@ -2237,6 +2378,8 @@ public class GameController implements ScreenLifecycle {
             popupScrollBackground.setFitWidth(860);
             popupScrollBackground.setFitHeight(680);
 
+            releaseContentCap();
+
             popupContentBox.setMaxWidth(440);
             popupContentBox.setPrefWidth(440);
             popupContentBox.setMaxHeight(Region.USE_COMPUTED_SIZE);
@@ -2266,10 +2409,14 @@ public class GameController implements ScreenLifecycle {
                 popupScrollBackground.setFitWidth(1180);
                 popupScrollBackground.setFitHeight(640);
 
+                // Same paper, same cap: a birth announcing an era, an origin
+                // and a family condition is longer than the parchment, and
+                // put Begin Life on the dark beneath it.
+                capContentToPaper();
+
                 popupContentBox.setMaxWidth(780);
                 popupContentBox.setPrefWidth(780);
-                popupContentBox.setMaxHeight(Region.USE_COMPUTED_SIZE);
-                popupContentBox.setStyle("-fx-padding: 76 200 80 200;");
+                popupContentBox.setStyle("-fx-padding: 0 200 0 200;");
 
                 popupTitleLabel.setMaxWidth(760);
                 resultTextLabel.setMaxWidth(720);
@@ -2310,10 +2457,16 @@ public class GameController implements ScreenLifecycle {
                 // itself and up to three choices inside that. The two
                 // decorative rules are the first thing to go: they are worth
                 // sixty pixels and they are worth nothing else.
+                // Kept only for a consequence, which is three lines and has
+                // the room. Anything holding a passage — a birth, a world
+                // event, an ending — would rather have the sixty pixels than
+                // the ornament, now that the paper is all the height there is.
+                boolean rulesWorthTheirHeight = category == PopupCategory.CONSEQUENCE;
+
                 for (Label rule : new Label[]{popupDividerTop, popupDividerBottom}) {
                     if (rule != null) {
-                        rule.setVisible(!scenePopup);
-                        rule.setManaged(!scenePopup);
+                        rule.setVisible(rulesWorthTheirHeight);
+                        rule.setManaged(rulesWorthTheirHeight);
                     }
                 }
 
@@ -2329,19 +2482,16 @@ public class GameController implements ScreenLifecycle {
                 popupContentBox.setMaxWidth(780);
                 popupContentBox.setPrefWidth(780);
 
-                // A scene's content is sized to itself and left to the
-                // StackPane to centre, rather than stretched to the shell and
-                // held off the edges with padding. The parchment is drawn in
-                // the middle half of the artwork, so a box that fills the
-                // whole shell puts its title above the paper and its last
-                // choice below it, whatever the padding says.
-                popupContentBox.setMaxHeight(scenePopup
-                        ? Region.USE_PREF_SIZE
-                        : Region.USE_COMPUTED_SIZE);
+                // Held to the paper rather than to the shell. The parchment
+                // is drawn across the middle 47% of the artwork, so content
+                // sized to the whole scroll hangs off both ends of it: the
+                // outcome line began above the paper's top edge and Continue
+                // sat ninety pixels below its bottom one. Capped here, the
+                // message scroll inside gives up the height instead, which is
+                // the one child that can lose it and still be read.
+                capContentToPaper();
 
-                popupContentBox.setStyle(scenePopup
-                        ? "-fx-padding: 0 190 0 190;"
-                        : "-fx-padding: 82 190 86 190;");
+                popupContentBox.setStyle("-fx-padding: 0 190 0 190;");
 
                 popupTitleLabel.setMaxWidth(760);
                 resultTextLabel.setMaxWidth(730);
@@ -2352,6 +2502,120 @@ public class GameController implements ScreenLifecycle {
         }
 
         applyScrollTint(category);
+    }
+
+    /**
+     * Keeps the popup's content inside the parchment drawn on the artwork.
+     *
+     * <p>Bound rather than set, because the shell is only as tall as the
+     * window lets it be: an 860px scene scroll is drawn at 680 in a 720-high
+     * window, and a cap measured against the requested height would let the
+     * title back off the paper on exactly the small windows that need it.
+     */
+    private void capContentToPaper() {
+        // The title is pinned to the height its own words need, the way the
+        // choices below it are. Without this the cap takes its second line
+        // away and "Rebellion Ignites in the Provinces" becomes "Rebellion
+        // Ignites in the ...", which is the half that says nothing.
+        popupTitleLabel.setMinHeight(Region.USE_PREF_SIZE);
+
+        // The passage is the one child that can lose height and still be
+        // read, now that it scrolls itself.
+        popupMessageScroll.setMinHeight(50);
+
+        popupContentBox.maxHeightProperty().unbind();
+        popupContentBox.maxHeightProperty().bind(
+                popupShell.heightProperty().multiply(PAPER_BAND));
+
+        popupContentBox.translateYProperty().unbind();
+        popupContentBox.translateYProperty().bind(
+                popupShell.heightProperty().multiply(-PAPER_OFFSET));
+    }
+
+    /**
+     * Walks a passage that will not fit down its own parchment.
+     *
+     * <p>Holding the content to the paper means a long scene no longer hangs
+     * off the scroll — but it also means the last sentence of one now sits
+     * below the fold, behind a scrollbar two pixels wide that nobody sees. So
+     * the paper reads itself: a pause to take in the first lines, then a
+     * steady walk to the end at reading pace.
+     *
+     * <p>Any touch of the pane stops it. A reader who has taken hold of the
+     * text is not helped by it moving underneath them.
+     */
+    private void startAutoScroll() {
+        stopAutoScroll();
+
+        if (popupMessageScroll == null || !GameSettings.isAutoScrollEnabled()) {
+            return;
+        }
+
+        // Deferred: the pane has not measured its new text yet, so asked now
+        // it would report the last scene's height, or none at all.
+        Platform.runLater(() -> {
+            if (popupMessageScroll == null
+                    || resultPopup == null
+                    || !resultPopup.isVisible()
+                    || effectsStillArriving()) {
+
+                return;
+            }
+
+            double viewport = popupMessageScroll.getViewportBounds().getHeight();
+            double content = popupMessageScroll.getContent() == null
+                    ? 0
+                    : popupMessageScroll.getContent().getBoundsInLocal().getHeight();
+
+            double hidden = content - viewport;
+
+            // Everything already fits; there is nothing under the fold.
+            if (hidden <= 2) {
+                return;
+            }
+
+            Duration walk = Duration.seconds(hidden / AUTO_SCROLL_PIXELS_PER_SECOND);
+
+            Timeline scroll = new Timeline(
+                    new KeyFrame(AUTO_SCROLL_LEAD_IN,
+                            new KeyValue(popupMessageScroll.vvalueProperty(), 0)),
+                    new KeyFrame(AUTO_SCROLL_LEAD_IN.add(walk),
+                            new KeyValue(popupMessageScroll.vvalueProperty(), 1))
+            );
+
+            scroll.setOnFinished(event -> autoScrollTimeline = null);
+
+            autoScrollTimeline = scroll;
+            scroll.play();
+        });
+    }
+
+    /**
+     * Hands the passage back the moment the player takes hold of it, by
+     * wheel, by drag, or by the scrollbar itself.
+     */
+    private void stopAutoScrollOnTouch() {
+        if (popupMessageScroll == null) {
+            return;
+        }
+
+        popupMessageScroll.addEventFilter(ScrollEvent.ANY, event -> stopAutoScroll());
+        popupMessageScroll.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> stopAutoScroll());
+        popupMessageScroll.addEventFilter(MouseEvent.MOUSE_DRAGGED, event -> stopAutoScroll());
+    }
+
+    private void stopAutoScroll() {
+        if (autoScrollTimeline != null) {
+            autoScrollTimeline.stop();
+            autoScrollTimeline = null;
+        }
+    }
+
+    /** Hands the box back its own height, for the scrolls sized by hand. */
+    private void releaseContentCap() {
+        popupContentBox.maxHeightProperty().unbind();
+        popupContentBox.translateYProperty().unbind();
+        popupContentBox.setTranslateY(0);
     }
 
     /**
@@ -2474,6 +2738,9 @@ public class GameController implements ScreenLifecycle {
         if (resultPopup == null || !resultPopup.isVisible()) {
             return;
         }
+
+        stopEffectReveal();
+        stopAutoScroll();
 
         popupContinueButton.setDisable(true);
 

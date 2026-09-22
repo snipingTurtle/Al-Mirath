@@ -2,7 +2,9 @@
 
 <?import java.lang.String?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
@@ -69,6 +71,64 @@
                 <String fx:value="name-field"/>
             </styleClass>
         </TextField>
+
+        <!--
+          WHEN AND WHERE
+
+          The station, the household and the temperament stay rolled. These
+          two do not: the game pins a life to a real year, and choosing to be
+          born in Baghdad in 1240 — knowing what 1258 holds — is a reason to
+          play rather than a way around the game. Left alone, all three say
+          "let fate decide" and a life begins exactly as it always did.
+        -->
+        <Label fx:id="whenNoteLabel"
+               text="When and where were you born?"
+               wrapText="true"
+               textAlignment="CENTER"
+               maxWidth="620">
+            <styleClass>
+                <String fx:value="name-note"/>
+            </styleClass>
+        </Label>
+
+        <HBox alignment="CENTER" spacing="12">
+            <VBox alignment="CENTER" spacing="6">
+                <Label text="Era">
+                    <styleClass>
+                        <String fx:value="info-label"/>
+                    </styleClass>
+                </Label>
+
+                <ComboBox fx:id="eraChoice"
+                          prefWidth="230"
+                          minHeight="44"/>
+            </VBox>
+
+            <VBox alignment="CENTER" spacing="6">
+                <Label fx:id="yearLabel" text="Year">
+                    <styleClass>
+                        <String fx:value="info-label"/>
+                    </styleClass>
+                </Label>
+
+                <Spinner fx:id="yearChoice"
+                         editable="true"
+                         prefWidth="150"
+                         minHeight="44"/>
+            </VBox>
+
+            <VBox alignment="CENTER" spacing="6">
+                <Label text="Born in">
+                    <styleClass>
+                        <String fx:value="info-label"/>
+                    </styleClass>
+                </Label>
+
+                <ComboBox fx:id="cityChoice"
+                          prefWidth="200"
+                          minHeight="44"/>
+            </VBox>
+        </HBox>
 
         <HBox alignment="CENTER" spacing="16">
             <Button fx:id="beginButton"

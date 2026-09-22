@@ -1,6 +1,7 @@
 package com.example.al_mirath;
 
 import com.example.al_mirath.controller.NameController;
+import com.example.al_mirath.model.LifeStart;
 import com.example.al_mirath.controller.WelcomeController;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -89,6 +90,11 @@ class NameScreenTest {
             public void showNewLife(String chosenName) {
                 wentTo.set("straight into a life");
             }
+
+            @Override
+            public void showNewLife(String chosenName, LifeStart start) {
+                wentTo.set("straight into a life");
+            }
         };
 
         Button newGame = onFxThread(() -> {
@@ -141,6 +147,13 @@ class NameScreenTest {
         Main watching = new Main() {
             @Override
             public void showNewLife(String chosenName) {
+                began.set(chosenName);
+            }
+
+            // Begin carries when and where as well as who, now that the
+            // naming screen asks for all three.
+            @Override
+            public void showNewLife(String chosenName, LifeStart start) {
                 began.set(chosenName);
             }
         };

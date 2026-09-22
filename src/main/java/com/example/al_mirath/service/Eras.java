@@ -85,6 +85,19 @@ public final class Eras {
         return start + random.nextInt(last - start + 1);
     }
 
+    /** True when a year is one the era actually saw. */
+    public static boolean isYearIn(String era, int year) {
+        return isKnown(era) && year >= startOf(era) && year <= endOf(era);
+    }
+
+    /**
+     * The last year a life may be started in, which stops short of the era's
+     * own end so that a character has a life's worth of it in front of them.
+     */
+    public static int lastBirthYearIn(String era) {
+        return Math.max(startOf(era), endOf(era) - ROOM_TO_LIVE);
+    }
+
     /** True when this city is somewhere a person could be, that year. */
     public static boolean cityExistsIn(String city, int year) {
         return year >= CITY_FROM.getOrDefault(city, 0);

@@ -1,5 +1,6 @@
 package com.example.al_mirath.service;
 
+
 import com.example.al_mirath.model.PlayerCharacter;
 
 import java.util.Random;
@@ -83,8 +84,19 @@ public class CharacterGenerator {
      *                   the generator the way every life used to be
      */
     public PlayerCharacter generateCharacter(String chosenName) {
+        return generateCharacter(chosenName, null);
+    }
+
+    /**
+     * Builds a life in a named era.
+     *
+     * @param chosenName   what the player typed, or null to be named by the roll
+     * @param requestedEra the era the player chose on the naming screen, or
+     *                     null to be born whenever the roll says
+     */
+    public PlayerCharacter generateCharacter(String chosenName, String requestedEra) {
         String name = nameOrRandom(chosenName);
-        String era = randomFrom(eras);
+        String era = eraOrRoll(requestedEra);
         String origin = generateOriginByEra(era);
         String familyCondition = randomFrom(familyConditions);
         String trait = randomFrom(traits);
@@ -344,6 +356,24 @@ public class CharacterGenerator {
                 familyLoyalty,
                 stress
         );
+    }
+
+    /** The era the player asked for if it exists, and a rolled one otherwise. */
+    private String eraOrRoll(String requestedEra) {
+        if (requestedEra != null && !requestedEra.isBlank()) {
+            for (String era : eras) {
+                if (era.equalsIgnoreCase(requestedEra.trim())) {
+                    return era;
+                }
+            }
+        }
+
+        return randomFrom(eras);
+    }
+
+    /** The four eras a life may begin in, in order. */
+    public String[] eras() {
+        return eras.clone();
     }
 
     private String generateOriginByEra(String era) {

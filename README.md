@@ -22,7 +22,7 @@ it is built, and who built which part:
 |---|---|---|
 | **S. M. Niamul Karim** | 230041107 | The world and the long game: cities that live on their own, the dynasty and succession system, renown, the household, earned titles, the Threads of Fate rewind, and the sourced historical timeline. The JavaFX screens and layout work, the naming screen's choice of when and where a life begins, and the cross-platform build and release pipeline. |
 | **Labib Bin Monsur** | 230041109 | Founded the project: the core life-simulation loop, era and character generation, the early story content, and the persistent recurring characters who remember what you did to them across a life. |
-| **Mahir Ahnaf** | 2300411215 | What you do with a year: the fifty-one activities, the nine-career trade ladder with promotion and retirement, the property market, the yearly life events, six of the mini-games, and the list-menu overlay they run on. |
+| **Mahir Ahnaf** | 230041215 | What you do with a year: the fifty-one activities, the nine-career trade ladder with promotion and retirement, the property market, the yearly life events, six of the mini-games, and the list-menu overlay they run on. |
 
 ---
 

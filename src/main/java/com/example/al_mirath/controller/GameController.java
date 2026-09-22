@@ -12,6 +12,7 @@ import com.example.al_mirath.model.GameEvent;
 import com.example.al_mirath.model.FamilyMember;
 import com.example.al_mirath.model.LegacyRecord;
 import com.example.al_mirath.model.LifeLogEntry;
+import com.example.al_mirath.model.LifeStart;
 import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.model.Property;
 import com.example.al_mirath.model.RecurringCharacter;
@@ -111,6 +112,9 @@ public class GameController implements ScreenLifecycle {
 
     /** What the player typed on the naming screen; null for a rolled name. */
     private String chosenName;
+
+    /** When and where the player asked to be born, from the naming screen. */
+    private LifeStart lifeStart = LifeStart.rolled();
 
     /**
      * How many heirs the succession screen offers at once. The third choice
@@ -371,7 +375,7 @@ public class GameController implements ScreenLifecycle {
     public void initialize() {
         boolean continuingGame = restoredEngine != null;
 
-        engine = continuingGame ? restoredEngine : new GameEngine(chosenName);
+        engine = continuingGame ? restoredEngine : new GameEngine(chosenName, lifeStart);
 
         pendingLegacyTitleMessage = "";
         pendingStatusChangeMessage = "";
@@ -467,6 +471,11 @@ public class GameController implements ScreenLifecycle {
      */
     public void setChosenName(String chosenName) {
         this.chosenName = chosenName;
+    }
+
+    /** Set before the FXML loads, like the name beside it. */
+    public void setLifeStart(LifeStart lifeStart) {
+        this.lifeStart = lifeStart == null ? LifeStart.rolled() : lifeStart;
     }
 
     /**

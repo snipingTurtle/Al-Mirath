@@ -37,6 +37,9 @@ public final class CityRegistry {
 
     private String currentCityName = "";
 
+    /** Where the player asked to be born, if they asked. */
+    private String requestedCity;
+
     /** Builds the map a particular life is lived on. */
     public static CityRegistry createFor(PlayerCharacter player) {
         String era = player == null ? "" : player.getEra();
@@ -52,7 +55,17 @@ public final class CityRegistry {
      * dated to a real year is only allowed the cities that were there for it.
      */
     public static CityRegistry createFor(PlayerCharacter player, int year) {
+        return createFor(player, year, null);
+    }
+
+    /**
+     * The world in a given year, with the player standing where they asked to
+     * stand. A city that is not in this era, or not there yet in this year,
+     * is ignored in favour of the era's seat.
+     */
+    public static CityRegistry createFor(PlayerCharacter player, int year, String requestedCity) {
         CityRegistry registry = new CityRegistry();
+        registry.requestedCity = requestedCity;
 
         String era = player == null ? "" : player.getEra();
 
@@ -83,6 +96,19 @@ public final class CityRegistry {
      * own background names a city, in which case that is home.
      */
     private String startingCityFor(PlayerCharacter player) {
+        String demanded = requestedCity;
+
+        if (demanded != null && !demanded.isBlank()) {
+            for (String name : cities.keySet()) {
+                if (name.equalsIgnoreCase(demanded)) {
+                    return name;
+                }
+            }
+
+            System.out.println("Ignoring a start in " + demanded
+                    + ": not a city of this era and year.");
+        }
+
         String seat =
                 player == null
                         ? ""

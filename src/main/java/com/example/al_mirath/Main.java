@@ -7,6 +7,7 @@ import com.example.al_mirath.controller.NameController;
 import com.example.al_mirath.controller.ScreenLifecycle;
 import com.example.al_mirath.controller.SettingsController;
 import com.example.al_mirath.controller.WelcomeController;
+import com.example.al_mirath.model.LifeStart;
 import com.example.al_mirath.service.GameEngine;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -118,7 +119,12 @@ public class Main extends Application {
 
     /** Starts a brand-new life under the name the player settled on. */
     public void showNewLife(String chosenName) {
-        showGameScreen(null, chosenName);
+        showNewLife(chosenName, LifeStart.rolled());
+    }
+
+    /** A new life, begun when and where the player asked to begin it. */
+    public void showNewLife(String chosenName, LifeStart start) {
+        showGameScreen(null, chosenName, start);
     }
 
     public void showGameScreen() {
@@ -130,6 +136,10 @@ public class Main extends Application {
     }
 
     private void showGameScreen(GameEngine restoredEngine, String chosenName) {
+        showGameScreen(restoredEngine, chosenName, LifeStart.rolled());
+    }
+
+    private void showGameScreen(GameEngine restoredEngine, String chosenName, LifeStart start) {
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/com/example/al_mirath/fxml/game-screen.fxml")
@@ -138,6 +148,7 @@ public class Main extends Application {
             GameController controller = new GameController();
             controller.setRestoredEngine(restoredEngine);
             controller.setChosenName(chosenName);
+            controller.setLifeStart(start);
             loader.setController(controller);
 
             Parent root = loader.load();

@@ -15,7 +15,9 @@ import com.example.al_mirath.model.PlayerCharacter;
 import com.example.al_mirath.model.Property;
 import com.example.al_mirath.model.Renown;
 import com.example.al_mirath.model.Succession;
+import com.example.al_mirath.core.DemoSetup;
 import com.example.al_mirath.model.HistoricalEvent;
+import com.example.al_mirath.model.LifeStart;
 import com.example.al_mirath.model.WorldEvent;
 import com.example.al_mirath.model.WorldState;
 import com.example.al_mirath.model.DeathCause;
@@ -116,6 +118,13 @@ public class GameEngine {
 
     /** Historical scenes raised this life, so a rewind can find them again. */
     private final Map<String, GameEvent> historicalScenes = new HashMap<>();
+
+    /**
+     * A scene that was already waiting when history arrived on top of it.
+     * The Mongols do not cancel the rest of a life: whatever was queued is
+     * handed back once the year has been answered.
+     */
+    private GameEvent displacedByHistory;
     private String latestWorldEventTitle = "";
     private String latestWorldEventMessage = "";
 
@@ -172,14 +181,37 @@ public class GameEngine {
      * @param chosenName what they typed, or null to be named by the roll
      */
     public GameEngine(String chosenName) {
+        this(chosenName, DemoSetup.asLifeStart());
+    }
+
+    /**
+     * Begins a life the player has said something about.
+     *
+     * <p>The station, the household and the temperament are still rolled —
+     * a run hands you a person rather than letting you build one. When and
+     * where are the exception, because the game pins a life to a real year
+     * now, and choosing to be born in Baghdad in 1240 knowing what 1258 holds
+     * is a reason to play rather than a way around the game.
+     *
+     * @param chosenName what the player typed, or null to be named by the roll
+     * @param start      what they chose about when and where, possibly nothing
+     */
+    public GameEngine(String chosenName, LifeStart start) {
+        LifeStart chosen = start == null ? LifeStart.rolled() : start;
+
         CharacterGenerator generator = new CharacterGenerator();
-        this.player = generator.generateCharacter(chosenName);
+        this.player = generator.generateCharacter(chosenName, chosen.era());
         this.factions = new FactionRelations();
         this.worldState = new WorldState();
 
         // The year comes before everything: which cities are there to be born
         // in depends on when this is, and so does what the birth scroll says.
-        this.birthYear = Eras.birthYearIn(player.getEra(), random);
+        // A year the player asked for is kept if that era saw it, and quietly
+        // rolled if it did not — being born in an Abbasid 1500 is not a life
+        // the game can honestly give anybody.
+        this.birthYear = chosen.hasBirthYear() && Eras.isYearIn(player.getEra(), chosen.birthYear())
+                ? chosen.birthYear()
+                : Eras.birthYearIn(player.getEra(), random);
 
         this.birthIntroMessage = createBirthIntroMessage();
 
@@ -189,7 +221,7 @@ public class GameEngine {
         this.family = FamilyRegistry.createFor(player);
         this.renown = new RenownRegistry();
 
-        this.cities = CityRegistry.createFor(player, birthYear);
+        this.cities = CityRegistry.createFor(player, birthYear, chosen.city());
         this.dynasty = Dynasty.foundedBy(player);
 
         this.eventPool = EventLibrary.createEventPool();
@@ -1405,6 +1437,12 @@ public class GameEngine {
             return "This choice is unavailable.\n\n" + getLockedReason(choice);
         }
 
+        // Whether this is a year out of the record rather than one of the
+        // storyteller's scenes. Worked out before anything moves, because
+        // what follows treats the two differently.
+        boolean answeredHistory = currentEvent != null
+                && historicalScenes.containsKey(currentEvent.getTitle());
+
         // Captured before anything mutates so a won rewind lands exactly here.
         lastSnapshot = captureSnapshot(choice);
         choicesMade++;
@@ -1467,7 +1505,14 @@ public class GameEngine {
         // A scene happens inside a year; it does not silently consume six of
         // them. Time is the age-up, and nothing else, which is what lets a
         // player feel the difference between a decision and a decade.
-        yearsSinceScene = 0;
+        //
+        // History does not reset this clock. The Mongols arriving is not the
+        // storyteller taking a turn, and counting it as one pushed the next
+        // authored scene years further out every time a life met the record.
+        if (!answeredHistory) {
+            yearsSinceScene = 0;
+        }
+
         sceneDue = false;
 
         updateCurrentStatus();
@@ -1485,17 +1530,24 @@ public class GameEngine {
         latestLegacyTitleMessage = checkForNewLegacyTitles();
         rollForWorldEvent();
 
-        if (currentEvent != null) {
+        // A year out of the record is not one of the chapter's authored
+        // scenes and must not be counted as one. Counting it spent the
+        // chapter's budget on history, and the cast stopped turning up.
+        if (currentEvent != null && !answeredHistory) {
             playedEventTitles.add(currentEvent.getTitle());
-        }
 
-        if (currentEvent != null) {
             String stage = currentEvent.getLifeStage();
             int playedInStage = stageEventsPlayed.getOrDefault(stage, 0);
             stageEventsPlayed.put(stage, playedInStage + 1);
         }
 
         currentEvent = null;
+
+        // And the scene history interrupted comes back.
+        if (answeredHistory && displacedByHistory != null) {
+            currentEvent = displacedByHistory;
+            displacedByHistory = null;
+        }
 
         String finalResult;
 
@@ -3197,6 +3249,11 @@ public class GameEngine {
         );
 
         historicalScenes.put(scene.getTitle(), scene);
+
+        // Whatever was queued keeps its turn.
+        if (currentEvent != null && !historicalScenes.containsKey(currentEvent.getTitle())) {
+            displacedByHistory = currentEvent;
+        }
 
         currentEvent = scene;
         sceneDue = true;

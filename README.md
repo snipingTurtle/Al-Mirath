@@ -289,6 +289,31 @@ Use `mvnw` / `mvnw.cmd` rather than a system Maven; it fetches the right version
 itself. Any IDE that imports a Maven project will do — the project carries
 Eclipse and IntelliJ metadata, and neither is required.
 
+### Choosing when and where you are born
+
+The naming screen asks two questions besides your name: **which era**, and
+**which year and city inside it**. All three default to *Let fate decide*, so
+pressing Begin gives you exactly what it always did — a rolled station in a
+rolled year.
+
+Choose an era and the year box opens that era's own span; move the year and the
+city list changes with it, because Baghdad is not a birthplace before 762 and
+Istanbul is not one before 1453. Being born in **Baghdad in 1240** means you
+will be eighteen when the Mongols arrive, and you will know it the whole time.
+
+The same three can be set from the command line, which is what the tests use:
+
+```bash
+java -Dalmirath.era="Abbasid Era" \
+     -Dalmirath.birthYear=1240 \
+     -Dalmirath.city=Baghdad \
+     -jar target/almirath.jar
+```
+
+A year the era never saw, or a city that was not standing yet, is refused
+either way — from the screen it is simply not offered, and from the command
+line it is ignored rather than obeyed.
+
 Part of the suite drives real JavaFX screens, so it needs a display. On a
 headless machine, run it under a virtual one — `xvfb-run -a ./mvnw test` — which
 is what the workflow does on CI.

@@ -137,7 +137,14 @@ class EventSelectionTest {
     @DisplayName("weighting the draw does not cost the cast their arcs")
     void theCastStillReliablyTurnsUp() {
         Random random = new Random(11);
-        int lives = 150;
+
+        // Four hundred rather than a hundred and fifty. The engine rolls its
+        // own numbers, so this proportion carries real sampling noise: at 150
+        // lives it measures about 77% give or take three and a half points,
+        // and the bar below is only two points of noise away from the mean —
+        // which failed the build about one run in twenty, on nothing. Four
+        // hundred halves the noise and puts three deviations between the two.
+        int lives = 400;
         int metEveryone = 0;
 
         for (int run = 0; run < lives; run++) {

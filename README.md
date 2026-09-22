@@ -14,7 +14,7 @@ Built with JavaFX 21 and an embedded SQLite database.
 A walkthrough of the project — what it does, a demonstration of it running, how
 it is built, and who built which part:
 
-**[Watch the presentation](PASTE_VIDEO_LINK_HERE)**
+**[Watch the presentation](https://youtu.be/ACR4lAcScEw)**
 
 ## The team
 
